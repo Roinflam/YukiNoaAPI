@@ -1,0 +1,74 @@
+package pers.tany.yukinoaapi.interfacepart.player;
+
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+import pers.tany.yukinoaapi.Main;
+import pers.tany.yukinoaapi.NMSUtil;
+import pers.tany.yukinoaapi.interfacepart.other.IString;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
+/**
+ * 玩家信息相关
+ */
+public interface IMessage {
+
+    /**
+     * 向玩家发送一条ActionBar
+     *
+     * @param player 被发送的玩家
+     * @param m      信息
+     * @param time   时间/秒
+     */
+    static void sendActionBar(Player player, String m, int time) {
+        new BukkitRunnable() {
+            int i = 0;
+
+            @Override
+            public void run() {
+                try {
+                    Field playerConnection = NMSUtil.playerConnection;
+                    Class<?> packetPlayOutChat = NMSUtil.packetPlayOutChat;
+                    Method send = NMSUtil.send;
+                    Method getHandle = NMSUtil.getHandle_Player;
+                    Class<?> iChatBaseComponent = NMSUtil.iChatBaseComponent;
+                    Class<?> chatComponentText = NMSUtil.chatComponentText;
+                    Class<?> chatMessageType = NMSUtil.chatMessageType;
+
+                    @Nullable Enum e = null;
+                    for (Enum inside_enum : (Enum[]) chatMessageType.getEnumConstants()) {
+                        if (inside_enum.name().equalsIgnoreCase("GAME_INFO")) {
+                            e = inside_enum;
+                            break;
+                        }
+                    }
+                    Object message = chatComponentText.getConstructor(String.class).newInstance(IString.color(m));
+                    Object packet;
+                    try {
+                        packet = packetPlayOutChat.getConstructor(iChatBaseComponent, chatMessageType).newInstance(message, e);
+                    } catch (Exception a) {
+                        packet = packetPlayOutChat.getConstructor(iChatBaseComponent, chatMessageType, player.getUniqueId().getClass()).newInstance(message, e, player.getUniqueId());
+                    }
+                    send.invoke(playerConnection.get(getHandle.invoke(player)), packet);
+
+//                  CraftPlayer cp = (CraftPlayer) sender;
+//                  ChatComponentText c = new ChatComponentText(ChatColor.translateAlternateColorCodes('', "f" + args[2]));
+//                  PacketPlayOutChat pack = new PacketPlayOutChat(c, ChatMessageType.GAME_INFO);
+//                  PlayerConnection pc = cp.getHandle().playerConnection;
+//                  pc.sendPacket(pack);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    player.sendMessage("§c版本/服务端不兼容！");
+                }
+                i++;
+                if (i >= time - 2) {
+                    cancel();
+                }
+            }
+
+        }.runTaskTimerAsynchronously(Main.plugin, 0, 20);
+    }
+}

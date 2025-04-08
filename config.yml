@@ -1,0 +1,28 @@
+# 是否启用ProtocolLib序列化物品功能
+# 修改后你之前所有储存物品相关的插件都要重新配置
+# 如果你没有用过就可以放心修改
+# 一般是在特殊字符序列化错误为?时或1.7根本无法序列化使用
+ProtocolLibItem: true
+
+# 自定义数据目录
+# 注意：此设置不适用于 YukiNoaAPI 插件本身，YukiNoaAPI 将始终使用默认的 plugins/YukiNoaAPI 目录
+# 对于其他插件：
+# - 如果此项为空，插件将使用默认的 plugins/插件名 目录
+# - 如果设置了有效路径，插件将使用 指定路径/插件名 作为数据目录
+# 例如：设置为 'G:\MinecraftData' 将导致其他插件数据存储在 G:\MinecraftData\插件名 目录下
+CustomDataDirectory: ''
+
+# 在config.yml中添加
+Database:
+  MySQL:
+    # MySQL连接参数，留空则使用默认配置(useSSL=false&autoReconnect=true)
+    Parameters: ""
+
+# 日志设置
+Logging:
+  # 是否显示默认路径的日志信息
+  # 注意：这不会影响 YukiNoaAPI 的日志输出
+  ShowDefaultPathLogs: false
+  # 是否显示详细的配置文件操作日志
+  # 注意：这不会影响 YukiNoaAPI 的日志输出
+  VerboseConfigLogs: false
