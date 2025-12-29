@@ -1,0 +1,73 @@
+# YukiNoaAPI 简体中文语言文件
+# 占位符说明: {0}, {1}, {2}... 会被替换为实际内容
+
+# 通用消息
+common:
+  prefix: "§7[§fYukiNoaAPI§7]§r "
+  no-permission: "§c你没有权限执行此命令！"
+  player-only: "§c此命令只能由玩家执行！"
+  unknown-command: "§c未知命令，请使用 /yn help 查看帮助。"
+  reload-success: "§a配置文件重载成功！"
+  reload-fail: "§c配置文件重载失败！"
+
+# Debug命令
+debug:
+  enabled: "§aDebug模式已开启"
+  disabled: "§eDebug模式已关闭"
+  help-title: "§6========== YukiNoaAPI Debug帮助 =========="
+  help-debug: "§e/yn debug §7- 开关Debug模式"
+  help-classes: "§e/yn classes §7- 输出所有可用的NMS类"
+  help-reload: "§e/yn reload §7- 重载配置文件"
+  help-footer: "§6========================================"
+
+# 物品信息
+item:
+  name: "§a物品名称: §f{0}"
+  type: "§a物品Type: §f{0}"
+  sub-id: "§a物品子ID: §f{0}"
+  max-stack: "§a物品最大堆叠数: §f{0}"
+  enchantments: "§a物品附魔:"
+  enchantment-entry: " §f- {0} {1}级"
+  nbt: "§a物品NBT: §f{0}"
+
+# 方块信息
+block:
+  type: "§a方块Type: §f{0}"
+  data: "§a方块Data: §f{0}"
+  biome: "§a方块所在群系: §f{0}"
+  nbt: "§a方块NBT: §f{0}"
+  nbt-none: "无"
+
+# 实体信息
+entity:
+  name: "§a实体名称: §f{0}"
+  save-name: "§a实体储存名: §f{0}"
+  type: "§a实体Type: §f{0}"
+  uuid: "§a实体UUID: §f{0}"
+  location: "§a实体坐标: §f{0}"
+  vector: "§a实体向量: §f{0}"
+  nbt: "§a实体NBT: §f{0}"
+  nbt-fail: "获取失败: {0}"
+
+# 物品栏信息
+inventory:
+  click-type: "§a本次点击类型: §f{0}"
+  title: "§a物品栏标题: §f{0}"
+  type: "§a物品栏Type: §f{0}"
+  size: "§a物品栏大小: §f{0}"
+  slot: "§a物品栏格子坐标: §f{0}"
+  raw-slot: "§a视图格子坐标: §f{0}"
+
+# Ask交互
+ask:
+  timeout: "§c输入超时已取消！"
+  cancelled: "§e操作已取消。"
+
+# SelectBlock方块选择
+select-block:
+  instruction: "§e请左键点击选择第一个方块，右键点击选择第二个方块"
+  first-selected: "§a已选择第一个方块: §f{0}"
+  second-selected: "§a已选择第二个方块: §f{0}"
+  complete: "§a方块选择完成！"
+  timeout: "§c选择超时已取消！"
+  cancelled: "§e选择已取消。"

@@ -1,0 +1,73 @@
+# YukiNoaAPI English Language File
+# Placeholders: {0}, {1}, {2}... will be replaced with actual content
+
+# Common Messages
+common:
+  prefix: "§7[§fYukiNoaAPI§7]§r "
+  no-permission: "§cYou don't have permission to execute this command!"
+  player-only: "§cThis command can only be executed by players!"
+  unknown-command: "§cUnknown command. Use /yn help for help."
+  reload-success: "§aConfiguration reloaded successfully!"
+  reload-fail: "§cFailed to reload configuration!"
+
+# Debug Command
+debug:
+  enabled: "§aDebug mode enabled"
+  disabled: "§eDebug mode disabled"
+  help-title: "§6========== YukiNoaAPI Debug Help =========="
+  help-debug: "§e/yn debug §7- Toggle debug mode"
+  help-classes: "§e/yn classes §7- Print all available NMS classes"
+  help-reload: "§e/yn reload §7- Reload configuration"
+  help-footer: "§6==========================================="
+
+# Item Info
+item:
+  name: "§aItem Name: §f{0}"
+  type: "§aItem Type: §f{0}"
+  sub-id: "§aItem SubID: §f{0}"
+  max-stack: "§aMax Stack Size: §f{0}"
+  enchantments: "§aEnchantments:"
+  enchantment-entry: " §f- {0} Level {1}"
+  nbt: "§aItem NBT: §f{0}"
+
+# Block Info
+block:
+  type: "§aBlock Type: §f{0}"
+  data: "§aBlock Data: §f{0}"
+  biome: "§aBiome: §f{0}"
+  nbt: "§aBlock NBT: §f{0}"
+  nbt-none: "None"
+
+# Entity Info
+entity:
+  name: "§aEntity Name: §f{0}"
+  save-name: "§aSave Name: §f{0}"
+  type: "§aEntity Type: §f{0}"
+  uuid: "§aEntity UUID: §f{0}"
+  location: "§aLocation: §f{0}"
+  vector: "§aVector: §f{0}"
+  nbt: "§aEntity NBT: §f{0}"
+  nbt-fail: "Failed: {0}"
+
+# Inventory Info
+inventory:
+  click-type: "§aClick Type: §f{0}"
+  title: "§aInventory Title: §f{0}"
+  type: "§aInventory Type: §f{0}"
+  size: "§aInventory Size: §f{0}"
+  slot: "§aSlot: §f{0}"
+  raw-slot: "§aRaw Slot: §f{0}"
+
+# Ask Interaction
+ask:
+  timeout: "§cInput timeout, cancelled!"
+  cancelled: "§eOperation cancelled."
+
+# SelectBlock Block Selection
+select-block:
+  instruction: "§eLeft click to select first block, right click to select second block"
+  first-selected: "§aFirst block selected: §f{0}"
+  second-selected: "§aSecond block selected: §f{0}"
+  complete: "§aBlock selection complete!"
+  timeout: "§cSelection timeout, cancelled!"
+  cancelled: "§eSelection cancelled."
