@@ -10,15 +10,12 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.text.MessageFormat;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 语言管理工具类
  * 提供多语言支持，从语言文件中获取文本
- *
- * <p>注意：此类自身的日志使用硬编码，因为初始化时自己还不可用</p>
- *
- * @author tany
- * @since 3.0.0
+ * 使用缓存机制优化 MessageFormat 性能
  */
 public final class LangUtil {
 
@@ -43,6 +40,25 @@ public final class LangUtil {
     private static boolean initialized = false;
 
     /**
+     * MessageFormat 缓存
+     * 避免重复创建 MessageFormat 对象，提升性能
+     * 使用 ConcurrentHashMap 保证线程安全
+     */
+    private static final ConcurrentHashMap<String, MessageFormat> formatCache = new ConcurrentHashMap<>(64);
+
+    /**
+     * 语言文本缓存
+     * 缓存常用的语言文本，减少配置文件读取
+     */
+    private static final ConcurrentHashMap<String, String> textCache = new ConcurrentHashMap<>(128);
+
+    /**
+     * 缓存最大容量
+     * 防止缓存无限增长
+     */
+    private static final int MAX_CACHE_SIZE = 512;
+
+    /**
      * 私有构造函数，防止实例化
      */
     private LangUtil() {
@@ -64,36 +80,33 @@ public final class LangUtil {
      */
     public static void init() {
         if (Main.plugin == null) {
-            // 硬编码日志：语言系统初始化失败
             LogUtil.error("Language system initialization failed: plugin instance is null");
             return;
         }
 
-        // 创建语言文件目录
         langDir = new File(Main.plugin.getDataFolder(), "lang");
         if (!langDir.exists()) {
             langDir.mkdirs();
         }
 
-        // 释放默认语言文件
         extractDefaultLangFile("zh_cn.yml");
         extractDefaultLangFile("en_us.yml");
 
-        // 加载配置的语言
         reload();
 
-        // 标记已初始化
         initialized = true;
 
-        // 硬编码日志：初始化完成
         LogUtil.debug("Language system initialized, current language: " + currentLang);
     }
 
     /**
      * 重新加载语言配置
-     * 此方法的日志使用硬编码
+     * 同时清空所有缓存
      */
     public static void reload() {
+        formatCache.clear();
+        textCache.clear();
+
         if (Main.config != null) {
             currentLang = Main.config.getString("Language", "zh_cn").toLowerCase();
         }
@@ -101,7 +114,6 @@ public final class LangUtil {
         File langFile = new File(langDir, currentLang + ".yml");
 
         if (!langFile.exists()) {
-            // 硬编码日志：语言文件不存在
             LogUtil.warning("Language file not found: " + currentLang + ".yml, using default zh_cn");
             currentLang = "zh_cn";
             langFile = new File(langDir, "zh_cn.yml");
@@ -109,10 +121,8 @@ public final class LangUtil {
 
         if (langFile.exists()) {
             langConfig = YamlConfiguration.loadConfiguration(langFile);
-            // 硬编码日志：已加载语言文件
             LogUtil.debug("Language file loaded: " + langFile.getName());
         } else {
-            // 硬编码日志：默认语言文件也不存在
             LogUtil.error("Default language file not found, language system may not work properly");
             langConfig = new YamlConfiguration();
         }
@@ -120,7 +130,6 @@ public final class LangUtil {
 
     /**
      * 从jar中释放默认语言文件
-     * 此方法的日志使用硬编码
      *
      * @param fileName 语言文件名
      */
@@ -134,20 +143,17 @@ public final class LangUtil {
         try (InputStream inputStream = Main.class.getClassLoader().getResourceAsStream("lang/" + fileName)) {
             if (inputStream != null) {
                 Files.copy(inputStream, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                // 硬编码日志：已释放语言文件
                 LogUtil.debug("Language file extracted: " + fileName);
             } else {
-                // 硬编码日志：在jar中未找到语言文件
                 LogUtil.warning("Language file not found in jar: lang/" + fileName);
             }
         } catch (IOException e) {
-            // 硬编码日志：释放语言文件失败
             LogUtil.error("Failed to extract language file: " + fileName, e);
         }
     }
 
     /**
-     * 获取语言文本
+     * 获取语言文本（带缓存）
      *
      * @param key 语言键
      * @return 对应的文本，如果不存在返回键本身
@@ -157,12 +163,26 @@ public final class LangUtil {
         if (langConfig == null) {
             return key;
         }
+
+        String cached = textCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
         String value = langConfig.getString(key);
-        return value != null ? value : key;
+        if (value == null) {
+            return key;
+        }
+
+        if (textCache.size() < MAX_CACHE_SIZE) {
+            textCache.put(key, value);
+        }
+
+        return value;
     }
 
     /**
-     * 获取语言文本并替换占位符
+     * 获取语言文本并替换占位符（带 MessageFormat 缓存）
      *
      * @param key  语言键
      * @param args 占位符参数
@@ -176,16 +196,39 @@ public final class LangUtil {
             return template;
         }
 
-        try {
-            return MessageFormat.format(template, args);
-        } catch (IllegalArgumentException e) {
-            // MessageFormat 失败时使用简单替换
-            String result = template;
-            for (int i = 0; i < args.length; i++) {
-                result = result.replace("{" + i + "}", String.valueOf(args[i]));
+        MessageFormat format = formatCache.get(key);
+        if (format == null) {
+            try {
+                format = new MessageFormat(template);
+                if (formatCache.size() < MAX_CACHE_SIZE) {
+                    formatCache.put(key, format);
+                }
+            } catch (IllegalArgumentException e) {
+                return fallbackFormat(template, args);
             }
-            return result;
         }
+
+        try {
+            return format.format(args);
+        } catch (IllegalArgumentException e) {
+            return fallbackFormat(template, args);
+        }
+    }
+
+    /**
+     * 备用格式化方法
+     * 当 MessageFormat 失败时使用简单字符串替换
+     *
+     * @param template 模板字符串
+     * @param args     参数数组
+     * @return 格式化后的字符串
+     */
+    private static String fallbackFormat(String template, Object[] args) {
+        String result = template;
+        for (int i = 0; i < args.length; i++) {
+            result = result.replace("{" + i + "}", String.valueOf(args[i]));
+        }
+        return result;
     }
 
     /**
@@ -273,5 +316,23 @@ public final class LangUtil {
     public static void setCurrentLang(@Nonnull String lang) {
         currentLang = lang.toLowerCase();
         reload();
+    }
+
+    /**
+     * 清空所有缓存
+     * 在内存紧张时可调用此方法
+     */
+    public static void clearCache() {
+        formatCache.clear();
+        textCache.clear();
+    }
+
+    /**
+     * 获取当前缓存大小
+     *
+     * @return 缓存条目数量
+     */
+    public static int getCacheSize() {
+        return formatCache.size() + textCache.size();
     }
 }

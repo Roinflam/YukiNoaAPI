@@ -6,16 +6,38 @@ import pers.tany.yukinoaapi.util.LogUtil;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 公式计算工具接口
  * 提供字符串公式的计算功能
  * 兼容Java 8-21+版本
- *
- * @author tany
- * @since 1.0.0
+ * 使用缓存机制优化 ScriptEngine 性能
  */
 public interface IFormula {
+
+    /**
+     * ScriptEngine 缓存
+     * 创建 ScriptEngine 非常耗时，必须缓存复用
+     * 使用 ThreadLocal 保证线程安全
+     */
+    ThreadLocal<ScriptEngine> ENGINE_CACHE = new ThreadLocal<>();
+
+    /**
+     * 表达式结果缓存
+     * 缓存常用表达式的计算结果
+     */
+    ConcurrentHashMap<String, Double> RESULT_CACHE = new ConcurrentHashMap<>(64);
+
+    /**
+     * 布尔表达式结果缓存
+     */
+    ConcurrentHashMap<String, Boolean> BOOLEAN_CACHE = new ConcurrentHashMap<>(64);
+
+    /**
+     * 缓存最大容量
+     */
+    int MAX_CACHE_SIZE = 256;
 
     /**
      * 根据字符串的公式进行运算
@@ -24,22 +46,45 @@ public interface IFormula {
      * @return 计算结果，失败返回0
      */
     static double numericalFormula(String formula) {
-        if (formula == null || formula.trim().isEmpty()) {
+        if (formula == null || formula.isEmpty()) {
             return 0;
         }
 
-        // 首先尝试使用脚本引擎
-        Double result = evaluateWithScriptEngine(formula);
+        String trimmed = formula.trim();
+        if (trimmed.isEmpty()) {
+            return 0;
+        }
+
+        Double cached = RESULT_CACHE.get(trimmed);
+        if (cached != null) {
+            return cached;
+        }
+
+        Double result = evaluateWithScriptEngine(trimmed);
         if (result != null) {
+            cacheResult(trimmed, result);
             return result;
         }
 
-        // 如果脚本引擎不可用，使用内置解析器
         try {
-            return evaluateExpression(formula);
+            double evaluated = evaluateExpression(trimmed);
+            cacheResult(trimmed, evaluated);
+            return evaluated;
         } catch (Exception e) {
             LogUtil.error(LangUtil.get("formula.calc-fail", formula), e);
             return 0;
+        }
+    }
+
+    /**
+     * 缓存计算结果
+     *
+     * @param formula 公式
+     * @param result  结果
+     */
+    static void cacheResult(String formula, double result) {
+        if (RESULT_CACHE.size() < MAX_CACHE_SIZE) {
+            RESULT_CACHE.put(formula, result);
         }
     }
 
@@ -50,19 +95,30 @@ public interface IFormula {
      * @return 判断结果，失败返回false
      */
     static boolean judgmentFormula(String formula) {
-        if (formula == null || formula.trim().isEmpty()) {
+        if (formula == null || formula.isEmpty()) {
             return false;
         }
 
-        // 首先尝试使用脚本引擎
-        Boolean result = evaluateBooleanWithScriptEngine(formula);
+        String trimmed = formula.trim();
+        if (trimmed.isEmpty()) {
+            return false;
+        }
+
+        Boolean cached = BOOLEAN_CACHE.get(trimmed);
+        if (cached != null) {
+            return cached;
+        }
+
+        Boolean result = evaluateBooleanWithScriptEngine(trimmed);
         if (result != null) {
+            cacheBooleanResult(trimmed, result);
             return result;
         }
 
-        // 如果脚本引擎不可用，使用内置解析器
         try {
-            return evaluateBooleanExpression(formula);
+            boolean evaluated = evaluateBooleanExpression(trimmed);
+            cacheBooleanResult(trimmed, evaluated);
+            return evaluated;
         } catch (Exception e) {
             LogUtil.error(LangUtil.get("formula.judge-fail", formula), e);
             return false;
@@ -70,13 +126,25 @@ public interface IFormula {
     }
 
     /**
-     * 使用脚本引擎计算数值表达式
+     * 缓存布尔计算结果
+     *
+     * @param formula 公式
+     * @param result  结果
+     */
+    static void cacheBooleanResult(String formula, boolean result) {
+        if (BOOLEAN_CACHE.size() < MAX_CACHE_SIZE) {
+            BOOLEAN_CACHE.put(formula, result);
+        }
+    }
+
+    /**
+     * 使用脚本引擎计算数值表达式（带缓存）
      *
      * @param formula 公式
      * @return 计算结果，失败返回null
      */
     static Double evaluateWithScriptEngine(String formula) {
-        ScriptEngine engine = getScriptEngine();
+        ScriptEngine engine = getOrCreateEngine();
         if (engine == null) {
             return null;
         }
@@ -94,13 +162,13 @@ public interface IFormula {
     }
 
     /**
-     * 使用脚本引擎计算布尔表达式
+     * 使用脚本引擎计算布尔表达式（带缓存）
      *
      * @param formula 公式
      * @return 计算结果，失败返回null
      */
     static Boolean evaluateBooleanWithScriptEngine(String formula) {
-        ScriptEngine engine = getScriptEngine();
+        ScriptEngine engine = getOrCreateEngine();
         if (engine == null) {
             return null;
         }
@@ -118,6 +186,24 @@ public interface IFormula {
     }
 
     /**
+     * 获取或创建脚本引擎（使用 ThreadLocal 缓存）
+     *
+     * @return 脚本引擎，不可用返回null
+     */
+    static ScriptEngine getOrCreateEngine() {
+        ScriptEngine engine = ENGINE_CACHE.get();
+        if (engine != null) {
+            return engine;
+        }
+
+        engine = getScriptEngine();
+        if (engine != null) {
+            ENGINE_CACHE.set(engine);
+        }
+        return engine;
+    }
+
+    /**
      * 获取可用的脚本引擎
      * 优先级：GraalJS > Nashorn > JavaScript
      *
@@ -126,7 +212,6 @@ public interface IFormula {
     static ScriptEngine getScriptEngine() {
         ScriptEngineManager manager = new ScriptEngineManager();
 
-        // 尝试获取各种引擎
         String[] engineNames = {"graal.js", "nashorn", "JavaScript", "js"};
         for (String name : engineNames) {
             ScriptEngine engine = manager.getEngineByName(name);
@@ -147,8 +232,8 @@ public interface IFormula {
      * @return 计算结果
      */
     static double evaluateExpression(String expression) {
-        expression = expression.replaceAll("\\s+", "");
-        return parseExpression(expression, new int[]{0});
+        String cleaned = expression.replace(" ", "");
+        return parseExpression(cleaned, new int[]{0});
     }
 
     /**
@@ -160,19 +245,16 @@ public interface IFormula {
      */
     static double parseExpression(String expr, int[] pos) {
         double result = parseTerm(expr, pos);
+        int len = expr.length();
 
-        while (pos[0] < expr.length()) {
+        while (pos[0] < len) {
             char op = expr.charAt(pos[0]);
             if (op != '+' && op != '-') {
                 break;
             }
             pos[0]++;
             double term = parseTerm(expr, pos);
-            if (op == '+') {
-                result += term;
-            } else {
-                result -= term;
-            }
+            result = (op == '+') ? result + term : result - term;
         }
         return result;
     }
@@ -186,20 +268,26 @@ public interface IFormula {
      */
     static double parseTerm(String expr, int[] pos) {
         double result = parseFactor(expr, pos);
+        int len = expr.length();
 
-        while (pos[0] < expr.length()) {
+        while (pos[0] < len) {
             char op = expr.charAt(pos[0]);
             if (op != '*' && op != '/' && op != '%') {
                 break;
             }
             pos[0]++;
             double factor = parseFactor(expr, pos);
-            if (op == '*') {
-                result *= factor;
-            } else if (op == '/') {
-                result /= factor;
-            } else {
-                result %= factor;
+
+            switch (op) {
+                case '*':
+                    result *= factor;
+                    break;
+                case '/':
+                    result /= factor;
+                    break;
+                case '%':
+                    result %= factor;
+                    break;
             }
         }
         return result;
@@ -213,27 +301,29 @@ public interface IFormula {
      * @return 计算结果
      */
     static double parseFactor(String expr, int[] pos) {
-        // 处理负号
         boolean negative = false;
-        if (pos[0] < expr.length() && expr.charAt(pos[0]) == '-') {
+        int len = expr.length();
+
+        if (pos[0] < len && expr.charAt(pos[0]) == '-') {
             negative = true;
             pos[0]++;
         }
 
         double result;
 
-        // 处理括号
-        if (pos[0] < expr.length() && expr.charAt(pos[0]) == '(') {
+        if (pos[0] < len && expr.charAt(pos[0]) == '(') {
             pos[0]++;
             result = parseExpression(expr, pos);
-            if (pos[0] < expr.length() && expr.charAt(pos[0]) == ')') {
+            if (pos[0] < len && expr.charAt(pos[0]) == ')') {
                 pos[0]++;
             }
         } else {
-            // 解析数字
             int start = pos[0];
-            while (pos[0] < expr.length() &&
-                    (Character.isDigit(expr.charAt(pos[0])) || expr.charAt(pos[0]) == '.')) {
+            while (pos[0] < len) {
+                char c = expr.charAt(pos[0]);
+                if (!Character.isDigit(c) && c != '.') {
+                    break;
+                }
                 pos[0]++;
             }
             result = Double.parseDouble(expr.substring(start, pos[0]));
@@ -250,38 +340,50 @@ public interface IFormula {
      * @return 计算结果
      */
     static boolean evaluateBooleanExpression(String expression) {
-        expression = expression.replaceAll("\\s+", "");
+        String cleaned = expression.replace(" ", "");
 
-        // 处理 && 和 ||
-        if (expression.contains("&&")) {
-            String[] parts = expression.split("&&", 2);
-            return evaluateBooleanExpression(parts[0]) && evaluateBooleanExpression(parts[1]);
-        }
-        if (expression.contains("||")) {
-            String[] parts = expression.split("\\|\\|", 2);
-            return evaluateBooleanExpression(parts[0]) || evaluateBooleanExpression(parts[1]);
+        int andIdx = cleaned.indexOf("&&");
+        if (andIdx > 0) {
+            return evaluateBooleanExpression(cleaned.substring(0, andIdx))
+                    && evaluateBooleanExpression(cleaned.substring(andIdx + 2));
         }
 
-        // 处理比较运算符
-        String[] operators = {">=", "<=", "==", "!=", ">", "<"};
-        for (String op : operators) {
-            int index = expression.indexOf(op);
+        int orIdx = cleaned.indexOf("||");
+        if (orIdx > 0) {
+            return evaluateBooleanExpression(cleaned.substring(0, orIdx))
+                    || evaluateBooleanExpression(cleaned.substring(orIdx + 2));
+        }
+
+        String[][] operators = {{">=", "GE"}, {"<=", "LE"}, {"==", "EQ"}, {"!=", "NE"}, {">", "GT"}, {"<", "LT"}};
+
+        for (String[] opPair : operators) {
+            String op = opPair[0];
+            int index = cleaned.indexOf(op);
             if (index > 0) {
-                double left = evaluateExpression(expression.substring(0, index));
-                double right = evaluateExpression(expression.substring(index + op.length()));
+                double left = evaluateExpression(cleaned.substring(0, index));
+                double right = evaluateExpression(cleaned.substring(index + op.length()));
 
-                switch (op) {
-                    case ">=": return left >= right;
-                    case "<=": return left <= right;
-                    case "==": return Math.abs(left - right) < 1e-9;
-                    case "!=": return Math.abs(left - right) >= 1e-9;
-                    case ">": return left > right;
-                    case "<": return left < right;
+                switch (opPair[1]) {
+                    case "GE": return left >= right;
+                    case "LE": return left <= right;
+                    case "EQ": return Math.abs(left - right) < 1e-9;
+                    case "NE": return Math.abs(left - right) >= 1e-9;
+                    case "GT": return left > right;
+                    case "LT": return left < right;
                 }
             }
         }
 
-        // 尝试解析为布尔值
-        return Boolean.parseBoolean(expression);
+        return Boolean.parseBoolean(cleaned);
+    }
+
+    /**
+     * 清空所有缓存
+     * 在内存紧张时可调用此方法
+     */
+    static void clearCache() {
+        RESULT_CACHE.clear();
+        BOOLEAN_CACHE.clear();
+        ENGINE_CACHE.remove();
     }
 }

@@ -1,5 +1,3 @@
-// 文件：LogUtil.java
-// 路径：src/pers/tany/yukinoaapi/util/LogUtil.java
 package pers.tany.yukinoaapi.util;
 
 import org.bukkit.Bukkit;
@@ -12,39 +10,48 @@ import javax.annotation.Nullable;
 /**
  * 日志管理工具类
  * 提供统一的日志输出接口，支持调试模式控制
- *
- * <p>使用示例：</p>
- * <pre>
- * // 普通信息日志
- * LogUtil.info("插件已启动");
- *
- * // 调试日志（仅在调试模式开启时输出）
- * LogUtil.debug("正在处理玩家数据: " + playerName);
- *
- * // 警告日志
- * LogUtil.warning("配置文件格式有误，使用默认值");
- *
- * // 错误日志（带异常）
- * LogUtil.error("数据库连接失败", exception);
- *
- * // 错误日志（不带异常）
- * LogUtil.error("未找到指定的玩家");
- * </pre>
- *
- * @author tany
- * @since 3.0.0
+ * 使用缓存机制优化性能，避免频繁获取控制台发送者
  */
 public final class LogUtil {
 
     /**
-     * 插件名称前缀
+     * 插件名称前缀 - 使用灰白配色
      */
-    private static final String PREFIX = "§7[§fYukiNoaAPI§7]";
+    private static final String PREFIX = "§8[§fYukiNoaAPI§8]";
 
     /**
-     * 调试模式前缀
+     * 调试模式前缀 - 使用蓝色高亮
      */
-    private static final String DEBUG_PREFIX = "§7[§eDebug§7]";
+    private static final String DEBUG_PREFIX = "§8[§bDebug§8]";
+
+    /**
+     * 缓存的控制台发送者实例
+     * 使用 volatile 保证多线程可见性
+     */
+    private static volatile ConsoleCommandSender cachedConsoleSender;
+
+    /**
+     * 调试模式状态缓存
+     * 避免每次都读取配置文件
+     */
+    private static volatile Boolean cachedDebugEnabled;
+
+    /**
+     * 堆栈打印状态缓存
+     */
+    private static volatile Boolean cachedPrintStackTrace;
+
+    /**
+     * 缓存失效时间戳
+     * 每隔一段时间刷新缓存，确保配置变更生效
+     */
+    private static volatile long cacheExpireTime = 0;
+
+    /**
+     * 缓存有效期（毫秒）
+     * 5秒后缓存失效，重新读取配置
+     */
+    private static final long CACHE_DURATION = 5000L;
 
     /**
      * 私有构造函数，防止实例化
@@ -54,39 +61,113 @@ public final class LogUtil {
     }
 
     /**
-     * 获取控制台发送者
+     * 获取控制台发送者（带缓存）
+     * 使用双重检查锁定模式确保线程安全
      *
      * @return 控制台发送者实例
      */
     @Nonnull
     private static ConsoleCommandSender getConsoleSender() {
-        return Bukkit.getConsoleSender();
+        ConsoleCommandSender sender = cachedConsoleSender;
+        if (sender == null) {
+            synchronized (LogUtil.class) {
+                sender = cachedConsoleSender;
+                if (sender == null) {
+                    sender = Bukkit.getConsoleSender();
+                    cachedConsoleSender = sender;
+                }
+            }
+        }
+        return sender;
     }
 
     /**
-     * 检查调试模式是否开启
+     * 检查并刷新配置缓存
+     * 当缓存过期时重新读取配置文件
+     */
+    private static void refreshCacheIfNeeded() {
+        long now = System.currentTimeMillis();
+        if (now > cacheExpireTime) {
+            synchronized (LogUtil.class) {
+                if (now > cacheExpireTime) {
+                    cachedDebugEnabled = null;
+                    cachedPrintStackTrace = null;
+                    cacheExpireTime = now + CACHE_DURATION;
+                }
+            }
+        }
+    }
+
+    /**
+     * 强制刷新缓存
+     * 在配置重载后调用此方法
+     */
+    public static void invalidateCache() {
+        synchronized (LogUtil.class) {
+            cachedDebugEnabled = null;
+            cachedPrintStackTrace = null;
+            cacheExpireTime = 0;
+        }
+    }
+
+    /**
+     * 检查调试模式是否开启（带缓存）
      *
      * @return 如果调试模式开启返回true，否则返回false
      */
     public static boolean isDebugEnabled() {
-        // 如果配置文件未加载，默认关闭调试模式
-        if (Main.config == null) {
-            return false;
+        refreshCacheIfNeeded();
+
+        Boolean cached = cachedDebugEnabled;
+        if (cached != null) {
+            return cached;
         }
-        return Main.config.getBoolean("Logging.Debug", false);
+
+        synchronized (LogUtil.class) {
+            cached = cachedDebugEnabled;
+            if (cached != null) {
+                return cached;
+            }
+
+            if (Main.config == null) {
+                cachedDebugEnabled = false;
+                return false;
+            }
+
+            cached = Main.config.getBoolean("Logging.Debug", false);
+            cachedDebugEnabled = cached;
+            return cached;
+        }
     }
 
     /**
-     * 检查是否打印异常堆栈
+     * 检查是否打印异常堆栈（带缓存）
      *
      * @return 如果需要打印堆栈返回true，否则返回false
      */
     public static boolean isPrintStackTraceEnabled() {
-        // 如果配置文件未加载，默认打印堆栈
-        if (Main.config == null) {
-            return true;
+        refreshCacheIfNeeded();
+
+        Boolean cached = cachedPrintStackTrace;
+        if (cached != null) {
+            return cached;
         }
-        return Main.config.getBoolean("Logging.PrintStackTrace", true);
+
+        synchronized (LogUtil.class) {
+            cached = cachedPrintStackTrace;
+            if (cached != null) {
+                return cached;
+            }
+
+            if (Main.config == null) {
+                cachedPrintStackTrace = true;
+                return true;
+            }
+
+            cached = Main.config.getBoolean("Logging.PrintStackTrace", true);
+            cachedPrintStackTrace = cached;
+            return cached;
+        }
     }
 
     /**
@@ -95,7 +176,7 @@ public final class LogUtil {
      * @param message 日志消息
      */
     public static void info(@Nonnull String message) {
-        getConsoleSender().sendMessage(PREFIX + "§a " + message);
+        getConsoleSender().sendMessage(PREFIX + "§7 " + message);
     }
 
     /**
@@ -105,7 +186,7 @@ public final class LogUtil {
      * @param message    日志消息
      */
     public static void info(@Nonnull String pluginName, @Nonnull String message) {
-        getConsoleSender().sendMessage("§7[§f" + pluginName + "§7]§a " + message);
+        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]§7 " + message);
     }
 
     /**
@@ -129,7 +210,7 @@ public final class LogUtil {
      */
     public static void debug(@Nonnull String pluginName, @Nonnull String message) {
         if (isDebugEnabled()) {
-            getConsoleSender().sendMessage("§7[§f" + pluginName + "§7]" + DEBUG_PREFIX + "§7 " + message);
+            getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]" + DEBUG_PREFIX + "§7 " + message);
         }
     }
 
@@ -149,7 +230,7 @@ public final class LogUtil {
      * @param message    日志消息
      */
     public static void warning(@Nonnull String pluginName, @Nonnull String message) {
-        getConsoleSender().sendMessage("§7[§f" + pluginName + "§7]§e " + message);
+        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]§e " + message);
     }
 
     /**
@@ -168,7 +249,7 @@ public final class LogUtil {
      * @param message    日志消息
      */
     public static void error(@Nonnull String pluginName, @Nonnull String message) {
-        getConsoleSender().sendMessage("§7[§f" + pluginName + "§7]§c " + message);
+        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]§c " + message);
     }
 
     /**
@@ -179,15 +260,17 @@ public final class LogUtil {
      * @param throwable 异常对象
      */
     public static void error(@Nonnull String message, @Nullable Throwable throwable) {
-        getConsoleSender().sendMessage(PREFIX + "§c " + message);
+        ConsoleCommandSender sender = getConsoleSender();
+        sender.sendMessage(PREFIX + "§c " + message);
+
         if (throwable != null) {
             if (isPrintStackTraceEnabled()) {
                 throwable.printStackTrace();
             } else {
-                // 仅输出简要错误信息
-                getConsoleSender().sendMessage(PREFIX + "§c 错误类型: " + throwable.getClass().getSimpleName());
-                if (throwable.getMessage() != null) {
-                    getConsoleSender().sendMessage(PREFIX + "§c 错误信息: " + throwable.getMessage());
+                sender.sendMessage(PREFIX + "§c 错误类型: " + throwable.getClass().getSimpleName());
+                String errorMsg = throwable.getMessage();
+                if (errorMsg != null) {
+                    sender.sendMessage(PREFIX + "§c 错误信息: " + errorMsg);
                 }
             }
         }
@@ -202,28 +285,30 @@ public final class LogUtil {
      * @param throwable  异常对象
      */
     public static void error(@Nonnull String pluginName, @Nonnull String message, @Nullable Throwable throwable) {
-        String prefix = "§7[§f" + pluginName + "§7]§c ";
-        getConsoleSender().sendMessage(prefix + message);
+        String prefix = "§8[§f" + pluginName + "§8]§c ";
+        ConsoleCommandSender sender = getConsoleSender();
+        sender.sendMessage(prefix + message);
+
         if (throwable != null) {
             if (isPrintStackTraceEnabled()) {
                 throwable.printStackTrace();
             } else {
-                // 仅输出简要错误信息
-                getConsoleSender().sendMessage(prefix + "错误类型: " + throwable.getClass().getSimpleName());
-                if (throwable.getMessage() != null) {
-                    getConsoleSender().sendMessage(prefix + "错误信息: " + throwable.getMessage());
+                sender.sendMessage(prefix + "错误类型: " + throwable.getClass().getSimpleName());
+                String errorMsg = throwable.getMessage();
+                if (errorMsg != null) {
+                    sender.sendMessage(prefix + "错误信息: " + errorMsg);
                 }
             }
         }
     }
 
     /**
-     * 输出成功级别日志（绿色）
+     * 输出成功级别日志（蓝色高亮）
      *
      * @param message 日志消息
      */
     public static void success(@Nonnull String message) {
-        getConsoleSender().sendMessage(PREFIX + "§a " + message);
+        getConsoleSender().sendMessage(PREFIX + "§b " + message);
     }
 
     /**
@@ -233,7 +318,7 @@ public final class LogUtil {
      * @param message    日志消息
      */
     public static void success(@Nonnull String pluginName, @Nonnull String message) {
-        getConsoleSender().sendMessage("§7[§f" + pluginName + "§7]§a " + message);
+        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]§b " + message);
     }
 
     /**
@@ -263,6 +348,6 @@ public final class LogUtil {
      * @param message    日志消息
      */
     public static void colored(@Nonnull String pluginName, @Nonnull String colorCode, @Nonnull String message) {
-        getConsoleSender().sendMessage("§7[§f" + pluginName + "§7]" + colorCode + " " + message);
+        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]" + colorCode + " " + message);
     }
 }
