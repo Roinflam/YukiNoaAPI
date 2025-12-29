@@ -212,10 +212,6 @@ public interface IConfig {
                     }
 
                     Files.copy(is, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                    if (plugin.getName().equals("YukiNoaAPI") || Main.config.getBoolean("Logging.VerboseConfigLogs", false)) {
-                        LogUtil.success(plugin.getName(), LangUtil.get("config.resource-create-success", file.getAbsolutePath()));
-                    }
                     LogUtil.debug(plugin.getName(), LangUtil.get("config.resource-created", file.getName()));
                     return true;
                 }

@@ -111,7 +111,7 @@ task updatePluginVersion {
         if (pluginYml.exists()) {
             def content = pluginYml.text
             // 用正则替换版本号那一行
-            content = content.replaceAll(/version:\s*['"]?.*['"]?/, "version: '${version}'")
+            content = content.replaceAll(/(?<!\S)version:\s*['"]?.*['"]?/, "version: '${version}'")
             pluginYml.text = content
             println "✓ 已同步版本号到 plugin.yml: ${version}"
         }
