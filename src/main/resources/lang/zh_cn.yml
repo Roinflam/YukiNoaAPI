@@ -1,7 +1,7 @@
 # YukiNoaAPI 简体中文语言文件
 # 占位符说明: {0}, {1}, {2}... 会被替换为实际内容
 
-# 通用消息
+# ==================== 通用消息 ====================
 common:
   prefix: "§7[§fYukiNoaAPI§7]§r "
   no-permission: "§c你没有权限执行此命令！"
@@ -10,27 +10,155 @@ common:
   reload-success: "§a配置文件重载成功！"
   reload-fail: "§c配置文件重载失败！"
 
-# Debug命令
+# ==================== 主类日志 ====================
+main:
+  enabled: "已启用"
+  disabled: "已卸载"
+  debug-enabled: "调试模式已开启"
+  server-version: "服务器版本: {0}"
+  current-language: "当前语言: {0}"
+  nms-init-success: "NMS反射初始化成功"
+  nms-init-fail: "NMS反射初始化失败: {0}"
+  init-complete: "插件初始化完成"
+  config-reloaded: "配置已重载"
+  scan-start: "开始扫描可用的 Minecraft 相关类..."
+  scan-package: "--- 扫描包: {0} ---"
+  class-found: "找到类: {0}"
+  class-load-success: "  ✓ 类加载成功"
+  class-load-fail: "  × 类加载失败: {0}"
+  scan-error: "扫描包 {0} 时出错"
+
+# ==================== NMS相关 ====================
+nms:
+  server-package: "服务器完整包名: {0}"
+  package-segments: "包名分段数: {0}"
+  version-from-package: "从包名提取版本: {0}"
+  version-found: "在包名中找到版本: {0}"
+  version-default: "无法从包名检测版本，使用默认值 {0}"
+  version-exception: "版本检测异常，使用默认值 {0}"
+  detected-version: "检测到服务器版本: {0}"
+  init-success: "NMS反射初始化成功"
+  init-fail: "NMS反射初始化失败"
+  player-init: "玩家相关反射初始化完成"
+  player-init-fail: "玩家相关反射初始化部分失败: {0}"
+  item-init: "物品相关反射初始化完成"
+  item-init-fail: "物品相关反射初始化部分失败: {0}"
+  server-init: "服务器相关反射初始化完成"
+  server-init-fail: "服务器相关反射初始化部分失败: {0}"
+  entity-init: "实体相关反射初始化完成"
+  entity-init-fail: "实体相关反射初始化部分失败: {0}"
+  nbt-init: "NBT解析相关反射初始化完成"
+  nbt-init-fail: "NBT解析相关反射初始化部分失败: {0}"
+  block-init: "方块实体相关反射初始化完成"
+  block-init-fail: "方块实体相关反射初始化部分失败: {0}"
+  text-init: "文本组件相关反射初始化完成"
+  text-init-fail: "文本组件相关反射初始化部分失败: {0}"
+  enchant-init: "附魔相关反射初始化完成"
+  enchant-init-fail: "附魔相关反射初始化部分失败: {0}"
+  methods-accessible: "已设置 {0} 个方法为可访问"
+  methods-accessible-fail: "设置方法可访问性失败: {0}"
+
+# ==================== 配置文件 ====================
+config:
+  dir-create-fail: "无法创建目录: {0}"
+  dir-create-success: "目录创建成功: {0}"
+  dir-create-error: "创建目录时发生错误"
+  resource-not-found: "资源文件不存在: {0}"
+  resource-create-success: "成功创建资源文件: {0}"
+  resource-created: "资源文件已创建: {0}"
+  resource-exists: "资源文件已存在，跳过创建: {0}"
+  resource-create-error: "创建资源文件时发生错误: {0}"
+  file-not-found: "配置文件不存在: {0}"
+  load-success: "成功加载配置文件: {0}"
+  loaded: "配置文件已加载: {0}"
+  load-io-error: "加载配置文件时发生IO错误"
+  load-error: "加载配置文件时发生未知错误"
+  system-loaded: "加载系统配置文件: {0}"
+  save-success: "成功保存配置文件: {0}"
+  saved: "配置文件已保存: {0}"
+  save-io-error: "保存配置文件时发生IO错误"
+  save-error: "保存配置文件时发生未知错误"
+  sync-save-fail: "异步保存失败，尝试同步保存..."
+  sync-save-success: "同步保存成功: {0}"
+  sync-save-error: "同步保存配置文件失败"
+  system-saved: "系统配置文件已保存: {0}"
+  custom-dir-invalid: "自定义数据目录无效或无法创建: {0}"
+  custom-dir-fallback: "将使用默认插件数据文件夹"
+  custom-dir-using: "使用自定义数据目录: {0}"
+  default-dir-using: "使用默认数据目录: {0}"
+
+# ==================== 语言系统 ====================
+lang:
+  init-fail-no-plugin: "语言系统初始化失败: 插件实例为空"
+  init-complete: "语言系统初始化完成，当前语言: {0}"
+  file-not-found: "语言文件不存在: {0}，使用默认语言 zh_cn"
+  default-not-found: "默认语言文件也不存在，语言系统可能无法正常工作"
+  loaded: "已加载语言文件: {0}"
+  extracted: "已释放语言文件: {0}"
+  extract-not-found: "在jar中未找到语言文件: {0}"
+  extract-fail: "释放语言文件失败: {0}"
+
+# ==================== 数据库 ====================
+database:
+  # MySQL
+  mysql-connect-success: "MySQL数据库连接成功: {0}"
+  mysql-connect-fail: "MySQL数据库连接失败"
+  mysql-reconnecting: "MySQL连接已断开，正在重新连接..."
+  mysql-check-fail: "检查MySQL连接状态失败"
+  mysql-closed: "MySQL连接已关闭: {0}"
+  mysql-close-fail: "关闭MySQL连接失败"
+  mysql-table-check-fail: "检查表是否存在失败: {0}"
+  # SQLite
+  sqlite-path-fail: "构建SQLite数据库路径失败"
+  sqlite-path-invalid: "SQLite数据库文件路径无效"
+  sqlite-driver-fail: "SQLite驱动加载失败，请确保已添加SQLite JDBC依赖"
+  sqlite-connect-success: "SQLite数据库连接成功: {0}"
+  sqlite-connect-fail: "SQLite数据库连接失败"
+  sqlite-reconnecting: "SQLite连接已断开，正在重新连接..."
+  sqlite-check-fail: "检查SQLite连接状态失败"
+  sqlite-closed: "SQLite连接已关闭: {0}"
+  sqlite-close-fail: "关闭SQLite连接失败"
+  sqlite-deleted: "SQLite数据库文件已删除: {0}"
+  sqlite-delete-fail: "SQLite数据库文件删除失败: {0}"
+  sqlite-table-check-fail: "检查表是否存在失败: {0}"
+  sqlite-backup-success: "SQLite数据库备份成功: {0}"
+  sqlite-backup-fail: "SQLite数据库备份失败"
+  # 通用
+  sql-execute: "执行SQL: {0}"
+  sql-execute-fail: "执行SQL失败: {0}"
+  sql-query: "查询SQL: {0}"
+  sql-query-fail: "查询SQL失败: {0}"
+  sql-param-execute-fail: "执行参数化SQL失败: {0}"
+  sql-param-query-fail: "执行参数化查询失败: {0}"
+  table-cleared: "已清空数据表: {0}"
+  connection-closed: "数据库连接已关闭"
+  connection-close-fail: "关闭数据库连接失败"
+
+# ==================== Debug命令 ====================
 debug:
   enabled: "§aDebug模式已开启"
   disabled: "§eDebug模式已关闭"
+  scanning: "§e正在扫描类，请查看控制台输出..."
   help-title: "§6========== YukiNoaAPI Debug帮助 =========="
   help-debug: "§e/yn debug §7- 开关Debug模式"
   help-classes: "§e/yn classes §7- 输出所有可用的NMS类"
   help-reload: "§e/yn reload §7- 重载配置文件"
   help-footer: "§6========================================"
+  player-view-item: "玩家 {0} 查看物品: {1}"
+  player-view-block: "玩家 {0} 查看方块: {1}"
+  player-view-entity: "玩家 {0} 查看实体: {1}"
 
-# 物品信息
+# ==================== 物品信息 ====================
 item:
   name: "§a物品名称: §f{0}"
   type: "§a物品Type: §f{0}"
   sub-id: "§a物品子ID: §f{0}"
   max-stack: "§a物品最大堆叠数: §f{0}"
   enchantments: "§a物品附魔:"
-  enchantment-entry: " §f- {0} {1}级"
+  enchantment-entry: "  §f- {0} {1}级"
   nbt: "§a物品NBT: §f{0}"
 
-# 方块信息
+# ==================== 方块信息 ====================
 block:
   type: "§a方块Type: §f{0}"
   data: "§a方块Data: §f{0}"
@@ -38,7 +166,7 @@ block:
   nbt: "§a方块NBT: §f{0}"
   nbt-none: "无"
 
-# 实体信息
+# ==================== 实体信息 ====================
 entity:
   name: "§a实体名称: §f{0}"
   save-name: "§a实体储存名: §f{0}"
@@ -48,8 +176,15 @@ entity:
   vector: "§a实体向量: §f{0}"
   nbt: "§a实体NBT: §f{0}"
   nbt-fail: "获取失败: {0}"
+  nms-not-init: "NMSUtil未初始化，返回实体类型名"
+  get-name-fail: "获取实体名称失败: {0}"
+  get-save-id-unavailable: "getSaveID方法不可用（可能是低版本）"
+  get-save-fail: "getSaveID调用失败: {0}"
+  get-save-name-fail: "获取保存名称失败: {0}"
+  nbt-reflect-unavailable: "NBT相关反射对象不可用"
+  get-nbt-fail: "获取实体NBT失败: {0}"
 
-# 物品栏信息
+# ==================== 物品栏信息 ====================
 inventory:
   click-type: "§a本次点击类型: §f{0}"
   title: "§a物品栏标题: §f{0}"
@@ -58,12 +193,12 @@ inventory:
   slot: "§a物品栏格子坐标: §f{0}"
   raw-slot: "§a视图格子坐标: §f{0}"
 
-# Ask交互
+# ==================== Ask交互 ====================
 ask:
   timeout: "§c输入超时已取消！"
   cancelled: "§e操作已取消。"
 
-# SelectBlock方块选择
+# ==================== SelectBlock方块选择 ====================
 select-block:
   instruction: "§e请左键点击选择第一个方块，右键点击选择第二个方块"
   first-selected: "§a已选择第一个方块: §f{0}"
@@ -71,3 +206,20 @@ select-block:
   complete: "§a方块选择完成！"
   timeout: "§c选择超时已取消！"
   cancelled: "§e选择已取消。"
+
+# ==================== Vault经济 ====================
+vault:
+  economy-not-found: "§c服务器未拥有经济系统！"
+  economy-found: "§a服务器拥有经济系统！"
+
+# ==================== 公式计算 ====================
+formula:
+  calc-fail: "公式计算失败: {0}"
+  judge-fail: "公式判断失败: {0}"
+  engine-fail: "脚本引擎计算失败，将使用内置解析器: {0}"
+  engine-judge-fail: "脚本引擎判断失败，将使用内置解析器: {0}"
+  no-engine: "无可用的脚本引擎，将使用内置解析器"
+
+# ==================== 消息系统 ====================
+message:
+  version-incompatible: "§c版本/服务端不兼容！"

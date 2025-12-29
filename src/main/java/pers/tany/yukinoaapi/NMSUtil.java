@@ -1,9 +1,8 @@
-// 文件：NMSUtil.java
-// 路径：src/pers/tany/yukinoaapi/NMSUtil.java
 package pers.tany.yukinoaapi;
 
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
+import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import java.lang.reflect.Field;
@@ -12,6 +11,9 @@ import java.lang.reflect.Method;
 /**
  * NMS 跨版本兼容工具类
  * 支持 Minecraft 1.7-1.21 版本
+ *
+ * @author tany
+ * @since 1.0.0
  */
 public class NMSUtil {
 
@@ -304,18 +306,21 @@ public class NMSUtil {
     /*
      * 静态初始化块
      * 检测服务器版本并初始化所有反射对象
+     *
+     * 注意：此静态块在 Main.onEnable() 中 LangUtil.init() 之后才会被触发
+     * 因此可以安全使用 LangUtil
      */
     static {
         version = detectVersion();
-        LogUtil.info("检测到服务器版本: " + version);
+        LogUtil.info(LangUtil.get("nms.detected-version", version));
 
         try {
             initializeReflection();
             initialized = true;
-            LogUtil.success("NMS反射初始化成功");
+            LogUtil.success(LangUtil.get("nms.init-success"));
         } catch (Exception e) {
             initError = e.getMessage();
-            LogUtil.error("NMS反射初始化失败", e);
+            LogUtil.error(LangUtil.get("nms.init-fail"), e);
         }
     }
 
@@ -327,32 +332,32 @@ public class NMSUtil {
     private static String detectVersion() {
         try {
             String packageName = Bukkit.getServer().getClass().getPackage().getName();
-            LogUtil.debug("服务器完整包名: " + packageName);
+            LogUtil.debug(LangUtil.get("nms.server-package", packageName));
 
             String[] parts = packageName.split("\\.");
-            LogUtil.debug("包名分段数: " + parts.length);
+            LogUtil.debug(LangUtil.get("nms.package-segments", parts.length));
 
             // 标准 CraftBukkit 结构: org.bukkit.craftbukkit.v1_xx_Rx
             if (parts.length >= 4 && parts[2].equals("craftbukkit")) {
                 String detectedVersion = parts[3];
-                LogUtil.debug("从包名提取版本: " + detectedVersion);
+                LogUtil.debug(LangUtil.get("nms.version-from-package", detectedVersion));
                 return detectedVersion;
             }
 
             // 备用方案：在所有分段中查找版本号
             for (String part : parts) {
                 if (part.startsWith("v1_")) {
-                    LogUtil.debug("在包名中找到版本: " + part);
+                    LogUtil.debug(LangUtil.get("nms.version-found", part));
                     return part;
                 }
             }
 
             // 最后的备用方案
-            LogUtil.warning("无法从包名检测版本，使用默认值 v1_21_R1");
+            LogUtil.warning(LangUtil.get("nms.version-default", "v1_21_R1"));
             return "v1_21_R1";
 
         } catch (Exception e) {
-            LogUtil.error("版本检测异常，使用默认值 v1_21_R1", e);
+            LogUtil.error(LangUtil.get("nms.version-exception", "v1_21_R1"), e);
             return "v1_21_R1";
         }
     }
@@ -427,9 +432,9 @@ public class NMSUtil {
                     "net.minecraft.network.chat.ChatMessageType"
             );
 
-            LogUtil.debug("玩家相关反射初始化完成");
+            LogUtil.debug(LangUtil.get("nms.player-init"));
         } catch (Exception e) {
-            LogUtil.debug("玩家相关反射初始化部分失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("nms.player-init-fail", e.getMessage()));
         }
     }
 
@@ -498,9 +503,9 @@ public class NMSUtil {
                 );
             }
 
-            LogUtil.debug("物品相关反射初始化完成");
+            LogUtil.debug(LangUtil.get("nms.item-init"));
         } catch (Exception e) {
-            LogUtil.debug("物品相关反射初始化部分失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("nms.item-init-fail", e.getMessage()));
         }
     }
 
@@ -520,9 +525,9 @@ public class NMSUtil {
 
             craftServerClass = safeGetClass(getOBCPack() + ".CraftServer");
 
-            LogUtil.debug("服务器相关反射初始化完成");
+            LogUtil.debug(LangUtil.get("nms.server-init"));
         } catch (Exception e) {
-            LogUtil.debug("服务器相关反射初始化部分失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("nms.server-init-fail", e.getMessage()));
         }
     }
 
@@ -580,9 +585,9 @@ public class NMSUtil {
                 );
             }
 
-            LogUtil.debug("实体相关反射初始化完成");
+            LogUtil.debug(LangUtil.get("nms.entity-init"));
         } catch (Exception e) {
-            LogUtil.debug("实体相关反射初始化部分失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("nms.entity-init-fail", e.getMessage()));
         }
     }
 
@@ -604,9 +609,9 @@ public class NMSUtil {
                 );
             }
 
-            LogUtil.debug("NBT解析相关反射初始化完成");
+            LogUtil.debug(LangUtil.get("nms.nbt-init"));
         } catch (Exception e) {
-            LogUtil.debug("NBT解析相关反射初始化部分失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("nms.nbt-init-fail", e.getMessage()));
         }
     }
 
@@ -686,9 +691,9 @@ public class NMSUtil {
                 setData = safeGetMethod(craftBlockClass, "setData", byte.class);
             }
 
-            LogUtil.debug("方块实体相关反射初始化完成");
+            LogUtil.debug(LangUtil.get("nms.block-init"));
         } catch (Exception e) {
-            LogUtil.debug("方块实体相关反射初始化部分失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("nms.block-init-fail", e.getMessage()));
         }
     }
 
@@ -709,9 +714,9 @@ public class NMSUtil {
                 );
             }
 
-            LogUtil.debug("文本组件相关反射初始化完成");
+            LogUtil.debug(LangUtil.get("nms.text-init"));
         } catch (Exception e) {
-            LogUtil.debug("文本组件相关反射初始化部分失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("nms.text-init-fail", e.getMessage()));
         }
     }
 
@@ -744,9 +749,9 @@ public class NMSUtil {
                 }
             }
 
-            LogUtil.debug("附魔相关反射初始化完成");
+            LogUtil.debug(LangUtil.get("nms.enchant-init"));
         } catch (Exception e) {
-            LogUtil.debug("附魔相关反射初始化部分失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("nms.enchant-init-fail", e.getMessage()));
         }
     }
 
@@ -763,9 +768,9 @@ public class NMSUtil {
                     count++;
                 }
             }
-            LogUtil.debug("已设置 " + count + " 个方法为可访问");
+            LogUtil.debug(LangUtil.get("nms.methods-accessible", count));
         } catch (Exception e) {
-            LogUtil.debug("设置方法可访问性失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("nms.methods-accessible-fail", e.getMessage()));
         }
     }
 

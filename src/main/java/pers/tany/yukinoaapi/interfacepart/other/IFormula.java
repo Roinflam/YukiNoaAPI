@@ -1,18 +1,19 @@
-// 文件：IFormula.java
-// 路径：src/pers/tany/yukinoaapi/interfacepart/other/IFormula.java
 package pers.tany.yukinoaapi.interfacepart.other;
 
+import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import java.util.Stack;
 
 /**
  * 公式计算工具接口
  * 提供字符串公式的计算功能
  * 兼容Java 8-21+版本
+ *
+ * @author tany
+ * @since 1.0.0
  */
 public interface IFormula {
 
@@ -37,7 +38,7 @@ public interface IFormula {
         try {
             return evaluateExpression(formula);
         } catch (Exception e) {
-            LogUtil.error("公式计算失败: " + formula, e);
+            LogUtil.error(LangUtil.get("formula.calc-fail", formula), e);
             return 0;
         }
     }
@@ -63,13 +64,16 @@ public interface IFormula {
         try {
             return evaluateBooleanExpression(formula);
         } catch (Exception e) {
-            LogUtil.error("公式判断失败: " + formula, e);
+            LogUtil.error(LangUtil.get("formula.judge-fail", formula), e);
             return false;
         }
     }
 
     /**
      * 使用脚本引擎计算数值表达式
+     *
+     * @param formula 公式
+     * @return 计算结果，失败返回null
      */
     static Double evaluateWithScriptEngine(String formula) {
         ScriptEngine engine = getScriptEngine();
@@ -84,13 +88,16 @@ public interface IFormula {
             }
             return Double.parseDouble(result.toString());
         } catch (ScriptException e) {
-            LogUtil.debug("脚本引擎计算失败，将使用内置解析器: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("formula.engine-fail", e.getMessage()));
             return null;
         }
     }
 
     /**
      * 使用脚本引擎计算布尔表达式
+     *
+     * @param formula 公式
+     * @return 计算结果，失败返回null
      */
     static Boolean evaluateBooleanWithScriptEngine(String formula) {
         ScriptEngine engine = getScriptEngine();
@@ -105,7 +112,7 @@ public interface IFormula {
             }
             return Boolean.parseBoolean(result.toString());
         } catch (ScriptException e) {
-            LogUtil.debug("脚本引擎判断失败，将使用内置解析器: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("formula.engine-judge-fail", e.getMessage()));
             return null;
         }
     }
@@ -113,6 +120,8 @@ public interface IFormula {
     /**
      * 获取可用的脚本引擎
      * 优先级：GraalJS > Nashorn > JavaScript
+     *
+     * @return 脚本引擎，不可用返回null
      */
     static ScriptEngine getScriptEngine() {
         ScriptEngineManager manager = new ScriptEngineManager();
@@ -126,13 +135,16 @@ public interface IFormula {
             }
         }
 
-        LogUtil.debug("无可用的脚本引擎，将使用内置解析器");
+        LogUtil.debug(LangUtil.get("formula.no-engine"));
         return null;
     }
 
     /**
      * 内置表达式解析器（支持 + - * / % 和括号）
      * 用于在脚本引擎不可用时进行计算
+     *
+     * @param expression 表达式
+     * @return 计算结果
      */
     static double evaluateExpression(String expression) {
         expression = expression.replaceAll("\\s+", "");
@@ -141,6 +153,10 @@ public interface IFormula {
 
     /**
      * 解析表达式（处理加减）
+     *
+     * @param expr 表达式
+     * @param pos  当前位置
+     * @return 计算结果
      */
     static double parseExpression(String expr, int[] pos) {
         double result = parseTerm(expr, pos);
@@ -163,6 +179,10 @@ public interface IFormula {
 
     /**
      * 解析项（处理乘除模）
+     *
+     * @param expr 表达式
+     * @param pos  当前位置
+     * @return 计算结果
      */
     static double parseTerm(String expr, int[] pos) {
         double result = parseFactor(expr, pos);
@@ -187,6 +207,10 @@ public interface IFormula {
 
     /**
      * 解析因子（处理数字和括号）
+     *
+     * @param expr 表达式
+     * @param pos  当前位置
+     * @return 计算结果
      */
     static double parseFactor(String expr, int[] pos) {
         // 处理负号
@@ -221,6 +245,9 @@ public interface IFormula {
     /**
      * 内置布尔表达式解析器
      * 支持 > < >= <= == != && ||
+     *
+     * @param expression 表达式
+     * @return 计算结果
      */
     static boolean evaluateBooleanExpression(String expression) {
         expression = expression.replaceAll("\\s+", "");

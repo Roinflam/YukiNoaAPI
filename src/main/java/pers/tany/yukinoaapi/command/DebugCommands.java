@@ -16,6 +16,9 @@ import java.util.Set;
 
 /**
  * Debug命令处理类
+ *
+ * @author tany
+ * @since 1.0.0
  */
 public class DebugCommands implements CommandExecutor, TabCompleter {
 
@@ -52,6 +55,11 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * 处理 debug 子命令
+     *
+     * @param sender 命令发送者
+     */
     private void handleDebugCommand(CommandSender sender) {
         if (!(sender instanceof Player)) {
             sender.sendMessage(LangUtil.get("common.player-only"));
@@ -70,11 +78,21 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
         }
     }
 
+    /**
+     * 处理 classes 子命令
+     *
+     * @param sender 命令发送者
+     */
     private void handleClassesCommand(CommandSender sender) {
-        sender.sendMessage("§e正在扫描类，请查看控制台输出...");
+        sender.sendMessage(LangUtil.get("debug.scanning"));
         Main.printAllClasses();
     }
 
+    /**
+     * 处理 reload 子命令
+     *
+     * @param sender 命令发送者
+     */
     private void handleReloadCommand(CommandSender sender) {
         try {
             Main.reload();
@@ -84,6 +102,11 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
         }
     }
 
+    /**
+     * 发送帮助信息
+     *
+     * @param sender 命令发送者
+     */
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(LangUtil.get("debug.help-title"));
         sender.sendMessage(LangUtil.get("debug.help-debug"));

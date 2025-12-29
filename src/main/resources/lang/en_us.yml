@@ -1,7 +1,7 @@
 # YukiNoaAPI English Language File
 # Placeholders: {0}, {1}, {2}... will be replaced with actual content
 
-# Common Messages
+# ==================== Common Messages ====================
 common:
   prefix: "§7[§fYukiNoaAPI§7]§r "
   no-permission: "§cYou don't have permission to execute this command!"
@@ -10,27 +10,155 @@ common:
   reload-success: "§aConfiguration reloaded successfully!"
   reload-fail: "§cFailed to reload configuration!"
 
-# Debug Command
+# ==================== Main Class Logs ====================
+main:
+  enabled: "Enabled"
+  disabled: "Disabled"
+  debug-enabled: "Debug mode enabled"
+  server-version: "Server version: {0}"
+  current-language: "Current language: {0}"
+  nms-init-success: "NMS reflection initialized successfully"
+  nms-init-fail: "NMS reflection initialization failed: {0}"
+  init-complete: "Plugin initialization complete"
+  config-reloaded: "Configuration reloaded"
+  scan-start: "Starting to scan available Minecraft classes..."
+  scan-package: "--- Scanning package: {0} ---"
+  class-found: "Found class: {0}"
+  class-load-success: "  ✓ Class loaded successfully"
+  class-load-fail: "  × Class load failed: {0}"
+  scan-error: "Error scanning package {0}"
+
+# ==================== NMS Related ====================
+nms:
+  server-package: "Server full package name: {0}"
+  package-segments: "Package segments count: {0}"
+  version-from-package: "Version extracted from package: {0}"
+  version-found: "Version found in package: {0}"
+  version-default: "Cannot detect version from package, using default {0}"
+  version-exception: "Version detection exception, using default {0}"
+  detected-version: "Detected server version: {0}"
+  init-success: "NMS reflection initialized successfully"
+  init-fail: "NMS reflection initialization failed"
+  player-init: "Player related reflection initialized"
+  player-init-fail: "Player related reflection partially failed: {0}"
+  item-init: "Item related reflection initialized"
+  item-init-fail: "Item related reflection partially failed: {0}"
+  server-init: "Server related reflection initialized"
+  server-init-fail: "Server related reflection partially failed: {0}"
+  entity-init: "Entity related reflection initialized"
+  entity-init-fail: "Entity related reflection partially failed: {0}"
+  nbt-init: "NBT parsing related reflection initialized"
+  nbt-init-fail: "NBT parsing related reflection partially failed: {0}"
+  block-init: "Block entity related reflection initialized"
+  block-init-fail: "Block entity related reflection partially failed: {0}"
+  text-init: "Text component related reflection initialized"
+  text-init-fail: "Text component related reflection partially failed: {0}"
+  enchant-init: "Enchantment related reflection initialized"
+  enchant-init-fail: "Enchantment related reflection partially failed: {0}"
+  methods-accessible: "Set {0} methods to accessible"
+  methods-accessible-fail: "Failed to set methods accessible: {0}"
+
+# ==================== Configuration ====================
+config:
+  dir-create-fail: "Cannot create directory: {0}"
+  dir-create-success: "Directory created: {0}"
+  dir-create-error: "Error creating directory"
+  resource-not-found: "Resource file not found: {0}"
+  resource-create-success: "Resource file created: {0}"
+  resource-created: "Resource file created: {0}"
+  resource-exists: "Resource file exists, skipping: {0}"
+  resource-create-error: "Error creating resource file: {0}"
+  file-not-found: "Configuration file not found: {0}"
+  load-success: "Configuration file loaded: {0}"
+  loaded: "Configuration file loaded: {0}"
+  load-io-error: "IO error loading configuration file"
+  load-error: "Unknown error loading configuration file"
+  system-loaded: "Loading system configuration: {0}"
+  save-success: "Configuration file saved: {0}"
+  saved: "Configuration file saved: {0}"
+  save-io-error: "IO error saving configuration file"
+  save-error: "Unknown error saving configuration file"
+  sync-save-fail: "Async save failed, trying sync save..."
+  sync-save-success: "Sync save successful: {0}"
+  sync-save-error: "Sync save configuration file failed"
+  system-saved: "System configuration file saved: {0}"
+  custom-dir-invalid: "Custom data directory invalid or cannot be created: {0}"
+  custom-dir-fallback: "Using default plugin data folder"
+  custom-dir-using: "Using custom data directory: {0}"
+  default-dir-using: "Using default data directory: {0}"
+
+# ==================== Language System ====================
+lang:
+  init-fail-no-plugin: "Language system initialization failed: plugin instance is null"
+  init-complete: "Language system initialized, current language: {0}"
+  file-not-found: "Language file not found: {0}, using default zh_cn"
+  default-not-found: "Default language file not found, language system may not work properly"
+  loaded: "Language file loaded: {0}"
+  extracted: "Language file extracted: {0}"
+  extract-not-found: "Language file not found in jar: {0}"
+  extract-fail: "Failed to extract language file: {0}"
+
+# ==================== Database ====================
+database:
+  # MySQL
+  mysql-connect-success: "MySQL database connected: {0}"
+  mysql-connect-fail: "MySQL database connection failed"
+  mysql-reconnecting: "MySQL connection lost, reconnecting..."
+  mysql-check-fail: "Failed to check MySQL connection status"
+  mysql-closed: "MySQL connection closed: {0}"
+  mysql-close-fail: "Failed to close MySQL connection"
+  mysql-table-check-fail: "Failed to check if table exists: {0}"
+  # SQLite
+  sqlite-path-fail: "Failed to build SQLite database path"
+  sqlite-path-invalid: "SQLite database file path invalid"
+  sqlite-driver-fail: "SQLite driver load failed, please ensure SQLite JDBC dependency is added"
+  sqlite-connect-success: "SQLite database connected: {0}"
+  sqlite-connect-fail: "SQLite database connection failed"
+  sqlite-reconnecting: "SQLite connection lost, reconnecting..."
+  sqlite-check-fail: "Failed to check SQLite connection status"
+  sqlite-closed: "SQLite connection closed: {0}"
+  sqlite-close-fail: "Failed to close SQLite connection"
+  sqlite-deleted: "SQLite database file deleted: {0}"
+  sqlite-delete-fail: "Failed to delete SQLite database file: {0}"
+  sqlite-table-check-fail: "Failed to check if table exists: {0}"
+  sqlite-backup-success: "SQLite database backup successful: {0}"
+  sqlite-backup-fail: "SQLite database backup failed"
+  # Common
+  sql-execute: "Executing SQL: {0}"
+  sql-execute-fail: "SQL execution failed: {0}"
+  sql-query: "Query SQL: {0}"
+  sql-query-fail: "SQL query failed: {0}"
+  sql-param-execute-fail: "Parameterized SQL execution failed: {0}"
+  sql-param-query-fail: "Parameterized SQL query failed: {0}"
+  table-cleared: "Table cleared: {0}"
+  connection-closed: "Database connection closed"
+  connection-close-fail: "Failed to close database connection"
+
+# ==================== Debug Command ====================
 debug:
   enabled: "§aDebug mode enabled"
   disabled: "§eDebug mode disabled"
+  scanning: "§eScanning classes, please check console output..."
   help-title: "§6========== YukiNoaAPI Debug Help =========="
   help-debug: "§e/yn debug §7- Toggle debug mode"
   help-classes: "§e/yn classes §7- Print all available NMS classes"
   help-reload: "§e/yn reload §7- Reload configuration"
   help-footer: "§6==========================================="
+  player-view-item: "Player {0} viewed item: {1}"
+  player-view-block: "Player {0} viewed block: {1}"
+  player-view-entity: "Player {0} viewed entity: {1}"
 
-# Item Info
+# ==================== Item Info ====================
 item:
   name: "§aItem Name: §f{0}"
   type: "§aItem Type: §f{0}"
   sub-id: "§aItem SubID: §f{0}"
   max-stack: "§aMax Stack Size: §f{0}"
   enchantments: "§aEnchantments:"
-  enchantment-entry: " §f- {0} Level {1}"
+  enchantment-entry: "  §f- {0} Level {1}"
   nbt: "§aItem NBT: §f{0}"
 
-# Block Info
+# ==================== Block Info ====================
 block:
   type: "§aBlock Type: §f{0}"
   data: "§aBlock Data: §f{0}"
@@ -38,7 +166,7 @@ block:
   nbt: "§aBlock NBT: §f{0}"
   nbt-none: "None"
 
-# Entity Info
+# ==================== Entity Info ====================
 entity:
   name: "§aEntity Name: §f{0}"
   save-name: "§aSave Name: §f{0}"
@@ -48,8 +176,15 @@ entity:
   vector: "§aVector: §f{0}"
   nbt: "§aEntity NBT: §f{0}"
   nbt-fail: "Failed: {0}"
+  nms-not-init: "NMSUtil not initialized, returning entity type name"
+  get-name-fail: "Failed to get entity name: {0}"
+  get-save-id-unavailable: "getSaveID method unavailable (possibly old version)"
+  get-save-fail: "getSaveID call failed: {0}"
+  get-save-name-fail: "Failed to get save name: {0}"
+  nbt-reflect-unavailable: "NBT related reflection objects unavailable"
+  get-nbt-fail: "Failed to get entity NBT: {0}"
 
-# Inventory Info
+# ==================== Inventory Info ====================
 inventory:
   click-type: "§aClick Type: §f{0}"
   title: "§aInventory Title: §f{0}"
@@ -58,12 +193,12 @@ inventory:
   slot: "§aSlot: §f{0}"
   raw-slot: "§aRaw Slot: §f{0}"
 
-# Ask Interaction
+# ==================== Ask Interaction ====================
 ask:
   timeout: "§cInput timeout, cancelled!"
   cancelled: "§eOperation cancelled."
 
-# SelectBlock Block Selection
+# ==================== SelectBlock Block Selection ====================
 select-block:
   instruction: "§eLeft click to select first block, right click to select second block"
   first-selected: "§aFirst block selected: §f{0}"
@@ -71,3 +206,20 @@ select-block:
   complete: "§aBlock selection complete!"
   timeout: "§cSelection timeout, cancelled!"
   cancelled: "§eSelection cancelled."
+
+# ==================== Vault Economy ====================
+vault:
+  economy-not-found: "§cServer does not have economy system!"
+  economy-found: "§aServer has economy system!"
+
+# ==================== Formula ====================
+formula:
+  calc-fail: "Formula calculation failed: {0}"
+  judge-fail: "Formula judgment failed: {0}"
+  engine-fail: "Script engine calculation failed, using built-in parser: {0}"
+  engine-judge-fail: "Script engine judgment failed, using built-in parser: {0}"
+  no-engine: "No script engine available, using built-in parser"
+
+# ==================== Message System ====================
+message:
+  version-incompatible: "§cVersion/server incompatible!"

@@ -1,96 +1,111 @@
-// 文件：Sqlite.java
-// 路径：src/pers/tany/yukinoaapi/realizationpart/sql/Sqlite.java
 package pers.tany.yukinoaapi.realizationpart.sql;
 
-import pers.tany.yukinoaapi.interfacepart.configuration.IFile;
 import pers.tany.yukinoaapi.interfacepart.sql.ISql;
+import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.sql.*;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * SQLite数据库操作实现类
- * 提供SQLite数据库的连接和基本操作
+ *
+ * @author tany
+ * @since 1.0.0
  */
-public abstract class Sqlite implements ISql {
+public class Sqlite implements ISql {
 
-    private final String pluginName;
-    private final String dirName;
-    private final String dataBaseName;
-    private final File databaseFile;
+    /**
+     * 数据库连接
+     */
     private Connection connection;
 
     /**
-     * 打开指定插件文件夹下的SQLite数据库
-     * 如果不存在则创建
+     * 数据库文件路径
+     */
+    private final String dbPath;
+
+    /**
+     * 数据库文件
+     */
+    private final File dbFile;
+
+    /**
+     * 构造SQLite数据库连接
      *
-     * @param pluginName   插件的名称
-     * @param dirName      文件夹名称（相对于插件文件夹）
-     * @param dataBaseName 数据库的名称（无需带.db扩展名）
+     * @param pluginName   插件名称
+     * @param dirName      目录名称
+     * @param dataBaseName 数据库名称（不含.db后缀）
      */
     public Sqlite(String pluginName, String dirName, String dataBaseName) {
-        this.pluginName = pluginName;
-        this.dirName = dirName;
-        this.dataBaseName = dataBaseName;
-
-        // 构建数据库文件路径
-        File dbFile = null;
+        String path;
         try {
-            File dir = new File(IFile.formattedPath(
-                    new File("plugins").getCanonicalPath() + "\\" + pluginName + "\\" + dirName
-            ));
-            dir.mkdirs();
-            dbFile = new File(dir, dataBaseName + ".db");
+            path = new File("plugins/" + pluginName + "/" + dirName).getCanonicalPath();
         } catch (IOException e) {
-            LogUtil.error("构建SQLite数据库路径失败", e);
+            LogUtil.error(LangUtil.get("database.sqlite-path-fail"), e);
+            path = "plugins/" + pluginName + "/" + dirName;
         }
-        this.databaseFile = dbFile;
 
-        connect();
+        // 确保目录存在
+        File dir = new File(path);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        this.dbPath = path + "/" + dataBaseName + ".db";
+        this.dbFile = new File(dbPath);
+
+        initConnection();
     }
 
     /**
-     * 建立数据库连接
+     * 初始化数据库连接
      */
-    private void connect() {
-        if (databaseFile == null) {
-            LogUtil.error("SQLite数据库文件路径无效");
-            return;
-        }
-
+    private void initConnection() {
         try {
             // 加载SQLite驱动
             Class.forName("org.sqlite.JDBC");
 
-            String url = "jdbc:sqlite:" + databaseFile.getAbsolutePath();
-            connection = DriverManager.getConnection(url);
+            if (dbFile == null) {
+                LogUtil.error(LangUtil.get("database.sqlite-path-invalid"));
+                return;
+            }
+
+            connection = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
 
             // 启用外键支持
-            doCommand("PRAGMA foreign_keys = ON");
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("PRAGMA foreign_keys = ON");
+            }
 
-            LogUtil.debug("SQLite数据库连接成功: " + dataBaseName);
+            LogUtil.success(LangUtil.get("database.sqlite-connect-success", dbFile.getName()));
         } catch (ClassNotFoundException e) {
-            LogUtil.error("SQLite驱动加载失败，请确保已添加SQLite JDBC依赖", e);
+            LogUtil.error(LangUtil.get("database.sqlite-driver-fail"), e);
         } catch (SQLException e) {
-            LogUtil.error("SQLite数据库连接失败", e);
+            LogUtil.error(LangUtil.get("database.sqlite-connect-fail"), e);
         }
     }
 
     /**
-     * 检查并重新连接（如果连接已断开）
+     * 确保连接可用
      */
     private void ensureConnection() {
         try {
             if (connection == null || connection.isClosed()) {
-                LogUtil.debug("SQLite连接已断开，正在重新连接...");
-                connect();
+                LogUtil.warning(LangUtil.get("database.sqlite-reconnecting"));
+                initConnection();
             }
         } catch (SQLException e) {
-            LogUtil.error("检查SQLite连接状态失败", e);
-            connect();
+            LogUtil.error(LangUtil.get("database.sqlite-check-fail"), e);
         }
     }
 
@@ -103,109 +118,63 @@ public abstract class Sqlite implements ISql {
     @Override
     public void doCommand(String statement) {
         ensureConnection();
+        LogUtil.debug(LangUtil.get("database.sql-execute", statement));
 
-        PreparedStatement ps = null;
-        try {
-            ps = connection.prepareStatement(statement);
-            ps.executeUpdate();
-            LogUtil.debug("执行SQL: " + statement);
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(statement);
         } catch (SQLException e) {
-            LogUtil.error("执行SQL失败: " + statement, e);
-        } finally {
-            ISql.closePreparedStatement(ps);
+            LogUtil.error(LangUtil.get("database.sql-execute-fail", statement), e);
         }
     }
 
-    @Nullable
     @Override
+    @Nullable
     public ResultSet selectTable(String statement) {
         ensureConnection();
+        LogUtil.debug(LangUtil.get("database.sql-query", statement));
 
         try {
-            PreparedStatement ps = connection.prepareStatement(statement);
-            LogUtil.debug("查询SQL: " + statement);
-            return ps.executeQuery();
+            Statement stmt = connection.createStatement();
+            return stmt.executeQuery(statement);
         } catch (SQLException e) {
-            LogUtil.error("查询SQL失败: " + statement, e);
+            LogUtil.error(LangUtil.get("database.sql-query-fail", statement), e);
             return null;
         }
     }
 
-    @Override
-    public void clearTable(String table) {
-        doCommand("DELETE FROM " + table);
-        // SQLite需要VACUUM来释放空间
-        doCommand("VACUUM");
-        LogUtil.debug("已清空数据表: " + table);
-    }
-
-    @Override
-    public void close() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-                LogUtil.debug("SQLite连接已关闭: " + dataBaseName);
-            }
-        } catch (SQLException e) {
-            LogUtil.error("关闭SQLite连接失败", e);
-        }
-    }
-
     /**
-     * 删除数据库文件并关闭连接
-     *
-     * @return 是否删除成功
-     */
-    public boolean deleteDatabase() {
-        close();
-
-        if (databaseFile != null && databaseFile.exists()) {
-            boolean deleted = databaseFile.delete();
-            if (deleted) {
-                LogUtil.debug("SQLite数据库文件已删除: " + dataBaseName);
-            } else {
-                LogUtil.warning("SQLite数据库文件删除失败: " + dataBaseName);
-            }
-            return deleted;
-        }
-        return false;
-    }
-
-    /**
-     * 执行带参数的SQL语句（防SQL注入）
+     * 执行参数化更新语句
      *
      * @param sql    SQL语句，使用?作为占位符
      * @param params 参数列表
      * @return 影响的行数，失败返回-1
      */
-    public int executeUpdate(String sql, Object... params) {
+    public int doCommand(String sql, Object... params) {
         ensureConnection();
+        LogUtil.debug(LangUtil.get("database.sql-execute", sql));
 
-        PreparedStatement ps = null;
-        try {
-            ps = connection.prepareStatement(sql);
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             for (int i = 0; i < params.length; i++) {
                 ps.setObject(i + 1, params[i]);
             }
             return ps.executeUpdate();
         } catch (SQLException e) {
-            LogUtil.error("执行参数化SQL失败: " + sql, e);
+            LogUtil.error(LangUtil.get("database.sql-param-execute-fail", sql), e);
             return -1;
-        } finally {
-            ISql.closePreparedStatement(ps);
         }
     }
 
     /**
-     * 执行带参数的查询语句（防SQL注入）
+     * 执行参数化查询语句
      *
      * @param sql    SQL语句，使用?作为占位符
      * @param params 参数列表
-     * @return 查询结果
+     * @return 查询结果集，失败返回null
      */
     @Nullable
-    public ResultSet executeQuery(String sql, Object... params) {
+    public ResultSet selectTable(String sql, Object... params) {
         ensureConnection();
+        LogUtil.debug(LangUtil.get("database.sql-query", sql));
 
         try {
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -214,7 +183,7 @@ public abstract class Sqlite implements ISql {
             }
             return ps.executeQuery();
         } catch (SQLException e) {
-            LogUtil.error("执行参数化查询失败: " + sql, e);
+            LogUtil.error(LangUtil.get("database.sql-param-query-fail", sql), e);
             return null;
         }
     }
@@ -227,58 +196,100 @@ public abstract class Sqlite implements ISql {
      */
     public boolean tableExists(String tableName) {
         String sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
-        ResultSet rs = executeQuery(sql, tableName);
 
-        if (rs != null) {
-            try {
-                boolean exists = rs.next();
-                rs.close();
-                return exists;
-            } catch (SQLException e) {
-                LogUtil.error("检查表是否存在失败: " + tableName, e);
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
             }
+        } catch (SQLException e) {
+            LogUtil.error(LangUtil.get("database.sqlite-table-check-fail", tableName), e);
         }
+
         return false;
     }
 
+    @Override
+    public void clearTable(String table) {
+        doCommand("DELETE FROM " + table);
+        doCommand("DELETE FROM sqlite_sequence WHERE name = '" + table + "'");
+        LogUtil.debug(LangUtil.get("database.table-cleared", table));
+    }
+
+    @Override
+    public void close() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+                LogUtil.info(LangUtil.get("database.sqlite-closed", dbFile.getName()));
+            }
+        } catch (SQLException e) {
+            LogUtil.error(LangUtil.get("database.sqlite-close-fail"), e);
+        }
+    }
+
+    @Override
+    public boolean isConnected() {
+        try {
+            return connection != null && !connection.isClosed();
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
     /**
-     * 备份数据库到指定文件
+     * 删除数据库文件
+     *
+     * @return 删除成功返回true
+     */
+    public boolean deleteDatabase() {
+        close();
+
+        if (dbFile.exists()) {
+            boolean deleted = dbFile.delete();
+            if (deleted) {
+                LogUtil.info(LangUtil.get("database.sqlite-deleted", dbFile.getName()));
+            } else {
+                LogUtil.error(LangUtil.get("database.sqlite-delete-fail", dbFile.getName()));
+            }
+            return deleted;
+        }
+
+        return true;
+    }
+
+    /**
+     * 备份数据库文件
      *
      * @param backupFile 备份文件
-     * @return 是否备份成功
+     * @return 备份成功返回true
      */
     public boolean backup(File backupFile) {
-        if (databaseFile == null || !databaseFile.exists()) {
-            return false;
-        }
-
         try {
-            java.nio.file.Files.copy(
-                    databaseFile.toPath(),
-                    backupFile.toPath(),
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
-            );
-            LogUtil.debug("SQLite数据库备份成功: " + backupFile.getName());
+            Files.copy(dbFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            LogUtil.success(LangUtil.get("database.sqlite-backup-success", backupFile.getName()));
             return true;
         } catch (IOException e) {
-            LogUtil.error("SQLite数据库备份失败", e);
+            LogUtil.error(LangUtil.get("database.sqlite-backup-fail"), e);
             return false;
         }
     }
 
-    public String getPluginName() {
-        return pluginName;
+    /**
+     * 获取数据库文件路径
+     *
+     * @return 数据库文件路径
+     */
+    public String getDbPath() {
+        return dbPath;
     }
 
-    public String getDirName() {
-        return dirName;
-    }
-
-    public String getDataBaseName() {
-        return dataBaseName;
-    }
-
-    public File getDatabaseFile() {
-        return databaseFile;
+    /**
+     * 获取数据库文件
+     *
+     * @return 数据库文件
+     */
+    public File getDbFile() {
+        return dbFile;
     }
 }

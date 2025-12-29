@@ -1,13 +1,11 @@
-// 文件：IConfig.java
-// 路径：src/pers/tany/yukinoaapi/interfacepart/configuration/IConfig.java
 package pers.tany.yukinoaapi.interfacepart.configuration;
 
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
+import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.annotation.Nonnull;
@@ -21,18 +19,6 @@ import java.nio.file.StandardCopyOption;
  * 配置文件操作相关接口
  * 提供配置文件的创建、读取、保存等功能
  *
- * <p>使用示例：</p>
- * <pre>
- * // 创建配置文件
- * IConfig.createResource(plugin, "", "config.yml", false);
- *
- * // 加载配置文件
- * YamlConfiguration config = IConfig.loadConfig(plugin, "", "config");
- *
- * // 保存配置文件
- * IConfig.saveConfig(plugin, config, "", "config");
- * </pre>
- *
  * @author tany
  * @since 1.0.0
  */
@@ -40,13 +26,6 @@ public interface IConfig {
 
     /**
      * 获取有效的插件数据文件夹
-     *
-     * <p>根据配置文件中的 CustomDataDirectory 设置决定使用哪个目录：</p>
-     * <ul>
-     *     <li>如果插件是 YukiNoaAPI，直接返回默认数据文件夹</li>
-     *     <li>如果设置了自定义目录且有效，使用自定义目录</li>
-     *     <li>否则使用默认的 plugins/插件名 目录</li>
-     * </ul>
      *
      * @param plugin 插件实例
      * @return 有效的插件数据文件夹
@@ -64,16 +43,16 @@ public interface IConfig {
         if (customDir != null && !customDir.isEmpty()) {
             baseDir = new File(customDir, plugin.getName());
             if (!baseDir.exists() && !baseDir.mkdirs()) {
-                LogUtil.error(plugin.getName(), "自定义数据目录无效或无法创建: " + baseDir.getAbsolutePath());
-                LogUtil.warning(plugin.getName(), "将使用默认插件数据文件夹");
+                LogUtil.error(plugin.getName(), LangUtil.get("config.custom-dir-invalid", baseDir.getAbsolutePath()));
+                LogUtil.warning(plugin.getName(), LangUtil.get("config.custom-dir-fallback"));
                 baseDir = plugin.getDataFolder();
             } else {
-                LogUtil.success(plugin.getName(), "使用自定义数据目录: " + baseDir.getAbsolutePath());
+                LogUtil.success(plugin.getName(), LangUtil.get("config.custom-dir-using", baseDir.getAbsolutePath()));
             }
         } else {
             baseDir = plugin.getDataFolder();
             if (showDefaultPathLogs) {
-                LogUtil.success(plugin.getName(), "使用默认数据目录: " + baseDir.getAbsolutePath());
+                LogUtil.success(plugin.getName(), LangUtil.get("config.default-dir-using", baseDir.getAbsolutePath()));
             }
         }
         return baseDir;
@@ -104,15 +83,50 @@ public interface IConfig {
             File dir = new File(IFile.formattedPath(baseDir.getCanonicalPath() + "\\" + dirName));
             boolean result = subdirectory ? dir.mkdirs() : dir.mkdir();
             if (!result && !dir.exists()) {
-                LogUtil.error(plugin.getName(), "无法创建目录: " + dir.getAbsolutePath());
+                LogUtil.error(plugin.getName(), LangUtil.get("config.dir-create-fail", dir.getAbsolutePath()));
             } else {
-                LogUtil.debug(plugin.getName(), "目录创建成功: " + dir.getAbsolutePath());
+                LogUtil.debug(plugin.getName(), LangUtil.get("config.dir-create-success", dir.getAbsolutePath()));
             }
             return result || dir.exists();
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), "创建目录时发生错误", e);
+            LogUtil.error(plugin.getName(), LangUtil.get("config.dir-create-error"), e);
             return false;
         }
+    }
+
+    /**
+     * 从插件里把对应名称的资源创建到对应插件文件夹里（静默模式，不输出日志）
+     * 用于 LangUtil 初始化之前
+     *
+     * @param plugin   主类
+     * @param dirName  文件夹名
+     * @param fileName 文件名
+     * @param cover    是否覆盖
+     * @return 是否成功生成
+     */
+    static boolean createResourceSilent(Plugin plugin, String dirName, String fileName, boolean cover) {
+        try {
+            File baseDir = plugin.getDataFolder();
+            File dir = new File(IFile.formattedPath(baseDir.getCanonicalPath() + "\\" + dirName));
+            dir.mkdirs();
+            File file = new File(IFile.formattedPath(dir + "\\" + fileName));
+
+            if (!file.exists() || cover) {
+                if (plugin.getClass().getClassLoader().getResourceAsStream(fileName) == null) {
+                    return false;
+                }
+
+                Files.copy(
+                        plugin.getClass().getClassLoader().getResourceAsStream(fileName),
+                        file.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+                return true;
+            }
+        } catch (Exception e) {
+            // 静默模式，不输出日志
+        }
+        return false;
     }
 
     /**
@@ -134,7 +148,7 @@ public interface IConfig {
             if (!file.exists() || cover) {
                 // 检查资源是否存在
                 if (plugin.getClass().getClassLoader().getResourceAsStream(fileName) == null) {
-                    LogUtil.error(plugin.getName(), "资源文件不存在: " + fileName);
+                    LogUtil.error(plugin.getName(), LangUtil.get("config.resource-not-found", fileName));
                     return false;
                 }
 
@@ -146,18 +160,46 @@ public interface IConfig {
 
                 // 根据配置决定是否输出日志
                 if (plugin.getName().equals("YukiNoaAPI") || Main.config.getBoolean("Logging.VerboseConfigLogs", false)) {
-                    LogUtil.success(plugin.getName(), "成功创建资源文件: " + file.getAbsolutePath());
+                    LogUtil.success(plugin.getName(), LangUtil.get("config.resource-create-success", file.getAbsolutePath()));
                 }
-                LogUtil.debug(plugin.getName(), "资源文件已创建: " + file.getName());
+                LogUtil.debug(plugin.getName(), LangUtil.get("config.resource-created", file.getName()));
                 return true;
             } else {
-                LogUtil.debug(plugin.getName(), "资源文件已存在，跳过创建: " + file.getName());
+                LogUtil.debug(plugin.getName(), LangUtil.get("config.resource-exists", file.getName()));
             }
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), "创建资源文件时发生错误: " + fileName, e);
+            LogUtil.error(plugin.getName(), LangUtil.get("config.resource-create-error", fileName), e);
             return false;
         }
         return false;
+    }
+
+    /**
+     * 读取插件的yml配置文件（静默模式，不输出日志）
+     * 用于 LangUtil 初始化之前
+     *
+     * @param plugin   主类
+     * @param dirName  文件夹名
+     * @param fileName 文件名（可带或不带.yml后缀）
+     * @return 文件的YamlConfiguration实例，加载失败返回空配置
+     */
+    @Nonnull
+    static YamlConfiguration loadConfigSilent(Plugin plugin, String dirName, String fileName) {
+        try {
+            File baseDir = plugin.getDataFolder();
+            File configFile = new File(
+                    IFile.formattedPath(baseDir.getCanonicalPath() + "\\" + dirName),
+                    fileName.endsWith(".yml") ? fileName : fileName + ".yml"
+            );
+
+            if (!configFile.exists()) {
+                return new YamlConfiguration();
+            }
+
+            return YamlConfiguration.loadConfiguration(configFile);
+        } catch (Exception e) {
+            return new YamlConfiguration();
+        }
     }
 
     /**
@@ -179,7 +221,7 @@ public interface IConfig {
 
             // 检查文件是否存在
             if (!configFile.exists()) {
-                LogUtil.warning(plugin.getName(), "配置文件不存在: " + configFile.getAbsolutePath());
+                LogUtil.warning(plugin.getName(), LangUtil.get("config.file-not-found", configFile.getAbsolutePath()));
                 return null;
             }
 
@@ -187,16 +229,16 @@ public interface IConfig {
 
             // 根据配置决定是否输出日志
             if (Main.config != null && Main.config.getBoolean("Logging.VerboseConfigLogs", false)) {
-                LogUtil.success(plugin.getName(), "成功加载配置文件: " + configFile.getAbsolutePath());
+                LogUtil.success(plugin.getName(), LangUtil.get("config.load-success", configFile.getAbsolutePath()));
             }
-            LogUtil.debug(plugin.getName(), "配置文件已加载: " + configFile.getName());
+            LogUtil.debug(plugin.getName(), LangUtil.get("config.loaded", configFile.getName()));
 
             return config;
         } catch (IOException e) {
-            LogUtil.error(plugin.getName(), "加载配置文件时发生IO错误", e);
+            LogUtil.error(plugin.getName(), LangUtil.get("config.load-io-error"), e);
             return null;
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), "加载配置文件时发生未知错误", e);
+            LogUtil.error(plugin.getName(), LangUtil.get("config.load-error"), e);
             return null;
         }
     }
@@ -213,7 +255,7 @@ public interface IConfig {
     @Nonnull
     static YamlConfiguration loadSystemConfig(Plugin plugin, String dirName, String fileName) {
         File configFile = new File(dirName, fileName.endsWith(".yml") ? fileName : fileName + ".yml");
-        LogUtil.debug(plugin.getName(), "加载系统配置文件: " + configFile.getAbsolutePath());
+        LogUtil.debug(plugin.getName(), LangUtil.get("config.system-loaded", configFile.getAbsolutePath()));
         return YamlConfiguration.loadConfiguration(configFile);
     }
 
@@ -233,24 +275,24 @@ public interface IConfig {
 
             try {
                 config.save(file);
-                LogUtil.debug(plugin.getName(), "系统配置文件已保存: " + file.getAbsolutePath());
+                LogUtil.debug(plugin.getName(), LangUtil.get("config.system-saved", file.getAbsolutePath()));
             } catch (IOException e) {
                 // 如果在异步线程中保存失败，尝试同步保存
-                LogUtil.debug(plugin.getName(), "异步保存失败，尝试同步保存...");
+                LogUtil.debug(plugin.getName(), LangUtil.get("config.sync-save-fail"));
                 new BukkitRunnable() {
                     @Override
                     public void run() {
                         try {
                             config.save(file);
-                            LogUtil.debug(plugin.getName(), "同步保存成功: " + file.getName());
+                            LogUtil.debug(plugin.getName(), LangUtil.get("config.sync-save-success", file.getName()));
                         } catch (IOException ex) {
-                            LogUtil.error(plugin.getName(), "同步保存配置文件失败", ex);
+                            LogUtil.error(plugin.getName(), LangUtil.get("config.sync-save-error"), ex);
                         }
                     }
                 }.runTask(plugin);
             }
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), "保存系统配置文件时发生错误", e);
+            LogUtil.error(plugin.getName(), LangUtil.get("config.save-error"), e);
         }
     }
 
@@ -275,15 +317,15 @@ public interface IConfig {
 
                 // 根据配置决定是否输出日志
                 if (Main.config != null && Main.config.getBoolean("Logging.VerboseConfigLogs", false)) {
-                    LogUtil.success(plugin.getName(), "成功保存配置文件: " + file.getAbsolutePath());
+                    LogUtil.success(plugin.getName(), LangUtil.get("config.save-success", file.getAbsolutePath()));
                 }
-                LogUtil.debug(plugin.getName(), "配置文件已保存: " + file.getName());
+                LogUtil.debug(plugin.getName(), LangUtil.get("config.saved", file.getName()));
 
             } catch (IOException e) {
-                LogUtil.error(plugin.getName(), "保存配置文件时发生IO错误", e);
+                LogUtil.error(plugin.getName(), LangUtil.get("config.save-io-error"), e);
             }
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), "保存配置文件时发生未知错误", e);
+            LogUtil.error(plugin.getName(), LangUtil.get("config.save-error"), e);
         }
     }
 

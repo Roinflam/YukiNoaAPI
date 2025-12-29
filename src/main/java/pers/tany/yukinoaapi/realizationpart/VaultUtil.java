@@ -5,23 +5,32 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import pers.tany.yukinoaapi.Main;
+import pers.tany.yukinoaapi.util.LangUtil;
 
 import javax.annotation.Nullable;
 
 /**
  * Vault操作库
+ *
+ * @author tany
+ * @since 1.0.0
  */
 public class VaultUtil {
+
+    /**
+     * 经济系统实例
+     */
     @Nullable
     private static final Economy economy;
 
     static {
-        RegisteredServiceProvider<Economy> registeredServiceProvider = (RegisteredServiceProvider<Economy>) Main.plugin.getServer().getServicesManager().getRegistration((Class) Economy.class);
+        // 直接使用泛型方法，无需强制转换
+        RegisteredServiceProvider<Economy> registeredServiceProvider = Main.plugin.getServer().getServicesManager().getRegistration(Economy.class);
         if (registeredServiceProvider == null) {
-            Bukkit.getConsoleSender().sendMessage("§7[§fYukiNoaAPI§7]§c服务器未拥有经济系统！");
+            Bukkit.getConsoleSender().sendMessage(LangUtil.getWithPrefix("vault.economy-not-found"));
             economy = null;
         } else {
-            Bukkit.getConsoleSender().sendMessage("§7[§fYukiNoaAPI§7]§a服务器拥有经济系统！");
+            Bukkit.getConsoleSender().sendMessage(LangUtil.getWithPrefix("vault.economy-found"));
             economy = registeredServiceProvider.getProvider();
         }
     }

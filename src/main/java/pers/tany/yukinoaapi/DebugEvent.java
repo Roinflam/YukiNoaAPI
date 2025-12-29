@@ -26,9 +26,17 @@ import pers.tany.yukinoaapi.util.LogUtil;
 
 /**
  * Debug模式事件监听器
+ *
+ * @author tany
+ * @since 1.0.0
  */
 public class DebugEvent implements Listener {
 
+    /**
+     * 监听玩家交互事件
+     *
+     * @param evt 交互事件
+     */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent evt) {
         Player player = evt.getPlayer();
@@ -55,6 +63,11 @@ public class DebugEvent implements Listener {
         }
     }
 
+    /**
+     * 监听玩家右键实体事件
+     *
+     * @param evt 交互实体事件
+     */
     @EventHandler
     public void onPlayerInteractEntity(PlayerInteractEntityEvent evt) {
         Player player = evt.getPlayer();
@@ -67,6 +80,11 @@ public class DebugEvent implements Listener {
         sendEntityInfo(player, entity);
     }
 
+    /**
+     * 监听物品栏点击事件
+     *
+     * @param evt 物品栏点击事件
+     */
     @EventHandler
     public void onInventoryClick(InventoryClickEvent evt) {
         if (evt.getRawSlot() == -999) {
@@ -91,6 +109,12 @@ public class DebugEvent implements Listener {
         }
     }
 
+    /**
+     * 发送物品信息到玩家和控制台
+     *
+     * @param player    玩家
+     * @param itemStack 物品
+     */
     private void sendItemInfo(Player player, ItemStack itemStack) {
         String itemName = IItem.getName(itemStack);
         String itemType = itemStack.getType().toString();
@@ -113,7 +137,8 @@ public class DebugEvent implements Listener {
 
         player.sendMessage(LangUtil.get("item.nbt", itemNBT));
 
-        LogUtil.debug("玩家 " + player.getName() + " 查看物品: " + itemName);
+        // 控制台输出（国际化）
+        LogUtil.debug(LangUtil.get("debug.player-view-item", player.getName(), itemName));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.name", itemName));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.type", itemType));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.sub-id", durability));
@@ -130,6 +155,12 @@ public class DebugEvent implements Listener {
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.nbt", itemNBT));
     }
 
+    /**
+     * 发送方块信息到玩家和控制台
+     *
+     * @param player 玩家
+     * @param block  方块
+     */
     private void sendBlockInfo(Player player, Block block) {
         String blockType = block.getType().toString();
         byte blockData = block.getData();
@@ -141,13 +172,20 @@ public class DebugEvent implements Listener {
         player.sendMessage(LangUtil.get("block.biome", biome));
         player.sendMessage(LangUtil.get("block.nbt", blockNBT));
 
-        LogUtil.debug("玩家 " + player.getName() + " 查看方块: " + blockType);
+        // 控制台输出（国际化）
+        LogUtil.debug(LangUtil.get("debug.player-view-block", player.getName(), blockType));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("block.type", blockType));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("block.data", blockData));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("block.biome", biome));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("block.nbt", blockNBT));
     }
 
+    /**
+     * 发送实体信息到玩家和控制台
+     *
+     * @param player 玩家
+     * @param entity 实体
+     */
     private void sendEntityInfo(Player player, Entity entity) {
         Location location = entity.getLocation();
         Vector vector = location.getDirection();
@@ -175,7 +213,8 @@ public class DebugEvent implements Listener {
         player.sendMessage(LangUtil.get("entity.vector", vectorStr));
         player.sendMessage(LangUtil.get("entity.nbt", entityNBT));
 
-        LogUtil.debug("玩家 " + player.getName() + " 查看实体: " + entityName);
+        // 控制台输出（国际化）
+        LogUtil.debug(LangUtil.get("debug.player-view-entity", player.getName(), entityName));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.name", entityName));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.save-name", saveName));
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.type", entityType));
@@ -185,6 +224,12 @@ public class DebugEvent implements Listener {
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.nbt", entityNBT));
     }
 
+    /**
+     * 发送物品栏信息到玩家和控制台
+     *
+     * @param player 玩家
+     * @param evt    物品栏点击事件
+     */
     private void sendInventoryInfo(Player player, InventoryClickEvent evt) {
         String clickType = evt.getClick().toString();
         String title = evt.getView().getTitle();
@@ -210,6 +255,12 @@ public class DebugEvent implements Listener {
         Bukkit.getConsoleSender().sendMessage(LangUtil.get("inventory.raw-slot", rawSlot));
     }
 
+    /**
+     * 安全获取方块NBT
+     *
+     * @param block 方块
+     * @return NBT字符串
+     */
     private String getBlockNBTSafe(Block block) {
         try {
             return new NBTTileEntity(block.getState()).toString();
@@ -218,6 +269,12 @@ public class DebugEvent implements Listener {
         }
     }
 
+    /**
+     * 安全获取实体NBT
+     *
+     * @param entity 实体
+     * @return NBT字符串
+     */
     private String getEntityNBTSafe(Entity entity) {
         try {
             return new NBTEntity(entity).toString();

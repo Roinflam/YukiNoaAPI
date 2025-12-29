@@ -1,9 +1,8 @@
-// 文件：IEntity.java
-// 路径：src/pers/tany/yukinoaapi/interfacepart/entity/IEntity.java
 package pers.tany.yukinoaapi.interfacepart.entity;
 
 import org.bukkit.entity.Entity;
 import pers.tany.yukinoaapi.NMSUtil;
+import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.annotation.Nullable;
@@ -12,6 +11,9 @@ import java.lang.reflect.Method;
 /**
  * 实体操作相关接口
  * 提供获取实体名称、NBT等功能
+ *
+ * @author tany
+ * @since 1.0.0
  */
 public interface IEntity {
 
@@ -28,7 +30,7 @@ public interface IEntity {
         }
 
         if (!NMSUtil.isInitialized()) {
-            LogUtil.debug("NMSUtil未初始化，返回实体类型名");
+            LogUtil.debug(LangUtil.get("entity.nms-not-init"));
             return entity.getType().toString();
         }
 
@@ -82,7 +84,7 @@ public interface IEntity {
             return name != null ? name : entity.getType().toString();
 
         } catch (Exception e) {
-            LogUtil.debug("获取实体名称失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("entity.get-name-fail", e.getMessage()));
             return entity.getType().toString();
         }
     }
@@ -100,7 +102,7 @@ public interface IEntity {
         }
 
         if (!NMSUtil.isInitialized()) {
-            LogUtil.debug("NMSUtil未初始化，返回实体类型名");
+            LogUtil.debug(LangUtil.get("entity.nms-not-init"));
             return entity.getType().toString();
         }
 
@@ -112,7 +114,7 @@ public interface IEntity {
         }
 
         if (getSaveID == null) {
-            LogUtil.debug("getSaveID方法不可用（可能是低版本）");
+            LogUtil.debug(LangUtil.get("entity.get-save-id-unavailable"));
             return entity.getType().toString();
         }
 
@@ -125,13 +127,13 @@ public interface IEntity {
                     return saveID.toString();
                 }
             } catch (Exception e) {
-                LogUtil.debug("getSaveID调用失败: " + e.getMessage());
+                LogUtil.debug(LangUtil.get("entity.get-save-fail", e.getMessage()));
             }
 
             return entity.getType().toString();
 
         } catch (Exception e) {
-            LogUtil.debug("获取保存名称失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("entity.get-save-name-fail", e.getMessage()));
             return entity.getType().toString();
         }
     }
@@ -149,7 +151,7 @@ public interface IEntity {
         }
 
         if (!NMSUtil.isInitialized()) {
-            LogUtil.debug("NMSUtil未初始化");
+            LogUtil.debug(LangUtil.get("entity.nbt-reflect-unavailable"));
             return null;
         }
 
@@ -158,7 +160,7 @@ public interface IEntity {
         Method save = NMSUtil.save_Entity;
 
         if (nbttagCompoundClass == null || getHandle == null || save == null) {
-            LogUtil.debug("NBT相关反射对象不可用");
+            LogUtil.debug(LangUtil.get("entity.nbt-reflect-unavailable"));
             return null;
         }
 
@@ -169,7 +171,7 @@ public interface IEntity {
             return nbttagCompound.toString();
 
         } catch (Exception e) {
-            LogUtil.debug("获取实体NBT失败: " + e.getMessage());
+            LogUtil.debug(LangUtil.get("entity.get-nbt-fail", e.getMessage()));
             return null;
         }
     }

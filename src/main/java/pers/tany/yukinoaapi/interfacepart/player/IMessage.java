@@ -5,14 +5,17 @@ import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.NMSUtil;
 import pers.tany.yukinoaapi.interfacepart.other.IString;
+import pers.tany.yukinoaapi.util.LangUtil;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
- * 玩家信息相关
+ * 玩家信息相关接口
+ *
+ * @author tany
+ * @since 1.0.0
  */
 public interface IMessage {
 
@@ -54,14 +57,9 @@ public interface IMessage {
                     }
                     send.invoke(playerConnection.get(getHandle.invoke(player)), packet);
 
-//                  CraftPlayer cp = (CraftPlayer) sender;
-//                  ChatComponentText c = new ChatComponentText(ChatColor.translateAlternateColorCodes('', "f" + args[2]));
-//                  PacketPlayOutChat pack = new PacketPlayOutChat(c, ChatMessageType.GAME_INFO);
-//                  PlayerConnection pc = cp.getHandle().playerConnection;
-//                  pc.sendPacket(pack);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    player.sendMessage("§c版本/服务端不兼容！");
+                    player.sendMessage(LangUtil.get("message.version-incompatible"));
                 }
                 i++;
                 if (i >= time - 2) {
