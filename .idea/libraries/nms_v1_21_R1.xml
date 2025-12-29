@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="nms_v1_21_R1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/nms_v1_21_R1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

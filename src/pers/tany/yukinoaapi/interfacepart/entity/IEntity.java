@@ -3,93 +3,170 @@ package pers.tany.yukinoaapi.interfacepart.entity;
 import org.bukkit.entity.Entity;
 import pers.tany.yukinoaapi.NMSUtil;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * 实体操作相关
+ * @description: 实体操作相关接口
  */
 public interface IEntity {
+    Logger logger = Logger.getLogger("YukiNoaAPI");
 
     /**
-     * 获取实体的名称
-     *
-     * @param entity 涉及的实体
-     * @return 优先自定义，其次翻译后的名称，如果没有翻译则为Material枚举名
+     * @description: 获取实体的显示名称
+     * @param entity - 目标实体
+     * @return String - 实体名称
      */
     @Nullable
     static String getName(Entity entity) {
-        Class<?> craftEntityClass = NMSUtil.craftEntityClass;
-        Class<?> nmsEntityClass = NMSUtil.nmsEntityClass;
+        if (entity == null) {
+            return null;
+        }
+
+        if (!NMSUtil.isInitialized()) {
+            logger.warning("[IEntity] NMSUtil 未初始化: " + NMSUtil.getInitError());
+            return entity.getType().toString();
+        }
+
         Method getHandle = NMSUtil.getHandle_Entity;
+        if (getHandle == null) {
+            return entity.getType().toString();
+        }
+
         try {
             Object nmsEntity = getHandle.invoke(entity);
-            @Nullable String name = null;
-            try {
-                Method getDisplayName = NMSUtil.getDisplayName_Entity;
-                Method getString = NMSUtil.getString_IChatBaseComponent;
-                name = getString.invoke(getDisplayName.invoke(nmsEntity)).toString();
-            } catch (Exception e) {
-                Method getName = NMSUtil.getName_Entity;
+            String name = null;
+
+            // 尝试获取显示名称
+            Method getDisplayName = NMSUtil.getDisplayName_Entity;
+            Method getString = NMSUtil.getString_IChatBaseComponent;
+
+            if (getDisplayName != null && getString != null) {
                 try {
-                    name = getName.invoke(nmsEntity).toString();
-                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-                    e.printStackTrace();
+                    Object nameComponent = getDisplayName.invoke(nmsEntity);
+                    if (nameComponent != null) {
+                        name = getString.invoke(nameComponent).toString();
+                    }
+                } catch (Exception ignored) {
                 }
             }
-            return name.split("\\.").length > 2 ? entity.getType().toString() : name;
-        } catch (Exception exception) {
-            exception.printStackTrace();
-            return null;
+
+            // 如果没有显示名称，获取默认名称
+            if (name == null || name.isEmpty()) {
+                Method getName = NMSUtil.getName_Entity;
+                if (getName != null) {
+                    try {
+                        Object nameObj = getName.invoke(nmsEntity);
+                        if (nameObj != null) {
+                            // 如果返回的是 IChatBaseComponent，需要转字符串
+                            if (getString != null && NMSUtil.iChatBaseComponentClass != null
+                                    && NMSUtil.iChatBaseComponentClass.isInstance(nameObj)) {
+                                name = getString.invoke(nameObj).toString();
+                            } else {
+                                name = nameObj.toString();
+                            }
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+
+            // 如果是翻译键，返回类型名
+            if (name != null && name.contains(".")) {
+                return entity.getType().toString();
+            }
+
+            return name != null ? name : entity.getType().toString();
+
+        } catch (Exception e) {
+            logger.log(Level.FINE, "[IEntity] 获取实体名称失败", e);
+            return entity.getType().toString();
         }
     }
 
     /**
-     * 获取实体的储存名称
-     *
-     * @param entity 涉及的实体
-     * @return 所属模组:生物名称(低版本只返回类型枚举名)
+     * @description: 获取实体的保存名称
+     * @param entity - 目标实体
+     * @return String - 格式如 minecraft:zombie
      */
     @Nullable
     static String getSaveName(Entity entity) {
-        Class<?> craftEntityClass = NMSUtil.craftEntityClass;
-        Class<?> nmsEntityClass = NMSUtil.nmsEntityClass;
+        if (entity == null) {
+            return null;
+        }
+
+        if (!NMSUtil.isInitialized()) {
+            logger.warning("[IEntity] NMSUtil 未初始化");
+            return entity.getType().toString();
+        }
+
         Method getHandle = NMSUtil.getHandle_Entity;
         Method getSaveID = NMSUtil.getSaveID;
+
+        if (getHandle == null) {
+            return entity.getType().toString();
+        }
+
+        if (getSaveID == null) {
+            logger.fine("[IEntity] getSaveID 方法不可用（可能是低版本）");
+            return entity.getType().toString();
+        }
+
         try {
             Object nmsEntity = getHandle.invoke(entity);
+
             try {
-                return getSaveID.invoke(nmsEntity).toString();
+                Object saveID = getSaveID.invoke(nmsEntity);
+                if (saveID != null) {
+                    return saveID.toString();
+                }
             } catch (Exception e) {
-                return entity.getType().toString();
+                logger.fine("[IEntity] getSaveID 调用失败: " + e.getMessage());
             }
+
+            return entity.getType().toString();
+
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            logger.log(Level.FINE, "[IEntity] 获取保存名称失败", e);
+            return entity.getType().toString();
         }
     }
 
     /**
-     * 获取实体的NBT
-     *
-     * @param entity 涉及实体
-     * @return 物品的NBT
+     * @description: 获取实体的 NBT 数据
+     * @param entity - 目标实体
+     * @return String - NBT 字符串
      */
     @Nullable
     static String getEntityNBT(Entity entity) {
-        Class<?> nmsEntityClass = NMSUtil.nmsEntityClass;
+        if (entity == null) {
+            return null;
+        }
+
+        if (!NMSUtil.isInitialized()) {
+            logger.warning("[IEntity] NMSUtil 未初始化");
+            return null;
+        }
+
         Class<?> nbttagCompoundClass = NMSUtil.nbttagCompoundClass;
         Method getHandle = NMSUtil.getHandle_Entity;
         Method save = NMSUtil.save_Entity;
+
+        if (nbttagCompoundClass == null || getHandle == null || save == null) {
+            logger.fine("[IEntity] NBT 相关反射对象不可用");
+            return null;
+        }
+
         try {
             Object nmsEntity = getHandle.invoke(entity);
-            Object nbttagCompound = nbttagCompoundClass.newInstance();
+            Object nbttagCompound = nbttagCompoundClass.getDeclaredConstructor().newInstance();
             save.invoke(nmsEntity, nbttagCompound);
             return nbttagCompound.toString();
+
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.WARNING, "[IEntity] 获取 NBT 失败", e);
             return null;
         }
     }

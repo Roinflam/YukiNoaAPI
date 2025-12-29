@@ -143,6 +143,29 @@ public class DebugEvent implements Listener {
                     Bukkit.getConsoleSender().sendMessage("§a物品栏大小： §f" + evt.getClickedInventory().getSize());
                     Bukkit.getConsoleSender().sendMessage("§a物品栏格子坐标： §f" + evt.getSlot());
                     Bukkit.getConsoleSender().sendMessage("§a视图格子坐标： §f" + evt.getRawSlot());
+                    ItemStack itemStack = evt.getCurrentItem();
+                    player.sendMessage("§a物品名称： §f" + IItem.getName(itemStack));
+                    player.sendMessage("§a物品Type： §f" + itemStack.getType().toString());
+                    player.sendMessage("§a物品子ID： §f" + itemStack.getDurability());
+                    player.sendMessage("§a物品最大堆叠数： §f" + itemStack.getMaxStackSize());
+                    if (itemStack.getEnchantments().size() > 0) {
+                        player.sendMessage("§a物品附魔：");
+                        for (Enchantment enchantment : itemStack.getEnchantments().keySet()) {
+                            player.sendMessage(" §f- " + IEnchantment.getName(enchantment) + " " + itemStack.getEnchantments().get(enchantment) + "级");
+                        }
+                    }
+                    player.sendMessage("§a物品NBT： §f" + IItem.getItemNBT(itemStack));
+                    Bukkit.getConsoleSender().sendMessage("§a物品Name： §f" + IItem.getName(itemStack));
+                    Bukkit.getConsoleSender().sendMessage("§a物品Type： §f" + itemStack.getType().toString());
+                    Bukkit.getConsoleSender().sendMessage("§a物品子ID： §f" + itemStack.getDurability());
+                    Bukkit.getConsoleSender().sendMessage("§a物品最大堆叠数： §f" + itemStack.getMaxStackSize());
+                    if (itemStack.getEnchantments().size() > 0) {
+                        Bukkit.getConsoleSender().sendMessage("§a物品附魔：");
+                        for (Enchantment enchantment : itemStack.getEnchantments().keySet()) {
+                            Bukkit.getConsoleSender().sendMessage(" §f- " + IEnchantment.getName(enchantment) + " " + itemStack.getEnchantments().get(enchantment) + "级");
+                        }
+                    }
+                    Bukkit.getConsoleSender().sendMessage("§a物品NBT： §f" + IItem.getItemNBT(itemStack));
                 }
             }
         }

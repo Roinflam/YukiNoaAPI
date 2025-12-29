@@ -47,33 +47,33 @@ public interface IItem {
         if (itemStack.getItemMeta().hasDisplayName()) {
             return itemStack.getItemMeta().getDisplayName();
         }
-
-        try {
-            Class<?> nmsItemStackClass = NMSUtil.nmsItemStackClass;
-            Class<?> nmsItemClass = NMSUtil.nmsItemClass;
-            Method asNMSCopy = NMSUtil.asNMSCopy;
-            try {
-                Object nmsItem = asNMSCopy.invoke(null, itemStack);
-                String name;
-                try {
-                    Class<?> iChatBaseComponentClass = NMSUtil.iChatBaseComponentClass;
-                    Method getItem = NMSUtil.getItem;
-                    Method getName_Item = NMSUtil.getName_Item;
-                    Method getString = NMSUtil.getString_IChatBaseComponent;
-                    Object item = getItem.invoke(nmsItem);
-                    name = getString.invoke(getName_Item.invoke(item, nmsItem)).toString();
-                } catch (Exception e) {
-                    Method getName_itemStack = NMSUtil.getName_ItemStack;
-                    name = getName_itemStack.invoke(nmsItem).toString();
-                }
-                return name.split("\\.").length > 2 ? itemStack.getType().toString() : name;
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
-            }
-        } catch (Exception e) {
-            return itemStack.getType().toString();
-        }
+        return itemStack.getType().toString();
+//        try {
+//            Class<?> nmsItemStackClass = NMSUtil.nmsItemStackClass;
+//            Class<?> nmsItemClass = NMSUtil.nmsItemClass;
+//            Method asNMSCopy = NMSUtil.asNMSCopy;
+//            try {
+//                Object nmsItem = asNMSCopy.invoke(null, itemStack);
+//                String name;
+//                try {
+//                    Class<?> iChatBaseComponentClass = NMSUtil.iChatBaseComponentClass;
+//                    Method getItem = NMSUtil.getItem;
+//                    Method getName_Item = NMSUtil.getName_Item;
+//                    Method getString = NMSUtil.getString_IChatBaseComponent;
+//                    Object item = getItem.invoke(nmsItem);
+//                    name = getString.invoke(getName_Item.invoke(item, nmsItem)).toString();
+//                } catch (Exception e) {
+//                    Method getName_itemStack = NMSUtil.getName_ItemStack;
+//                    name = getName_itemStack.invoke(nmsItem).toString();
+//                }
+//                return name.split("\\.").length > 2 ? itemStack.getType().toString() : name;
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                return null;
+//            }
+//        } catch (Exception e) {
+//            return itemStack.getType().toString();
+//        }
     }
 
     /**

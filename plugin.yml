@@ -1,6 +1,6 @@
 name: YukiNoaAPI
 main: pers.tany.yukinoaapi.Main
-version: 2.0.0
+version: 3.0.0
 author: tany
 softdepend: [ NBTAPI,Vault,ProtocolLib ]
 description: 结城希亚的专属开发库
