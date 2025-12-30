@@ -1,8 +1,7 @@
 package pers.tany.yukinoaapi.interfacepart.server;
 
-import pers.tany.yukinoaapi.NMSUtil;
+import pers.tany.yukinoaapi.util.NMSUtil;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

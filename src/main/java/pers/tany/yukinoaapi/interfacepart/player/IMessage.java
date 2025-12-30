@@ -3,7 +3,7 @@ package pers.tany.yukinoaapi.interfacepart.player;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
-import pers.tany.yukinoaapi.NMSUtil;
+import pers.tany.yukinoaapi.util.NMSUtil;
 import pers.tany.yukinoaapi.interfacepart.other.IString;
 import pers.tany.yukinoaapi.util.LangUtil;
 

@@ -49,6 +49,7 @@ public interface IConfig {
     static File getValidPluginDataFolder(Plugin plugin) {
         String pluginName = plugin.getName();
 
+        // YukiNoaAPI 始终使用默认目录
         if ("YukiNoaAPI".equals(pluginName)) {
             return plugin.getDataFolder();
         }
@@ -59,22 +60,25 @@ public interface IConfig {
         }
 
         String customDir = Main.config.getString("CustomDataDirectory", "");
-        boolean showDefaultPathLogs = Main.config.getBoolean("Logging.ShowDefaultPathLogs", false);
         File baseDir;
 
         if (customDir != null && !customDir.isEmpty()) {
             baseDir = new File(customDir, pluginName);
             if (!baseDir.exists() && !baseDir.mkdirs()) {
-                LogUtil.error(pluginName, LangUtil.get("config.custom-dir-invalid", baseDir.getAbsolutePath()));
-                LogUtil.warning(pluginName, LangUtil.get("config.custom-dir-fallback"));
+                if (LangUtil.isInitialized()) {
+                    LogUtil.error(pluginName, LangUtil.get("config.custom-dir-invalid", baseDir.getAbsolutePath()));
+                    LogUtil.warning(pluginName, LangUtil.get("config.custom-dir-fallback"));
+                }
                 baseDir = plugin.getDataFolder();
             } else {
-                LogUtil.success(pluginName, LangUtil.get("config.custom-dir-using", baseDir.getAbsolutePath()));
+                if (LangUtil.isInitialized()) {
+                    LogUtil.debug(LangUtil.get("config.custom-dir-using", pluginName, baseDir.getAbsolutePath()));
+                }
             }
         } else {
             baseDir = plugin.getDataFolder();
-            if (showDefaultPathLogs) {
-                LogUtil.success(pluginName, LangUtil.get("config.default-dir-using", baseDir.getAbsolutePath()));
+            if (LangUtil.isInitialized()) {
+                LogUtil.debug(LangUtil.get("config.default-dir-using", pluginName, baseDir.getAbsolutePath()));
             }
         }
 
@@ -139,19 +143,28 @@ public interface IConfig {
      * @return 是否创建成功
      */
     static boolean createDir(Plugin plugin, String dirName, boolean subdirectory) {
+        String pluginName = plugin.getName();
+        boolean isYukiNoaAPI = "YukiNoaAPI".equals(pluginName);
+
         try {
             File baseDir = getValidPluginDataFolder(plugin);
             File dir = new File(baseDir, dirName);
 
             boolean result = subdirectory ? dir.mkdirs() : dir.mkdir();
             if (!result && !dir.exists()) {
-                LogUtil.error(plugin.getName(), LangUtil.get("config.dir-create-fail", dir.getAbsolutePath()));
+                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                    LogUtil.error(pluginName, LangUtil.get("config.dir-create-fail", dir.getAbsolutePath()));
+                }
             } else {
-                LogUtil.debug(plugin.getName(), LangUtil.get("config.dir-create-success", dir.getAbsolutePath()));
+                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                    LogUtil.debug(LangUtil.get("config.dir-create-success", pluginName, dir.getAbsolutePath()));
+                }
             }
             return result || dir.exists();
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), LangUtil.get("config.dir-create-error"), e);
+            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                LogUtil.error(pluginName, LangUtil.get("config.dir-create-error"), e);
+            }
             return false;
         }
     }
@@ -197,6 +210,9 @@ public interface IConfig {
      * @return 是否成功生成
      */
     static boolean createResource(Plugin plugin, String dirName, String fileName, boolean cover) {
+        String pluginName = plugin.getName();
+        boolean isYukiNoaAPI = "YukiNoaAPI".equals(pluginName);
+
         try {
             File baseDir = getValidPluginDataFolder(plugin);
             File dir = (dirName == null || dirName.isEmpty()) ? baseDir : new File(baseDir, dirName);
@@ -207,19 +223,28 @@ public interface IConfig {
             if (!file.exists() || cover) {
                 try (InputStream is = plugin.getClass().getClassLoader().getResourceAsStream(fileName)) {
                     if (is == null) {
-                        LogUtil.error(plugin.getName(), LangUtil.get("config.resource-not-found", fileName));
+                        if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                            LogUtil.error(pluginName, LangUtil.get("config.resource-not-found", fileName));
+                        }
                         return false;
                     }
 
                     Files.copy(is, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    LogUtil.debug(plugin.getName(), LangUtil.get("config.resource-created", file.getName()));
+
+                    if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                        LogUtil.debug(LangUtil.get("config.resource-created", pluginName, file.getName()));
+                    }
                     return true;
                 }
             } else {
-                LogUtil.debug(plugin.getName(), LangUtil.get("config.resource-exists", file.getName()));
+                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                    LogUtil.debug(LangUtil.get("config.resource-exists", pluginName, file.getName()));
+                }
             }
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), LangUtil.get("config.resource-create-error", fileName), e);
+            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                LogUtil.error(pluginName, LangUtil.get("config.resource-create-error", fileName), e);
+            }
             return false;
         }
         return false;
@@ -261,6 +286,9 @@ public interface IConfig {
      */
     @Nullable
     static YamlConfiguration loadConfig(Plugin plugin, String dirName, String fileName) {
+        String pluginName = plugin.getName();
+        boolean isYukiNoaAPI = "YukiNoaAPI".equals(pluginName);
+
         try {
             File baseDir = getValidPluginDataFolder(plugin);
             File dir = (dirName == null || dirName.isEmpty()) ? baseDir : new File(baseDir, dirName);
@@ -268,20 +296,23 @@ public interface IConfig {
             File configFile = new File(dir, actualFileName);
 
             if (!configFile.exists()) {
-                LogUtil.warning(plugin.getName(), LangUtil.get("config.file-not-found", configFile.getAbsolutePath()));
+                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                    LogUtil.warning(pluginName, LangUtil.get("config.file-not-found", configFile.getAbsolutePath()));
+                }
                 return null;
             }
 
             YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
-            if (Main.config != null && Main.config.getBoolean("Logging.VerboseConfigLogs", false)) {
-                LogUtil.success(plugin.getName(), LangUtil.get("config.load-success", configFile.getAbsolutePath()));
+            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                LogUtil.debug(LangUtil.get("config.loaded", pluginName, configFile.getName()));
             }
-            LogUtil.debug(plugin.getName(), LangUtil.get("config.loaded", configFile.getName()));
 
             return config;
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), LangUtil.get("config.load-error"), e);
+            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                LogUtil.error(pluginName, LangUtil.get("config.load-error"), e);
+            }
             return null;
         }
     }
@@ -296,9 +327,14 @@ public interface IConfig {
      */
     @Nonnull
     static YamlConfiguration loadSystemConfig(Plugin plugin, String dirName, String fileName) {
+        String pluginName = plugin.getName();
         String actualFileName = fileName.endsWith(".yml") ? fileName : fileName + ".yml";
         File configFile = new File(dirName, actualFileName);
-        LogUtil.debug(plugin.getName(), LangUtil.get("config.system-loaded", configFile.getAbsolutePath()));
+
+        if (LangUtil.isInitialized()) {
+            LogUtil.debug(LangUtil.get("config.system-loaded", pluginName, configFile.getAbsolutePath()));
+        }
+
         return YamlConfiguration.loadConfiguration(configFile);
     }
 
@@ -311,6 +347,8 @@ public interface IConfig {
      * @param fileName 文件名称
      */
     static void saveSystemConfig(Plugin plugin, FileConfiguration config, String dirName, String fileName) {
+        String pluginName = plugin.getName();
+
         try {
             File dir = new File(dirName);
             dir.mkdirs();
@@ -320,23 +358,33 @@ public interface IConfig {
 
             try {
                 config.save(file);
-                LogUtil.debug(plugin.getName(), LangUtil.get("config.system-saved", file.getAbsolutePath()));
+                if (LangUtil.isInitialized()) {
+                    LogUtil.debug(LangUtil.get("config.system-saved", pluginName, file.getAbsolutePath()));
+                }
             } catch (IOException e) {
-                LogUtil.debug(plugin.getName(), LangUtil.get("config.sync-save-fail"));
+                if (LangUtil.isInitialized()) {
+                    LogUtil.debug(LangUtil.get("config.sync-save-fail", pluginName));
+                }
                 new BukkitRunnable() {
                     @Override
                     public void run() {
                         try {
                             config.save(file);
-                            LogUtil.debug(plugin.getName(), LangUtil.get("config.sync-save-success", file.getName()));
+                            if (LangUtil.isInitialized()) {
+                                LogUtil.debug(LangUtil.get("config.sync-save-success", pluginName, file.getName()));
+                            }
                         } catch (IOException ex) {
-                            LogUtil.error(plugin.getName(), LangUtil.get("config.sync-save-error"), ex);
+                            if (LangUtil.isInitialized()) {
+                                LogUtil.error(pluginName, LangUtil.get("config.sync-save-error"), ex);
+                            }
                         }
                     }
                 }.runTask(plugin);
             }
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), LangUtil.get("config.save-error"), e);
+            if (LangUtil.isInitialized()) {
+                LogUtil.error(pluginName, LangUtil.get("config.save-error"), e);
+            }
         }
     }
 
@@ -349,6 +397,9 @@ public interface IConfig {
      * @param fileName 文件名称
      */
     static void saveConfig(Plugin plugin, FileConfiguration config, String dirName, String fileName) {
+        String pluginName = plugin.getName();
+        boolean isYukiNoaAPI = "YukiNoaAPI".equals(pluginName);
+
         try {
             File baseDir = getValidPluginDataFolder(plugin);
             File dir = (dirName == null || dirName.isEmpty()) ? baseDir : new File(baseDir, dirName);
@@ -360,16 +411,19 @@ public interface IConfig {
             try {
                 config.save(file);
 
-                if (Main.config != null && Main.config.getBoolean("Logging.VerboseConfigLogs", false)) {
-                    LogUtil.success(plugin.getName(), LangUtil.get("config.save-success", file.getAbsolutePath()));
+                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                    LogUtil.debug(LangUtil.get("config.saved", pluginName, file.getName()));
                 }
-                LogUtil.debug(plugin.getName(), LangUtil.get("config.saved", file.getName()));
 
             } catch (IOException e) {
-                LogUtil.error(plugin.getName(), LangUtil.get("config.save-io-error"), e);
+                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                    LogUtil.error(pluginName, LangUtil.get("config.save-io-error"), e);
+                }
             }
         } catch (Exception e) {
-            LogUtil.error(plugin.getName(), LangUtil.get("config.save-error"), e);
+            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
+                LogUtil.error(pluginName, LangUtil.get("config.save-error"), e);
+            }
         }
     }
 

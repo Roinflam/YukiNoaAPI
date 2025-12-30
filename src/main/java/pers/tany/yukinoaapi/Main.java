@@ -2,16 +2,15 @@
 // 路径：src/main/java/pers/tany/yukinoaapi/Main.java
 package pers.tany.yukinoaapi;
 
-import com.google.common.reflect.ClassPath;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import pers.tany.yukinoaapi.command.DebugCommands;
 import pers.tany.yukinoaapi.interfacepart.configuration.IConfig;
 import pers.tany.yukinoaapi.interfacepart.register.IRegister;
+import pers.tany.yukinoaapi.listenevent.DebugEvent;
 import pers.tany.yukinoaapi.realizationpart.item.GlassPaneUtil;
 import pers.tany.yukinoaapi.realizationpart.item.WoolUtil;
-import pers.tany.yukinoaapi.realizationpart.listenevent.DebugEvent;
 import pers.tany.yukinoaapi.realizationpart.listenevent.PlayerEatFood;
 import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;

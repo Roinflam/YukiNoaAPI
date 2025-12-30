@@ -1,7 +1,7 @@
 package pers.tany.yukinoaapi.interfacepart.entity;
 
 import org.bukkit.entity.Entity;
-import pers.tany.yukinoaapi.NMSUtil;
+import pers.tany.yukinoaapi.util.NMSUtil;
 import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 

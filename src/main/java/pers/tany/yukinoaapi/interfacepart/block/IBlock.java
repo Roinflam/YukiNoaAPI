@@ -3,9 +3,8 @@ package pers.tany.yukinoaapi.interfacepart.block;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import pers.tany.yukinoaapi.NMSUtil;
+import pers.tany.yukinoaapi.util.NMSUtil;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 

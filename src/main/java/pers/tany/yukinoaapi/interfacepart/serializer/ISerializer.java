@@ -11,14 +11,13 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import pers.tany.yukinoaapi.Main;
-import pers.tany.yukinoaapi.NMSUtil;
+import pers.tany.yukinoaapi.util.NMSUtil;
 import pers.tany.yukinoaapi.interfacepart.block.IBlock;
 import pers.tany.yukinoaapi.interfacepart.encrypt.IEncrypt;
 import pers.tany.yukinoaapi.interfacepart.entity.IEntity;
 import pers.tany.yukinoaapi.interfacepart.item.IItem;
 import pers.tany.yukinoaapi.realizationpart.builder.ItemBuilder;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

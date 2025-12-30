@@ -1,9 +1,7 @@
 package pers.tany.yukinoaapi.realizationpart.server;
 
 
-import pers.tany.yukinoaapi.NMSUtil;
-
-import javax.annotation.Nonnull;
+import pers.tany.yukinoaapi.util.NMSUtil;
 
 public enum Version {
     /**
