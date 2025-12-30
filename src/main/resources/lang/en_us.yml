@@ -138,6 +138,8 @@ formula:
 message:
   version-incompatible: "§c✘ §7Version incompatible"
   send-fail: "§c▸ §7Message send failed §8| §c{0}"
+  actionbar-unsupported: "▸ ActionBar not supported in this version, falling back to chat message"
+  actionbar-fail: "▸ ActionBar send failed: {0}"
 
 # ==================== Language System ====================
 lang:

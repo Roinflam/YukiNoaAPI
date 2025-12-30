@@ -7,15 +7,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import pers.tany.yukinoaapi.Main;
+import pers.tany.yukinoaapi.interfacepart.player.IMessage;
 import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 import pers.tany.yukinoaapi.util.NMSUtil;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Debug命令处理类
@@ -71,7 +68,7 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
 
         Player player = (Player) sender;
         String playerName = player.getName();
-
+        IMessage.sendActionBar(player, "§6666", 5);
         if (DEBUG.contains(playerName)) {
             DEBUG.remove(playerName);
             player.sendMessage(LangUtil.get("debug.disabled"));

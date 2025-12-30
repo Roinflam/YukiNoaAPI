@@ -138,6 +138,8 @@ formula:
 message:
   version-incompatible: "§c✘ §7版本不兼容，无法发送消息"
   send-fail: "§c▸ §7消息发送失败 §8| §c{0}"
+  actionbar-unsupported: "▸ ActionBar 在当前版本不支持，已回退到普通消息"
+  actionbar-fail: "▸ ActionBar 发送失败: {0}"
 
 # ==================== 语言系统 ====================
 lang:

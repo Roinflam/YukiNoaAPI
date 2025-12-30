@@ -39,6 +39,7 @@ public class NMSUtil {
 
     /**
      * 聊天数据包类
+     * <p><b>仅 1.8.x 使用</b> - 1.9+ 使用 Spigot API，1.7 不支持 ActionBar</p>
      */
     public static Class<?> packetPlayOutChat;
 
@@ -48,22 +49,25 @@ public class NMSUtil {
     public static Method send;
 
     /**
-     * 获取玩家NMS句柄方法
+     * 获取玩家 NMS 句柄方法
      */
     public static Method getHandle_Player;
 
     /**
      * 聊天组件接口
+     * <p><b>仅 1.8.x 使用</b> - 1.9+ 使用 Spigot API</p>
      */
     public static Class<?> iChatBaseComponent;
 
     /**
      * 文本聊天组件类
+     * <p><b>仅 1.8.x 使用</b> - 1.9+ 使用 Spigot API，1.19+ 该类已移除</p>
      */
     public static Class<?> chatComponentText;
 
     /**
      * 聊天消息类型枚举
+     * <p><b>仅 1.8.x 使用</b> - 1.9+ 使用 Spigot API，1.19+ 该类已重构</p>
      */
     public static Class<?> chatMessageType;
 
@@ -249,6 +253,7 @@ public class NMSUtil {
 
     /**
      * 设置方块数据方法
+     * <p><b>仅 1.12 及以下使用</b> - 1.13+ 使用 BlockData</p>
      */
     public static Method setData;
 
@@ -256,11 +261,6 @@ public class NMSUtil {
      * CraftBlock类
      */
     public static Class<?> craftBlockClass;
-
-    /**
-     * 设置TileEntity方法
-     */
-    public static Method setTileEntity;
 
     // ==================== 文本组件相关 ====================
 
@@ -528,7 +528,7 @@ public class NMSUtil {
                 // getItem 方法
                 getItem = safeGetMethod(
                         nmsItemStackClass,
-                        new String[]{"getItem", "c", "o"}
+                        new String[]{"getItem", "d", "c", "o"}
                 );
                 logMethodStatus("ItemStack.getItem", getItem);
             }
@@ -750,23 +750,6 @@ public class NMSUtil {
                             int.class, int.class, int.class
                     );
                     logMethodStatus("World.getTileEntity(xyz)", getTileEntity);
-                }
-
-                // setTileEntity 方法
-                setTileEntity = safeGetMethod(
-                        nmsWorldClass,
-                        new String[]{"setTileEntity", "a"},
-                        blockPositionClass, tileEntityClass
-                );
-                logMethodStatus("World.setTileEntity", setTileEntity);
-
-                if (setTileEntity == null) {
-                    setTileEntity = safeGetMethod(
-                            nmsWorldClass,
-                            "setTileEntity",
-                            int.class, int.class, int.class, tileEntityClass
-                    );
-                    logMethodStatus("World.setTileEntity(xyz)", setTileEntity);
                 }
             }
 

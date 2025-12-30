@@ -12,6 +12,10 @@ import java.lang.reflect.Method;
  * 实体操作相关接口
  * 提供获取实体名称、NBT等功能
  *
+ * 版本兼容策略：
+ * - 1.13+ 优先使用 Bukkit API（稳定可靠）
+ * - 1.7-1.12 使用 NMS 反射
+ *
  * @author tany
  * @since 1.0.0
  */
@@ -19,6 +23,10 @@ public interface IEntity {
 
     /**
      * 获取实体的显示名称
+     *
+     * 返回优先级：
+     * 1. 自定义名称（如果有）
+     * 2. 实体类型的默认名称
      *
      * @param entity 目标实体
      * @return 实体名称，失败返回实体类型名
@@ -29,6 +37,33 @@ public interface IEntity {
             return null;
         }
 
+        // 1.13+ 优先使用 Bukkit API
+        if (NMSUtil.isVersionAtLeast(13)) {
+            try {
+                // 优先返回自定义名称
+                String customName = entity.getCustomName();
+                if (customName != null && !customName.isEmpty()) {
+                    return customName;
+                }
+                // 返回实体默认名称（如 "Zombie"、"Pig" 等）
+                return entity.getName();
+            } catch (Exception e) {
+                LogUtil.debug(LangUtil.get("entity.get-name-fail", e.getMessage()));
+                return entity.getType().toString();
+            }
+        }
+
+        // 1.7-1.12 使用 NMS 反射
+        return getNameByNMS(entity);
+    }
+
+    /**
+     * 通过 NMS 反射获取实体名称（1.7-1.12）
+     *
+     * @param entity 目标实体
+     * @return 实体名称
+     */
+    static String getNameByNMS(Entity entity) {
         if (!NMSUtil.isInitialized()) {
             LogUtil.debug(LangUtil.get("entity.nms-not-init"));
             return entity.getType().toString();
@@ -92,6 +127,8 @@ public interface IEntity {
     /**
      * 获取实体的保存名称（命名空间格式）
      *
+     * 返回格式：minecraft:zombie、minecraft:pig 等
+     *
      * @param entity 目标实体
      * @return 格式如 minecraft:zombie
      */
@@ -101,6 +138,34 @@ public interface IEntity {
             return null;
         }
 
+        // 1.13+ 使用 Bukkit API（稳定可靠）
+        if (NMSUtil.isVersionAtLeast(13)) {
+            try {
+                // 通过反射调用 entity.getType().getKey().toString()
+                // 避免低版本编译错误（1.12 没有 getKey() 方法）
+                Method getKeyMethod = entity.getType().getClass().getMethod("getKey");
+                Object key = getKeyMethod.invoke(entity.getType());
+                if (key != null) {
+                    return key.toString(); // 返回 "minecraft:zombie"
+                }
+            } catch (Exception e) {
+                LogUtil.debug(LangUtil.get("entity.get-save-name-fail", e.getMessage()));
+            }
+            // 降级方案：手动拼接
+            return "minecraft:" + entity.getType().name().toLowerCase();
+        }
+
+        // 1.7-1.12 使用 NMS 反射
+        return getSaveNameByNMS(entity);
+    }
+
+    /**
+     * 通过 NMS 反射获取实体保存名称（1.7-1.12）
+     *
+     * @param entity 目标实体
+     * @return 实体保存名称
+     */
+    static String getSaveNameByNMS(Entity entity) {
         if (!NMSUtil.isInitialized()) {
             LogUtil.debug(LangUtil.get("entity.nms-not-init"));
             return entity.getType().toString();

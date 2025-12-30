@@ -42,36 +42,39 @@ public interface IItem {
      */
     @Nullable
     static String getName(ItemStack itemStack) {
-        if (itemStack.getItemMeta().hasDisplayName()) {
+        if (itemStack.getItemMeta() != null && itemStack.getItemMeta().hasDisplayName()) {
             return itemStack.getItemMeta().getDisplayName();
         }
-        return itemStack.getType().toString();
-//        try {
-//            Class<?> nmsItemStackClass = NMSUtil.nmsItemStackClass;
-//            Class<?> nmsItemClass = NMSUtil.nmsItemClass;
-//            Method asNMSCopy = NMSUtil.asNMSCopy;
-//            try {
-//                Object nmsItem = asNMSCopy.invoke(null, itemStack);
-//                String name;
-//                try {
-//                    Class<?> iChatBaseComponentClass = NMSUtil.iChatBaseComponentClass;
-//                    Method getItem = NMSUtil.getItem;
-//                    Method getName_Item = NMSUtil.getName_Item;
-//                    Method getString = NMSUtil.getString_IChatBaseComponent;
-//                    Object item = getItem.invoke(nmsItem);
-//                    name = getString.invoke(getName_Item.invoke(item, nmsItem)).toString();
-//                } catch (Exception e) {
-//                    Method getName_itemStack = NMSUtil.getName_ItemStack;
-//                    name = getName_itemStack.invoke(nmsItem).toString();
-//                }
-//                return name.split("\\.").length > 2 ? itemStack.getType().toString() : name;
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//                return null;
-//            }
-//        } catch (Exception e) {
-//            return itemStack.getType().toString();
-//        }
+        try {
+            Method asNMSCopy = NMSUtil.asNMSCopy;
+            Object nmsItem = asNMSCopy.invoke(null, itemStack);
+            String name;
+            try {
+                // 方案1: Item.getName(ItemStack) - 旧版本
+                Method getItem = NMSUtil.getItem;
+                Method getName_Item = NMSUtil.getName_Item;
+                Method getString = NMSUtil.getString_IChatBaseComponent;
+                Object item = getItem.invoke(nmsItem);
+                name = getString.invoke(getName_Item.invoke(item, nmsItem)).toString();
+            } catch (Exception e) {
+                // 方案2: ItemStack.getName() / getHoverName()
+                Method getNameMethod = NMSUtil.getName_ItemStack;
+                Object result = getNameMethod.invoke(nmsItem);
+
+                // 判断返回类型：1.13+返回IChatBaseComponent，1.12-返回String
+                if (result instanceof String) {
+                    // 低版本直接返回String
+                    name = (String) result;
+                } else {
+                    // 高版本返回Component，需要调用getString()
+                    Method getString = NMSUtil.getString_IChatBaseComponent;
+                    name = getString.invoke(result).toString();
+                }
+            }
+            return name.split("\\.").length > 2 ? itemStack.getType().toString() : name;
+        } catch (Exception e) {
+            return itemStack.getType().toString();
+        }
     }
 
     /**
