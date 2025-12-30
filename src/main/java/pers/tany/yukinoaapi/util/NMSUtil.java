@@ -1,9 +1,9 @@
-package pers.tany.yukinoaapi;
+// 文件：NMSUtil.java
+// 路径：src/main/java/pers/tany/yukinoaapi/util/NMSUtil.java
+package pers.tany.yukinoaapi.util;
 
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
-import pers.tany.yukinoaapi.util.LangUtil;
-import pers.tany.yukinoaapi.util.LogUtil;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

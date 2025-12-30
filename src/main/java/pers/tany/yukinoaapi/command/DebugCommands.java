@@ -1,5 +1,6 @@
 package pers.tany.yukinoaapi.command;
 
+import com.google.common.reflect.ClassPath;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -7,6 +8,8 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.util.LangUtil;
+import pers.tany.yukinoaapi.util.LogUtil;
+import pers.tany.yukinoaapi.util.NMSUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,7 +88,37 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
      */
     private void handleClassesCommand(CommandSender sender) {
         sender.sendMessage(LangUtil.get("debug.scanning"));
-        Main.printAllClasses();
+        LogUtil.info(LangUtil.get("main.scan-start"));
+
+        String[] basePaths = {
+                "net.minecraft",
+                "net.minecraft.server",
+                "net.minecraft.world",
+                "net.minecraft.world.item",
+                "org.bukkit.craftbukkit"
+        };
+
+        for (String basePath : basePaths) {
+            try {
+                LogUtil.info(LangUtil.get("main.scan-package", basePath));
+                ClassLoader classLoader = NMSUtil.class.getClassLoader();
+                ClassPath classPath = ClassPath.from(classLoader);
+
+                for (ClassPath.ClassInfo classInfo : classPath.getTopLevelClasses()) {
+                    if (classInfo.getName().startsWith(basePath)) {
+                        try {
+                            LogUtil.debug(LangUtil.get("main.class-found", classInfo.getName()));
+                            Class.forName(classInfo.getName());
+                            LogUtil.debug(LangUtil.get("main.class-load-success"));
+                        } catch (Throwable e) {
+                            LogUtil.debug(LangUtil.get("main.class-load-fail", e.getMessage()));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LogUtil.error(LangUtil.get("main.scan-error", basePath), e);
+            }
+        }
     }
 
     /**

@@ -1,4 +1,6 @@
-package pers.tany.yukinoaapi;
+// 文件：DebugEvent.java
+// 路径：src/main/java/pers/tany/yukinoaapi/realizationpart/listenevent/DebugEvent.java
+package pers.tany.yukinoaapi.realizationpart.listenevent;
 
 import de.tr7zw.nbtapi.NBTEntity;
 import de.tr7zw.nbtapi.NBTTileEntity;

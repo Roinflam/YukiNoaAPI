@@ -1,3 +1,5 @@
+// 文件：Main.java
+// 路径：src/main/java/pers/tany/yukinoaapi/Main.java
 package pers.tany.yukinoaapi;
 
 import com.google.common.reflect.ClassPath;
@@ -9,9 +11,11 @@ import pers.tany.yukinoaapi.interfacepart.configuration.IConfig;
 import pers.tany.yukinoaapi.interfacepart.register.IRegister;
 import pers.tany.yukinoaapi.realizationpart.item.GlassPaneUtil;
 import pers.tany.yukinoaapi.realizationpart.item.WoolUtil;
+import pers.tany.yukinoaapi.realizationpart.listenevent.DebugEvent;
 import pers.tany.yukinoaapi.realizationpart.listenevent.PlayerEatFood;
 import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
+import pers.tany.yukinoaapi.util.NMSUtil;
 
 import javax.annotation.Nullable;
 
@@ -27,7 +31,7 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        LogUtil.warning("已卸载");
+        LogUtil.warning(LangUtil.get("main.disabled"));
     }
 
     @Override
@@ -42,15 +46,15 @@ public class Main extends JavaPlugin {
         LangUtil.init();
 
         // 输出启动信息
-        LogUtil.success("已启用");
-        LogUtil.debug("调试模式已开启");
-        LogUtil.debug("服务器版本: " + NMSUtil.getVersion());
-        LogUtil.debug("当前语言: " + LangUtil.getCurrentLang());
+        LogUtil.success(LangUtil.get("main.enabled"));
+        LogUtil.debug(LangUtil.get("main.debug-enabled"));
+        LogUtil.debug(LangUtil.get("main.server-version", NMSUtil.getVersion()));
+        LogUtil.debug(LangUtil.get("main.current-language", LangUtil.getCurrentLang()));
 
         if (NMSUtil.isInitialized()) {
-            LogUtil.debug("NMS反射初始化成功");
+            LogUtil.debug(LangUtil.get("main.nms-init-success"));
         } else {
-            LogUtil.warning("NMS反射初始化失败: " + NMSUtil.getInitError());
+            LogUtil.warning(LangUtil.get("main.nms-init-fail", NMSUtil.getInitError()));
         }
 
         // 注册命令和事件
@@ -62,7 +66,7 @@ public class Main extends JavaPlugin {
         WoolUtil.getWool(0);
         PlayerEatFood.getInstance();
 
-        LogUtil.debug("插件初始化完成");
+        LogUtil.debug(LangUtil.get("main.init-complete"));
     }
 
     /**
@@ -71,43 +75,6 @@ public class Main extends JavaPlugin {
     public static void reload() {
         config = IConfig.loadConfig((JavaPlugin) plugin, "", "config");
         LangUtil.reload();
-        LogUtil.info("配置已重载");
-    }
-
-    /**
-     * 打印所有可用的Minecraft相关类
-     */
-    public static void printAllClasses() {
-        LogUtil.info("开始扫描可用的 Minecraft 相关类...");
-
-        String[] basePaths = {
-                "net.minecraft",
-                "net.minecraft.server",
-                "net.minecraft.world",
-                "net.minecraft.world.item",
-                "org.bukkit.craftbukkit"
-        };
-
-        for (String basePath : basePaths) {
-            try {
-                LogUtil.info("--- 扫描包: " + basePath + " ---");
-                ClassLoader classLoader = NMSUtil.class.getClassLoader();
-                ClassPath classPath = ClassPath.from(classLoader);
-
-                for (ClassPath.ClassInfo classInfo : classPath.getTopLevelClasses()) {
-                    if (classInfo.getName().startsWith(basePath)) {
-                        try {
-                            LogUtil.debug("找到类: " + classInfo.getName());
-                            Class.forName(classInfo.getName());
-                            LogUtil.debug("  ✓ 类加载成功");
-                        } catch (Throwable e) {
-                            LogUtil.debug("  × 类加载失败: " + e.getMessage());
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                LogUtil.error("扫描包 " + basePath + " 时出错", e);
-            }
-        }
+        LogUtil.info(LangUtil.get("main.config-reloaded"));
     }
 }
