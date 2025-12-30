@@ -8,7 +8,7 @@ import java.lang.reflect.Method;
 
 /**
  * NMS 跨版本兼容工具类
- * 支持 Minecraft 1.7-1.21 版本
+ * 支持 Minecraft 1.7-1.21+ 版本
  *
  * @author tany
  * @since 1.0.0
@@ -19,6 +19,11 @@ public class NMSUtil {
      * 服务器版本字符串（如 v1_12_R1）
      */
     private static final String version;
+
+    /**
+     * 主版本号缓存（如 1.12 返回 12）
+     */
+    private static final int majorVersion;
 
     /**
      * 反射是否初始化成功
@@ -233,6 +238,7 @@ public class NMSUtil {
 
     /**
      * 方块位置类
+     * <p><b>1.8+ 可用</b> - 1.7 使用 xyz 参数</p>
      */
     public static Class<?> blockPositionClass;
 
@@ -310,6 +316,7 @@ public class NMSUtil {
      */
     static {
         version = detectVersion();
+        majorVersion = parseMajorVersion(version);
         LogUtil.info(LangUtil.get("nms.detected-version", version));
 
         try {
@@ -361,6 +368,24 @@ public class NMSUtil {
     }
 
     /**
+     * 解析主版本号
+     *
+     * @param versionStr 版本字符串（如 v1_12_R1）
+     * @return 主版本号（如 12），解析失败返回 0
+     */
+    private static int parseMajorVersion(String versionStr) {
+        try {
+            // v1_12_R1 -> 12
+            String[] parts = versionStr.split("_");
+            if (parts.length >= 2) {
+                return Integer.parseInt(parts[1]);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return 0;
+    }
+
+    /**
      * 初始化所有反射类和方法
      *
      * @throws Exception 初始化失败时抛出异常
@@ -391,7 +416,7 @@ public class NMSUtil {
             );
             logFieldStatus("playerConnection", playerConnection);
 
-            // PacketPlayOutChat 类
+            // PacketPlayOutChat 类（仅 1.8 使用，1.9+ 用 Spigot API，1.19+ 已移除）
             packetPlayOutChat = safeGetClass(
                     getNMSPack() + ".PacketPlayOutChat",
                     "net.minecraft.network.protocol.game.PacketPlayOutChat"
@@ -431,21 +456,21 @@ public class NMSUtil {
                 logMethodStatus("CraftPlayer.getHandle", getHandle_Player);
             }
 
-            // IChatBaseComponent 接口
+            // IChatBaseComponent 接口（仅 1.8 使用）
             iChatBaseComponent = safeGetClass(
                     getNMSPack() + ".IChatBaseComponent",
                     "net.minecraft.network.chat.IChatBaseComponent"
             );
             logClassStatus("IChatBaseComponent", iChatBaseComponent);
 
-            // ChatComponentText 类
+            // ChatComponentText 类（仅 1.8 使用，1.19+ 已移除）
             chatComponentText = safeGetClass(
                     getNMSPack() + ".ChatComponentText",
                     "net.minecraft.network.chat.ChatComponentText"
             );
             logClassStatus("ChatComponentText", chatComponentText);
 
-            // ChatMessageType 枚举
+            // ChatMessageType 枚举（仅 1.8 使用，1.19+ 已重构）
             chatMessageType = safeGetClass(
                     getNMSPack() + ".ChatMessageType",
                     "net.minecraft.network.chat.ChatMessageType"
@@ -727,22 +752,25 @@ public class NMSUtil {
             );
             logClassStatus("TileEntity", tileEntityClass);
 
-            // BlockPosition 类
+            // BlockPosition 类（1.8+ 可用）
             blockPositionClass = safeGetClass(
                     getNMSPack() + ".BlockPosition",
                     "net.minecraft.core.BlockPosition"
             );
             logClassStatus("BlockPosition", blockPositionClass);
 
-            if (nmsWorldClass != null && blockPositionClass != null && tileEntityClass != null) {
-                // getTileEntity 方法
-                getTileEntity = safeGetMethod(
-                        nmsWorldClass,
-                        new String[]{"getTileEntity", "c_"},
-                        blockPositionClass
-                );
-                logMethodStatus("World.getTileEntity", getTileEntity);
+            if (nmsWorldClass != null && tileEntityClass != null) {
+                // getTileEntity 方法（优先使用 BlockPosition 参数）
+                if (blockPositionClass != null) {
+                    getTileEntity = safeGetMethod(
+                            nmsWorldClass,
+                            new String[]{"getTileEntity", "c_"},
+                            blockPositionClass
+                    );
+                    logMethodStatus("World.getTileEntity", getTileEntity);
+                }
 
+                // 1.7 备用：使用 xyz 参数
                 if (getTileEntity == null) {
                     getTileEntity = safeGetMethod(
                             nmsWorldClass,
@@ -776,7 +804,7 @@ public class NMSUtil {
             logClassStatus("CraftBlock", craftBlockClass);
 
             if (craftBlockClass != null) {
-                // setData 方法
+                // setData 方法（仅 1.12 及以下）
                 setData = safeGetMethod(craftBlockClass, "setData", byte.class);
                 logMethodStatus("CraftBlock.setData", setData);
             }
@@ -1017,9 +1045,7 @@ public class NMSUtil {
      */
     public static String getNMSPack() {
         // 1.17+ 版本使用新的包结构
-        if (version.contains("v1_17") || version.contains("v1_18") ||
-                version.contains("v1_19") || version.contains("v1_20") ||
-                version.contains("v1_21")) {
+        if (isVersionAtLeast(17)) {
             return "net.minecraft.server";
         } else {
             return "net.minecraft.server." + version;
@@ -1054,53 +1080,50 @@ public class NMSUtil {
     }
 
     /**
-     * 判断是否为1.13+版本
+     * 判断是否为 1.13+ 版本（扁平化更新）
      *
-     * @return 是则返回true
+     * @return 是则返回 true
      */
     public static boolean isHighVersion() {
-        return version.contains("v1_13") || version.contains("v1_14") ||
-                version.contains("v1_15") || version.contains("v1_16") ||
-                version.contains("v1_17") || version.contains("v1_18") ||
-                version.contains("v1_19") || version.contains("v1_20") ||
-                version.contains("v1_21");
+        return isVersionAtLeast(13);
     }
 
     /**
-     * 判断是否为1.17+版本（Mojang映射）
+     * 判断是否为 1.17+ 版本（Mojang 映射）
      *
-     * @return 是则返回true
+     * @return 是则返回 true
      */
     public static boolean isMojangMapped() {
-        return version.contains("v1_17") || version.contains("v1_18") ||
-                version.contains("v1_19") || version.contains("v1_20") ||
-                version.contains("v1_21");
+        return isVersionAtLeast(17);
     }
 
     /**
-     * 获取主版本号（如1.12返回12，1.20返回20）
+     * 获取主版本号（如 1.12 返回 12，1.20 返回 20）
      *
-     * @return 主版本号，解析失败返回0
+     * @return 主版本号，解析失败返回 0
      */
     public static int getMajorVersion() {
-        try {
-            // v1_12_R1 -> 12
-            String[] parts = version.split("_");
-            if (parts.length >= 2) {
-                return Integer.parseInt(parts[1]);
-            }
-        } catch (NumberFormatException ignored) {
-        }
-        return 0;
+        return majorVersion;
     }
 
     /**
      * 判断当前版本是否大于等于指定版本
      *
-     * @param major 主版本号（如12表示1.12）
-     * @return 是则返回true
+     * @param major 主版本号（如 12 表示 1.12）
+     * @return 是则返回 true
      */
     public static boolean isVersionAtLeast(int major) {
-        return getMajorVersion() >= major;
+        return majorVersion >= major;
+    }
+
+    /**
+     * 判断当前版本是否在指定范围内（包含边界）
+     *
+     * @param minMajor 最小主版本号（如 8 表示 1.8）
+     * @param maxMajor 最大主版本号（如 12 表示 1.12）
+     * @return 是则返回 true
+     */
+    public static boolean isVersionBetween(int minMajor, int maxMajor) {
+        return majorVersion >= minMajor && majorVersion <= maxMajor;
     }
 }

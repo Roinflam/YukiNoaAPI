@@ -7,199 +7,106 @@ import pers.tany.yukinoaapi.interfacepart.builder.IItemBuilder;
 import pers.tany.yukinoaapi.interfacepart.item.IItem;
 import pers.tany.yukinoaapi.interfacepart.other.IList;
 import pers.tany.yukinoaapi.interfacepart.other.IString;
+import pers.tany.yukinoaapi.util.NMSUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 /**
- * 快速设置物品各项属性
+ * 物品建造器
+ * 快速设置物品各项属性，支持链式调用
+ *
+ * <p>版本兼容性：</p>
+ * <ul>
+ *     <li>1.7.x - 1.12.x：使用 durability 设置附加值</li>
+ *     <li>1.13+：durability 已废弃，仅用于工具耐久</li>
+ * </ul>
+ *
+ * @author tany
+ * @since 1.0.0
  */
 public class ItemBuilder implements IItemBuilder {
-    private final ItemMeta itemMeta;
+
+    /**
+     * 正在构建的物品
+     */
     @Nullable
     private ItemStack itemStack;
 
     /**
-     * 以物品主ID，附加值为0创建一个堆叠数量为1的物品建造模式对象
-     *
-     * @param id 物品的主id
+     * 物品元数据
      */
-    public ItemBuilder(int id) {
-        ItemStack itemStack;
-        try {
-            itemStack = new ItemStack(id);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            itemStack = new ItemStack(id);
-        }
-        Objects.requireNonNull(itemStack);
-        itemStack = itemStack.clone();
-
-        this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
-    }
+    private final ItemMeta itemMeta;
 
     /**
-     * 以物品主ID，附加值为0创建一个物品建造模式对象
+     * 以物品 type，附加值为 0 创建一个堆叠数量为 1 的物品建造模式对象
      *
-     * @param id     物品的主id
-     * @param amount 物品的数量
-     */
-    public ItemBuilder(int id, int amount) {
-        ItemStack itemStack;
-        try {
-            itemStack = new ItemStack(id, amount);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            itemStack = new ItemStack(id, amount);
-        }
-        Objects.requireNonNull(itemStack);
-        itemStack = itemStack.clone();
-
-        this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
-    }
-
-    /**
-     * 以物品主ID，附加值创建一个物品建造模式对象
-     *
-     * @param id         物品的主id
-     * @param amount     物品的数量
-     * @param durability 物品的附加值
-     */
-    public ItemBuilder(int id, int amount, short durability) {
-        ItemStack itemStack;
-        try {
-            itemStack = new ItemStack(id, amount, durability);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            itemStack = new ItemStack(id, amount, durability);
-        }
-        Objects.requireNonNull(itemStack, "物品为空！");
-        itemStack = itemStack.clone();
-
-        this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
-    }
-
-    /**
-     * 以物品type，附加值为0创建一个堆叠数量为1的物品建造模式对象
-     *
-     * @param material 物品的type
+     * @param material 物品的 type
      */
     public ItemBuilder(Material material) {
-        ItemStack itemStack;
-        try {
-            itemStack = new ItemStack(material);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            itemStack = new ItemStack(material);
-        }
-        Objects.requireNonNull(itemStack);
-        itemStack = itemStack.clone();
-
-        this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
+        this.itemStack = new ItemStack(material);
+        this.itemMeta = this.itemStack.getItemMeta();
     }
 
     /**
-     * 以物品type，附加值为0创建一个物品建造模式对象
+     * 以物品 type，附加值为 0 创建一个物品建造模式对象
      *
-     * @param material 物品的type
+     * @param material 物品的 type
      * @param amount   物品的数量
      */
     public ItemBuilder(Material material, int amount) {
-        ItemStack itemStack;
-        try {
-            itemStack = new ItemStack(material, amount);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            itemStack = new ItemStack(material, amount);
-        }
-        Objects.requireNonNull(itemStack);
-        itemStack = itemStack.clone();
-
-        this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
+        this.itemStack = new ItemStack(material, amount);
+        this.itemMeta = this.itemStack.getItemMeta();
     }
 
     /**
-     * 以物品type，附加值创建一个物品建造模式对象
+     * 以物品 type，附加值创建一个物品建造模式对象
      *
-     * @param material   物品的type
+     * @param material   物品的 type
      * @param amount     物品的数量
      * @param durability 物品的附加值
      */
+    @SuppressWarnings("deprecation")
     public ItemBuilder(Material material, int amount, short durability) {
-        ItemStack itemStack;
-        try {
-            itemStack = new ItemStack(material, amount, durability);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            itemStack = new ItemStack(material, amount, durability);
-        }
-        Objects.requireNonNull(itemStack);
-        itemStack = itemStack.clone();
-
-        this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
+        this.itemStack = new ItemStack(material, amount, durability);
+        this.itemMeta = this.itemStack.getItemMeta();
     }
 
     /**
-     * 以物品type名称，附加值为0创建一个堆叠数量为1的物品建造模式对象
+     * 以物品 type 名称，附加值为 0 创建一个堆叠数量为 1 的物品建造模式对象
      *
-     * @param type 物品的type名称
+     * @param type 物品的 type 名称
      */
     public ItemBuilder(String type) {
-        ItemStack itemStack;
-        try {
-            itemStack = new ItemStack(Material.valueOf(type));
-        } catch (IllegalArgumentException illegalArgumentException) {
-            itemStack = new ItemStack(Material.valueOf("LEGACY_" + type));
-        }
-        Objects.requireNonNull(itemStack);
-        itemStack = itemStack.clone();
-
-        this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
+        this.itemStack = new ItemStack(parseMaterial(type));
+        this.itemMeta = this.itemStack.getItemMeta();
     }
 
     /**
-     * 以物品type名称，附加值为0创建一个物品建造模式对象
+     * 以物品 type 名称，附加值为 0 创建一个物品建造模式对象
      *
-     * @param type   物品的type名称
+     * @param type   物品的 type 名称
      * @param amount 物品的数量
      */
     public ItemBuilder(String type, int amount) {
-        ItemStack itemStack;
-        try {
-            itemStack = new ItemStack(Material.valueOf(type), amount);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            itemStack = new ItemStack(Material.valueOf("LEGACY_" + type), amount);
-        }
-        Objects.requireNonNull(itemStack);
-        itemStack = itemStack.clone();
-
-        this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
+        this.itemStack = new ItemStack(parseMaterial(type), amount);
+        this.itemMeta = this.itemStack.getItemMeta();
     }
 
     /**
-     * 以物品type名称，附加值创建一个物品建造模式对象
+     * 以物品 type 名称，附加值创建一个物品建造模式对象
      *
-     * @param type       物品的type
+     * @param type       物品的 type
      * @param amount     物品的数量
      * @param durability 物品的附加值
      */
+    @SuppressWarnings("deprecation")
     public ItemBuilder(String type, int amount, short durability) {
-        ItemStack itemStack;
-        try {
-            itemStack = new ItemStack(Material.valueOf(type), amount, durability);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            itemStack = new ItemStack(Material.valueOf("LEGACY_" + type), amount, durability);
-        }
-        Objects.requireNonNull(itemStack);
-
-        this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
+        this.itemStack = new ItemStack(parseMaterial(type), amount, durability);
+        this.itemMeta = this.itemStack.getItemMeta();
     }
 
     /**
@@ -208,11 +115,29 @@ public class ItemBuilder implements IItemBuilder {
      * @param itemStack 物品
      */
     public ItemBuilder(ItemStack itemStack) {
-        Objects.requireNonNull(itemStack);
-        itemStack = itemStack.clone();
-
         this.itemStack = itemStack.clone();
-        this.itemMeta = itemStack.clone().getItemMeta();
+        this.itemMeta = this.itemStack.getItemMeta();
+    }
+
+    /**
+     * 解析物品类型名称
+     * 1.13+ 优先使用新名称，失败则尝试 LEGACY_ 前缀
+     *
+     * @param type 类型名称
+     * @return Material 对象
+     * @throws IllegalArgumentException 如果类型名称无效
+     */
+    private static Material parseMaterial(String type) {
+        // 先尝试直接解析
+        try {
+            return Material.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            // 1.13+ 尝试 LEGACY_ 前缀
+            if (NMSUtil.isVersionAtLeast(13)) {
+                return Material.valueOf("LEGACY_" + type);
+            }
+            throw e;
+        }
     }
 
     @Nullable
@@ -227,7 +152,7 @@ public class ItemBuilder implements IItemBuilder {
         return IItem.getName(itemStack);
     }
 
-    
+    @Nonnull
     @Override
     public ItemBuilder setDisplayName(String name) {
         itemMeta.setDisplayName(IString.color(name));
@@ -235,27 +160,33 @@ public class ItemBuilder implements IItemBuilder {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public short getDurability() {
-        return itemStack.getDurability();
+        return itemStack != null ? itemStack.getDurability() : 0;
     }
 
-    
+    @Nonnull
     @Override
+    @SuppressWarnings("deprecation")
     public ItemBuilder setDurability(short durability) {
-        itemStack.setDurability(durability);
+        if (itemStack != null) {
+            itemStack.setDurability(durability);
+        }
         return this;
     }
 
     @Override
     public int getAmount() {
-        return itemStack.getAmount();
+        return itemStack != null ? itemStack.getAmount() : 0;
     }
 
-    
+    @Nonnull
     @Override
     public ItemBuilder setAmount(int amount) {
         if (amount > 0) {
-            itemStack.setAmount(amount);
+            if (itemStack != null) {
+                itemStack.setAmount(amount);
+            }
         } else {
             itemStack = null;
         }
@@ -264,79 +195,69 @@ public class ItemBuilder implements IItemBuilder {
 
     @Override
     public Material getType() {
-        return itemStack.getType();
+        return itemStack != null ? itemStack.getType() : Material.AIR;
     }
 
-    
+    @Nonnull
     @Override
     public ItemBuilder addLore(String... insertLore) {
-        List<String> lore = new ArrayList<>();
-        if (itemMeta.hasLore()) {
-            lore.addAll(itemMeta.getLore());
-        }
+        List<String> lore = getLore();
         lore.addAll(Arrays.asList(insertLore));
         itemMeta.setLore(IList.listReplace(lore, "&", "§"));
         return this;
     }
 
-    
+    @Nonnull
     @Override
     public ItemBuilder addLore(int index, String... insertLore) {
-        List<String> lore = new ArrayList<>();
-        if (itemMeta.hasLore()) {
-            lore.addAll(itemMeta.getLore());
-        }
+        List<String> lore = getLore();
         lore.addAll(index, Arrays.asList(insertLore));
         itemMeta.setLore(IList.listReplace(lore, "&", "§"));
         return this;
     }
 
-    
+    @Nonnull
     @Override
     public ItemBuilder addLoreAll(List<String> l) {
-        List<String> lore = new ArrayList<>();
-        if (itemMeta.hasLore()) {
-            lore.addAll(itemMeta.getLore());
-        }
+        List<String> lore = getLore();
         lore.addAll(l);
         itemMeta.setLore(IList.listReplace(lore, "&", "§"));
         return this;
     }
 
-    
+    @Nonnull
     @Override
     public ItemBuilder addLoreAll(int index, List<String> l) {
-        List<String> lore = new ArrayList<>();
-        if (itemMeta.hasLore()) {
-            lore.addAll(itemMeta.getLore());
-        }
+        List<String> lore = getLore();
         lore.addAll(index, l);
         itemMeta.setLore(IList.listReplace(lore, "&", "§"));
         return this;
     }
 
-    
+    @Nonnull
     @Override
     public ItemBuilder setLore(List<String> lore) {
         itemMeta.setLore(IList.listReplace(lore, "&", "§"));
         return this;
     }
 
-    
+    @Nonnull
     @Override
     public ItemBuilder setLore(int index, String l) {
         List<String> list = getLore();
-        list.set(index, l);
-        setLore(list);
+        if (index >= 0 && index < list.size()) {
+            list.set(index, l);
+            setLore(list);
+        }
         return this;
     }
 
     @Override
     public List<String> getLore() {
-        return itemMeta.hasLore() ? itemMeta.getLore() : new ArrayList<>();
+        return itemMeta.hasLore() ? new ArrayList<>(itemMeta.getLore()) : new ArrayList<>();
     }
 
-    
+    @Nonnull
     @Override
     public ItemBuilder clearLore() {
         itemMeta.setLore(new ArrayList<>());
@@ -350,5 +271,17 @@ public class ItemBuilder implements IItemBuilder {
             itemStack.setItemMeta(itemMeta);
         }
         return itemStack;
+    }
+
+    /**
+     * 构建物品并返回克隆副本
+     * 可以继续使用此建造器构建更多物品
+     *
+     * @return 物品副本，如果物品为空返回 null
+     */
+    @Nullable
+    public ItemStack build() {
+        ItemStack result = getItemStack();
+        return result != null ? result.clone() : null;
     }
 }

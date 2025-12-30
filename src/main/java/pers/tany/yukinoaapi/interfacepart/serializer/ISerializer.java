@@ -17,12 +17,27 @@ import pers.tany.yukinoaapi.interfacepart.encrypt.IEncrypt;
 import pers.tany.yukinoaapi.interfacepart.entity.IEntity;
 import pers.tany.yukinoaapi.interfacepart.item.IItem;
 import pers.tany.yukinoaapi.realizationpart.builder.ItemBuilder;
+import pers.tany.yukinoaapi.util.LangUtil;
+import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+/**
+ * 序列化/反序列化工具接口
+ * 支持物品、物品栏、实体、方块、坐标的序列化
+ *
+ * <p>版本兼容性：</p>
+ * <ul>
+ *     <li>1.7.x - 1.12.x：方块使用 data 值</li>
+ *     <li>1.13+：方块使用 BlockData</li>
+ * </ul>
+ *
+ * @author tany
+ * @since 1.0.0
+ */
 public interface ISerializer {
+
     /**
      * 序列化物品为字符串
      *
@@ -76,11 +91,8 @@ public interface ISerializer {
             StreamSerializer serializer = new StreamSerializer();
             try {
                 ItemStack itemStack = serializer.deserializeItemStack(data);
-                if(itemStack == null){
+                if (itemStack == null) {
                     String[] s = IEncrypt.decrypt(data, "serializer").split("%SerializerItem%");
-                    Class<?> nbttagCompoundClass = NMSUtil.nbttagCompoundClass;
-                    Class<?> nmsItemStackClass = NMSUtil.nmsItemStackClass;
-                    Class<?> nmsItemClass = NMSUtil.nmsItemClass;
                     Method asNMSCopy = NMSUtil.asNMSCopy;
                     Method parse = NMSUtil.parse;
                     Method load = NMSUtil.load_ItemStack;
@@ -98,9 +110,6 @@ public interface ISerializer {
         } else {
             try {
                 String[] s = IEncrypt.decrypt(data, "serializer").split("%SerializerItem%");
-                Class<?> nbttagCompoundClass = NMSUtil.nbttagCompoundClass;
-                Class<?> nmsItemStackClass = NMSUtil.nmsItemStackClass;
-                Class<?> nmsItemClass = NMSUtil.nmsItemClass;
                 Method asNMSCopy = NMSUtil.asNMSCopy;
                 Method parse = NMSUtil.parse;
                 Method load = NMSUtil.load_ItemStack;
@@ -110,7 +119,7 @@ public interface ISerializer {
                 Object nmsItem = asNMSCopy.invoke(null, new ItemBuilder(Material.valueOf(s[0]), Integer.parseInt(s[1]), Short.parseShort(s[2])).getItemStack());
                 load.invoke(nmsItem, nbttagCompound);
                 ItemStack itemStack = (ItemStack) asBukkitCopy.invoke(null, nmsItem);
-                if(itemStack == null){
+                if (itemStack == null) {
                     StreamSerializer serializer = new StreamSerializer();
                     return serializer.deserializeItemStack(data);
                 }
@@ -128,16 +137,15 @@ public interface ISerializer {
      * @param inventory 涉及的物品栏
      * @return 序列化后的结果
      */
-    
     static String serializerInventory(Inventory inventory) {
-        String str = inventory.getSize() + "%SerializerSize%";
+        StringBuilder str = new StringBuilder(inventory.getSize() + "%SerializerSize%");
         for (int i = 0; i < inventory.getSize(); i++) {
             ItemStack itemStack = inventory.getItem(i);
             if (!IItem.isEmpty(itemStack)) {
-                str += i + ":" + serializerItemStack(itemStack, false) + "%SerializerInventory%";
+                str.append(i).append(":").append(serializerItemStack(itemStack, false)).append("%SerializerInventory%");
             }
         }
-        return str;
+        return str.toString();
     }
 
     /**
@@ -181,7 +189,6 @@ public interface ISerializer {
      * @param entity 涉及的实体
      * @return 序列化后的结果
      */
-    
     static String serializerEntity(Entity entity) {
         return IEncrypt.encrypt(entity.getType().toString() + "%SerializerEntity%" + IEntity.getEntityNBT(entity), "serializer");
     }
@@ -190,14 +197,12 @@ public interface ISerializer {
      * 反序列化这个实体
      *
      * @param location 生成实体的坐标
-     * @param data     物品栏序列化后的结果
+     * @param data     实体序列化后的结果
      * @return 生成后的实体
      */
     @Nullable
     static LivingEntity deserializerEntity(Location location, String data) {
         try {
-            Class<?> nmsEntityClass = NMSUtil.nmsEntityClass;
-            Class<?> nbttagCompoundClass = NMSUtil.nbttagCompoundClass;
             Method getHandle = NMSUtil.getHandle_Entity;
             Method parse = NMSUtil.parse;
             Method setNbttagCompound = NMSUtil.setNbttagCompound;
@@ -206,7 +211,6 @@ public interface ISerializer {
             LivingEntity livingEntity = (LivingEntity) location.getWorld().spawnEntity(location, EntityType.valueOf(str[0]));
 
             Object nmsEntity = getHandle.invoke(livingEntity);
-
             Object nbttagCompound = parse.invoke(null, str[1]);
             setNbttagCompound.invoke(nmsEntity, nbttagCompound);
 
@@ -220,82 +224,149 @@ public interface ISerializer {
 
     /**
      * 序列化这个方块
+     * 1.13+ 使用 BlockData，1.12 及以下使用 data 值
      *
      * @param block 涉及的方块
      * @return 序列化后的结果
      */
-    
     static String serializerBlock(Block block) {
         @Nullable String nbt = IBlock.getBlockNBT(block);
-        if (nbt != null) {
-            return IEncrypt.encrypt(block.getType().toString() + "%SerializerBlock%" + block.getData() + "%SerializerBlock%" + nbt, "serializer");
+        String blockData;
+
+        // 1.13+ 使用 BlockData，1.12 及以下使用 data 值
+        if (NMSUtil.isVersionAtLeast(13)) {
+            blockData = block.getBlockData().getAsString();
         } else {
-            return IEncrypt.encrypt(block.getType().toString() + "%SerializerBlock%" + block.getData(), "serializer");
+            blockData = String.valueOf(block.getData());
+        }
+
+        if (nbt != null) {
+            return IEncrypt.encrypt(block.getType().toString() + "%SerializerBlock%" + blockData + "%SerializerBlock%" + nbt, "serializer");
+        } else {
+            return IEncrypt.encrypt(block.getType().toString() + "%SerializerBlock%" + blockData, "serializer");
         }
     }
 
     /**
      * 反序列化这个方块
+     * 1.13+ 使用 BlockData，1.12 及以下使用 data 值
      *
      * @param location 生成方块的坐标
-     * @param data     物品栏序列化后的结果
-     * @return 生成后的实体
+     * @param data     方块序列化后的结果
+     * @return 生成后的方块
      */
     @Nullable
     static Block deserializerBlock(Location location, String data) {
         try {
-            Method setData = NMSUtil.setData;
             String[] str = IEncrypt.decrypt(data, "serializer").split("%SerializerBlock%");
             Block block = location.getBlock();
 
+            // 1. 设置方块类型
             block.setType(Material.valueOf(str[0]));
-            setData.invoke(block, Byte.parseByte(str[1]));
-            if (str.length > 2) {
-                Class<?> nmsWorldClass = NMSUtil.nmsWorldClass;
-                Class<?> tileEntityClass = NMSUtil.tileEntityClass;
-                Class<?> blockPositionClass = NMSUtil.blockPositionClass;
-                Method parse = NMSUtil.parse;
-                Method getTileEntity = NMSUtil.getTileEntity;
-                Method getHandle_Word = NMSUtil.getHandle_Word;
-                Method load = NMSUtil.load_Block;
-                Method setTileEntity = NMSUtil.setTileEntity;
 
-                Object nmsWorld = getHandle_Word.invoke(location.getWorld());
-                Object nbttagCompound = parse.invoke(null, str[2]);
-                @Nullable Object blockPosition = null;
-                @Nullable Object tileEntity = null;
-
+            // 2. 设置方块状态
+            if (NMSUtil.isVersionAtLeast(13)) {
+                // 1.13+ 使用 BlockData
                 try {
-                    blockPosition = blockPositionClass.getConstructor(int.class, int.class, int.class).newInstance(location.getBlockX(), location.getBlockY(), location.getBlockZ());
-                    tileEntity = getTileEntity.invoke(nmsWorld, blockPosition);
+                    block.setBlockData(Bukkit.createBlockData(str[1]));
                 } catch (Exception e) {
-                    tileEntity = getTileEntity.invoke(nmsWorld, location.getBlockX(), location.getBlockY(), location.getBlockZ());
+                    // BlockData 解析失败，类型已设置，忽略
+                    LogUtil.debug(LangUtil.get("block.deserialize-blockdata-fail", e.getMessage()));
                 }
-
+            } else {
+                // 1.12 及以下使用 data 值
                 try {
-                    load.invoke(tileEntity, nbttagCompound);
-                } catch (Exception e) {
-                    load.invoke(tileEntity, null, nbttagCompound);
-                }
-                try {
-                    setTileEntity.invoke(nmsWorld, blockPosition, tileEntity);
-                } catch (Exception e) {
-                    try {
-                        setTileEntity.invoke(nmsWorld, location.getBlockX(), location.getBlockY(), location.getBlockZ(), tileEntity);
-                    } catch (IllegalAccessException | InvocationTargetException | IllegalArgumentException ex) {
-                        setTileEntity.invoke(nmsWorld, tileEntity);
+                    Method setData = NMSUtil.setData;
+                    if (setData != null) {
+                        setData.invoke(block, Byte.parseByte(str[1]));
                     }
+                } catch (Exception e) {
+                    // data 设置失败，忽略
                 }
-//                NBTTagCompound nbttagCompound = (NBTTagCompound) MojangsonParser.parse(str[2]);
-//                World world = ((CraftWorld) location.getWorld()).getHandle();
-//                TileEntity tileEntity = world.getTileEntity(location.getBlockX(), location.getBlockY(), location.getBlockZ());
-//                tileEntity.a(nbttagCompound);
-//                world.setTileEntity(location.getBlockX(), location.getBlockY(), location.getBlockZ(), tileEntity);
             }
+
+            // 3. 设置方块实体 NBT（如果有）
+            if (str.length > 2) {
+                loadBlockNBT(location, str[2]);
+            }
+
             return block;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    /**
+     * 加载方块实体的 NBT 数据
+     *
+     * @param location  方块位置
+     * @param nbtString NBT 字符串
+     */
+    static void loadBlockNBT(Location location, String nbtString) {
+        try {
+            Class<?> blockPositionClass = NMSUtil.blockPositionClass;
+            Method parse = NMSUtil.parse;
+            Method getTileEntity = NMSUtil.getTileEntity;
+            Method getHandle = NMSUtil.getHandle_Word;
+            Method load = NMSUtil.load_Block;
+
+            // 检查必要组件
+            if (parse == null || getTileEntity == null || getHandle == null || load == null) {
+                LogUtil.debug(LangUtil.get("block.nbt-reflection-unavailable"));
+                return;
+            }
+
+            // 获取 NMS 世界
+            Object nmsWorld = getHandle.invoke(location.getWorld());
+
+            // 解析 NBT 字符串
+            Object nbttagCompound = parse.invoke(null, nbtString);
+
+            // 获取方块实体
+            Object tileEntity = null;
+
+            // 优先使用 BlockPosition（1.8+）
+            if (blockPositionClass != null) {
+                try {
+                    Object blockPosition = blockPositionClass
+                            .getConstructor(int.class, int.class, int.class)
+                            .newInstance(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+                    tileEntity = getTileEntity.invoke(nmsWorld, blockPosition);
+                } catch (Exception ignored) {
+                    // 继续尝试 xyz 方式
+                }
+            }
+
+            // 1.7 备用：使用 xyz 参数
+            if (tileEntity == null) {
+                try {
+                    tileEntity = getTileEntity.invoke(nmsWorld,
+                            location.getBlockX(),
+                            location.getBlockY(),
+                            location.getBlockZ());
+                } catch (Exception ignored) {
+                }
+            }
+
+            if (tileEntity == null) {
+                LogUtil.debug(LangUtil.get("block.no-tile-entity"));
+                return;
+            }
+
+            // 加载 NBT 数据
+            try {
+                load.invoke(tileEntity, nbttagCompound);
+            } catch (Exception e) {
+                // 某些版本可能需要额外参数，尝试带 BlockState 参数
+                try {
+                    load.invoke(tileEntity, null, nbttagCompound);
+                } catch (Exception ignored) {
+                }
+            }
+
+        } catch (Exception e) {
+            LogUtil.debug(LangUtil.get("block.nbt-set-fail", e.getMessage()));
         }
     }
 
@@ -305,7 +376,6 @@ public interface ISerializer {
      * @param location 涉及的坐标
      * @return 序列化后的结果
      */
-    
     static String serializerLocation(Location location) {
         return IEncrypt.encrypt(location.getWorld().getName() + ":" + location.getX() + ":" + location.getY() + ":" + location.getZ() + ":" + location.getYaw() + ":" + location.getPitch(), "serializer");
     }
@@ -316,7 +386,6 @@ public interface ISerializer {
      * @param data 坐标序列化后的结果
      * @return 坐标
      */
-    
     static Location deserializerLocation(String data) {
         String[] strs = IEncrypt.decrypt(data, "serializer").split(":");
         return new Location(Bukkit.getWorld(strs[0]), Double.parseDouble(strs[1]), Double.parseDouble(strs[2]), Double.parseDouble(strs[3]), Float.parseFloat(strs[4]), Float.parseFloat(strs[5]));

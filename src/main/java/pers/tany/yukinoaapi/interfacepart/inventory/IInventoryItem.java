@@ -60,7 +60,7 @@ public interface IInventoryItem {
             }
         } else {
             for (ItemStack i : new ArrayList<ItemStack>(Arrays.asList(inventory.getContents()))) {
-                if (!IItem.isEmpty(i) && i.getTypeId() == itemStack.getTypeId() && i.getDurability() == itemStack.getDurability()) {
+                if (!IItem.isEmpty(i) && i.getType() == itemStack.getType() && i.getDurability() == itemStack.getDurability()) {
                     amount += i.getAmount();
                 }
             }

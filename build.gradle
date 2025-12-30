@@ -73,23 +73,6 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
-// ==================== Javadoc配置 ====================
-// 生成API文档的配置
-javadoc {
-    options.encoding = 'UTF-8'
-    options.charSet = 'UTF-8'
-    // 文档标题
-    options.windowTitle = "YukiNoaAPI ${version} API"
-    options.docTitle = "YukiNoaAPI ${version} API Documentation"
-    // 不显示警告（注释不完整时不会报错）
-    options.addStringOption('Xdoclint:none', '-quiet')
-    // 支持中文
-    options.addStringOption('encoding', 'UTF-8')
-
-    // 忽略错误继续生成（有些类可能引用了外部库）
-    failOnError = false
-}
-
 // ==================== 资源处理 ====================
 processResources {
     // 定义要替换的变量
@@ -129,12 +112,7 @@ jar {
     // 1. 包含编译后的class文件
     from sourceSets.main.output
 
-    // 2. 包含Javadoc文档（打包进 docs 目录）
-    from(javadoc.destinationDir) {
-        into 'docs'
-    }
-
-    // 3. 包含依赖库（排除libs目录的jar，因为那些是服务端已有的）
+    // 2. 包含依赖库（排除libs目录的jar，因为那些是服务端已有的）
     from {
         configurations.runtimeClasspath
                 .findAll { file ->
@@ -152,14 +130,11 @@ jar {
         println ""
         println "==================== 打包完成 ===================="
         println "✓ JAR文件: ${archiveFile.get().asFile.absolutePath}"
-        println "✓ 包含内容: 编译代码 + HikariCP + Javadoc文档"
+        println "✓ 包含内容: 编译代码 + HikariCP"
         println "✓ 排除内容: libs目录的JAR（服务端已有）"
         println "=================================================="
     }
 }
-
-// JAR打包前先生成Javadoc
-jar.dependsOn javadoc
 
 // ==================== 额外的JAR任务（可选） ====================
 // 源代码JAR：方便别人查看你的源码
@@ -172,35 +147,22 @@ tasks.register('sourcesJar', Jar) {
     }
 }
 
-// 纯Javadoc JAR：单独的文档包
-tasks.register('javadocJar', Jar) {
-    dependsOn javadoc
-    archiveClassifier.set('javadoc')
-    from javadoc.destinationDir
-
-    doLast {
-        println "✓ Javadoc JAR已生成: ${archiveFile.get().asFile.name}"
-    }
-}
-
 // ==================== 构建产物 ====================
 artifacts {
     archives sourcesJar
-    archives javadocJar
 }
 
 // ==================== 便捷任务 ====================
-// 一键打包所有：主JAR + 源码JAR + 文档JAR
+// 一键打包所有：主JAR + 源码JAR
 task buildAll {
-    dependsOn jar, sourcesJar, javadocJar
+    dependsOn jar, sourcesJar
 
     doLast {
         println ""
         println "==================== 全部打包完成 ===================="
         println "生成的文件在 build/libs/ 目录下："
-        println "  - YukiNoaAPI-${version}.jar         (主插件，含文档)"
+        println "  - YukiNoaAPI-${version}.jar         (主插件)"
         println "  - YukiNoaAPI-${version}-sources.jar (源代码)"
-        println "  - YukiNoaAPI-${version}-javadoc.jar (API文档)"
         println "====================================================="
     }
 }
