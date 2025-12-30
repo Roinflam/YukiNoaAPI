@@ -111,3 +111,36 @@ Database:
     #
     # Example: useSSL=false&autoReconnect=true&serverTimezone=Asia/Shanghai
     Parameters: ''
+
+# ==================== 头颅设置 / Skull Settings ====================
+Skull:
+  # 头颅预加载
+  # 开启后玩家进入服务器时会异步预加载头颅纹理到缓存
+  # 这样在获取玩家头颅时不会因为网络请求而卡住主线程
+  # 适合大量使用玩家头颅的服务器（如菜单、排行榜等）
+  # ---
+  # Skull preloading
+  # When enabled, player skull textures are preloaded asynchronously on join
+  # This prevents main thread lag when getting player skulls
+  # Recommended for servers that use player skulls frequently (menus, leaderboards, etc.)
+  Preload: false
+
+  # 退出清除缓存
+  # 开启后玩家退出服务器时会从缓存中移除该玩家的头颅
+  # 开启：节省内存，但下次进服需要重新加载
+  # 关闭：保留缓存，适合玩家频繁进出的服务器
+  # ---
+  # Clear cache on quit
+  # When enabled, player skull cache is cleared when they leave
+  # Enabled: Saves memory, but requires reload on next join
+  # Disabled: Keeps cache, better for servers with frequent joins/quits
+  ClearOnQuit: false
+
+  # 预加载延迟（tick，20 tick = 1秒）
+  # 玩家进入服务器后延迟多少tick再预加载头颅
+  # 延迟加载可以避免进服瞬间服务器压力过大
+  # ---
+  # Preload delay (ticks, 20 ticks = 1 second)
+  # How many ticks to wait after player joins before preloading skull
+  # Delayed loading helps avoid server stress during player login
+  PreloadDelay: 20
