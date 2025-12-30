@@ -86,9 +86,6 @@ public class Main extends JavaPlugin {
         // 初始化事件监听器
         PlayerEatFood.getInstance();
 
-        // 初始化头颅工具（读取配置，按需注册监听器）
-        SkullUtil.getInstance().init();
-
         LogUtil.debug(LangUtil.get("main.init-complete"));
     }
 
@@ -105,9 +102,6 @@ public class Main extends JavaPlugin {
 
         // 清除日志工具缓存（配置可能更改了日志设置）
         LogUtil.invalidateCache();
-
-        // 重载头颅工具配置
-        SkullUtil.getInstance().reload();
 
         LogUtil.info(LangUtil.get("main.config-reloaded"));
     }

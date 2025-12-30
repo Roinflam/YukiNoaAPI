@@ -12,7 +12,6 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -31,11 +30,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 玩家头颅工具类
- * 提供跨版本的玩家头颅获取功能，支持异步预加载和缓存机制
+ * 提供跨版本的玩家头颅获取功能，支持预加载和缓存机制
  *
  * <p>核心功能：</p>
  * <ul>
- *     <li>异步预加载：玩家进服时在异步线程预加载头颅，避免使用时卡主线程</li>
+ *     <li>预加载缓存：玩家进服时延迟预加载头颅到缓存，后续获取直接从缓存读取</li>
  *     <li>智能缓存：使用 UUID 作为缓存键，支持改名后依然有效</li>
  *     <li>配置控制：可在配置文件中开关预加载功能</li>
  *     <li>版本兼容：支持 1.7.10 - 1.21+ 所有版本</li>
@@ -46,6 +45,13 @@ import java.util.concurrent.ConcurrentHashMap;
  *     <li>1.12 及以下：使用 SKULL_ITEM + 子ID 3，setOwner(String)</li>
  *     <li>1.12.2+：使用 setOwningPlayer(OfflinePlayer)</li>
  *     <li>1.13+：使用 PLAYER_HEAD</li>
+ * </ul>
+ *
+ * <p>关于卡顿说明：</p>
+ * <ul>
+ *     <li>在线玩家：服务器已缓存 GameProfile，创建头颅不会卡顿</li>
+ *     <li>离线玩家：需要查询 Mojang API 获取皮肤，可能会卡顿（用得少，可接受）</li>
+ *     <li>预加载功能：玩家进服后延迟创建并缓存，后续使用直接从缓存获取</li>
  * </ul>
  */
 public class SkullUtil implements Listener {
@@ -185,7 +191,8 @@ public class SkullUtil implements Listener {
     // ==================== 事件监听 ====================
 
     /**
-     * 玩家进服事件 - 异步预加载头颅
+     * 玩家进服事件 - 延迟预加载头颅
+     * 在线玩家的 GameProfile 已被服务器缓存，创建头颅不会卡顿
      *
      * @param event 玩家进服事件
      */
@@ -204,8 +211,33 @@ public class SkullUtil implements Listener {
             return;
         }
 
-        // 延迟异步预加载
-        preloadSkullAsync(player, preloadDelay);
+        // 延迟预加载（在线玩家不卡，直接主线程创建即可）
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // 检查玩家是否还在线
+                if (!player.isOnline()) {
+                    LogUtil.debug(LangUtil.get("skull.player-offline", player.getName()));
+                    return;
+                }
+
+                // 再次检查缓存（可能在等待期间已被缓存）
+                if (skulls.containsKey(uuid)) {
+                    return;
+                }
+
+                try {
+                    // 创建头颅物品并缓存
+                    // 在线玩家的 GameProfile 已被服务器缓存，这里不会触发网络请求
+                    ItemStack skull = createSkullItem(player);
+                    skulls.put(uuid, skull);
+
+                    LogUtil.debug(LangUtil.get("skull.preload-success", player.getName()));
+                } catch (Exception e) {
+                    LogUtil.error(LangUtil.get("skull.preload-fail", player.getName()), e);
+                }
+            }
+        }.runTaskLater(Main.plugin, preloadDelay);
     }
 
     /**
@@ -220,100 +252,6 @@ public class SkullUtil implements Listener {
             if (skulls.remove(uuid) != null) {
                 LogUtil.debug(LangUtil.get("skull.cache-removed", event.getPlayer().getName()));
             }
-        }
-    }
-
-    // ==================== 预加载方法 ====================
-
-    /**
-     * 异步预加载玩家头颅
-     *
-     * @param player 玩家
-     */
-    public void preloadSkullAsync(@Nonnull Player player) {
-        preloadSkullAsync(player, 0);
-    }
-
-    /**
-     * 异步预加载玩家头颅（带延迟）
-     *
-     * @param player    玩家
-     * @param delayTick 延迟时间（tick）
-     */
-    public void preloadSkullAsync(@Nonnull Player player, int delayTick) {
-        UUID uuid = player.getUniqueId();
-        String playerName = player.getName();
-
-        // 已缓存则跳过
-        if (skulls.containsKey(uuid)) {
-            return;
-        }
-
-        // 异步任务
-        BukkitRunnable task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                // 检查玩家是否还在线
-                if (!player.isOnline()) {
-                    LogUtil.debug(LangUtil.get("skull.player-offline", playerName));
-                    return;
-                }
-
-                // 回到主线程创建头颅物品（Bukkit API 必须在主线程调用）
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        // 再次检查玩家是否在线
-                        if (!player.isOnline()) {
-                            return;
-                        }
-
-                        // 再次检查缓存（可能在等待期间已被缓存）
-                        if (skulls.containsKey(uuid)) {
-                            return;
-                        }
-
-                        try {
-                            // 创建头颅物品
-                            ItemStack skull = createSkullItem(player);
-
-                            // 触发皮肤纹理加载
-                            triggerTextureLoad(skull);
-
-                            // 存入缓存
-                            skulls.put(uuid, skull);
-
-                            LogUtil.debug(LangUtil.get("skull.preload-success", playerName));
-                        } catch (Exception e) {
-                            LogUtil.error(LangUtil.get("skull.preload-fail", playerName), e);
-                        }
-                    }
-                }.runTask(Main.plugin);
-            }
-        };
-
-        // 执行任务
-        if (delayTick > 0) {
-            task.runTaskLaterAsynchronously(Main.plugin, delayTick);
-        } else {
-            task.runTaskAsynchronously(Main.plugin);
-        }
-    }
-
-    /**
-     * 触发头颅纹理加载
-     * 通过创建临时容器并放入头颅来预热纹理数据
-     *
-     * @param skull 头颅物品
-     */
-    private void triggerTextureLoad(@Nonnull ItemStack skull) {
-        try {
-            // 创建临时容器触发纹理加载
-            Inventory tempInventory = Bukkit.createInventory(null, 9);
-            tempInventory.setItem(0, skull);
-        } catch (Exception e) {
-            // 忽略异常，纹理加载失败不影响功能
-            LogUtil.debug(LangUtil.get("skull.texture-load-fail", e.getMessage()));
         }
     }
 
@@ -358,7 +296,7 @@ public class SkullUtil implements Listener {
 
     /**
      * 获取玩家头颅物品
-     * 支持离线玩家，优先从缓存获取
+     * 优先从缓存获取，缓存未命中则实时创建
      *
      * @param offlinePlayer 离线玩家对象
      * @return 玩家头颅物品建造器
@@ -375,6 +313,7 @@ public class SkullUtil implements Listener {
         }
 
         // 缓存未命中，实时创建
+        // 注意：离线玩家可能会触发 Mojang API 查询导致卡顿
         ItemStack skull = createSkullItem(offlinePlayer);
         return new ItemBuilder(skull);
     }
@@ -502,6 +441,21 @@ public class SkullUtil implements Listener {
     }
 
     // ==================== 缓存管理 ====================
+
+    /**
+     * 手动预加载玩家头颅到缓存
+     * 适用于需要提前缓存某个玩家头颅的场景
+     *
+     * @param player 玩家
+     */
+    public void preload(@Nonnull Player player) {
+        UUID uuid = player.getUniqueId();
+        if (!skulls.containsKey(uuid)) {
+            ItemStack skull = createSkullItem(player);
+            skulls.put(uuid, skull);
+            LogUtil.debug(LangUtil.get("skull.preload-success", player.getName()));
+        }
+    }
 
     /**
      * 手动添加头颅到缓存

@@ -4,7 +4,7 @@
 
 # ==================== Common Messages ====================
 common:
-  prefix: "§8[§b§lYNA§8] §7"
+  prefix: "§8[§b§lYukiNoaAPI§8] §7"
   no-permission: "§c✘ §7Permission denied"
   player-only: "§c✘ §7Player only command"
   unknown-command: "§c✘ §7Unknown command §8| §7Use §b/yn help"

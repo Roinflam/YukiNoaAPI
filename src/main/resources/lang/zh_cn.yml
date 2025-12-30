@@ -4,7 +4,7 @@
 
 # ==================== 通用消息 ====================
 common:
-  prefix: "§8[§b§lYNA§8] §7"
+  prefix: "§8[§b§YukiNoaAPI§8] §7"
   no-permission: "§c✘ §7权限不足"
   player-only: "§c✘ §7仅限玩家执行"
   unknown-command: "§c✘ §7未知指令 §8| §7使用 §b/yn help §7查看帮助"
