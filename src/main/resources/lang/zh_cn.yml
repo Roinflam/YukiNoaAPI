@@ -6,11 +6,7 @@ common:
   prefix: "§8[§fYukiNoaAPI§8] "
   on: "开启"
   off: "关闭"
-  enabled: "启用"
-  disabled: "禁用"
-  no-permission: "§c✘ §7权限不足"
   player-only: "§c✘ §7仅限玩家执行"
-  unknown-command: "§c✘ §7未知指令 §8| §7使用 §b/yn help §7查看帮助"
   reload-success: "§b✔ §7配置重载完成"
   reload-fail: "§c✘ §7配置重载失败"
 
@@ -47,7 +43,6 @@ debug:
   help-debug: "§b/yn debug §8- §7切换调试模式"
   help-classes: "§b/yn classes §8- §7扫描Minecraft类"
   help-reload: "§b/yn reload §8- §7重载配置"
-  help-footer: "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   enabled: "§b✔ §7调试模式 §b[ON] §8| §7右键查看物品/方块/实体信息"
   disabled: "§8✔ §7调试模式 §8[OFF]"
   scanning: "§8▸ §7正在扫描 Minecraft 类..."
@@ -77,19 +72,6 @@ nms:
   field-not-found: "§c  ✘ §7字段 §f{0} §7未找到"
   methods-accessible: "§8▸ §7已设置 §f{0} §7个方法可访问"
   methods-accessible-fail: "§c▸ §7设置方法可访问失败 §8| §c{0}"
-
-# ==================== 头颅工具 ====================
-skull:
-  init-complete: "§8▸ §7头颅系统初始化 §8[§b{0}§8]"
-  reload-complete: "§8▸ §7头颅系统重载 §8[§b{0}§8]"
-  listener-registered: "§8▸ §7头颅监听器已注册"
-  listener-unregistered: "§8▸ §7头颅监听器已注销"
-  already-cached: "§8▸ §7{0} 头颅已缓存"
-  player-offline: "§8▸ §7{0} 已离线，跳过预加载"
-  preload-success: "§8▸ §7{0} 头颅预加载成功"
-  preload-fail: "§c▸ §7{0} 头颅预加载失败"
-  cache-removed: "§8▸ §7{0} 头颅缓存已移除"
-  cache-cleared: "§8▸ §7已清空 {0} 个头颅缓存"
 
 # ==================== 物品信息 ====================
 item:
@@ -128,38 +110,3 @@ inventory:
   size: "§8▸ §7界面大小 §f{0}"
   slot: "§8▸ §7槽位 §f{0}"
   raw-slot: "§8▸ §7原始槽位 §f{0}"
-
-# ==================== Vault经济 ====================
-vault:
-  economy-not-found: "§c✘ §7未检测到经济系统"
-  economy-found: "§b✔ §7经济系统已连接"
-
-# ==================== 数据库 ====================
-database:
-  mysql-connect-success: "§b▸ §7MySQL 连接成功 §8➜ §f{0}"
-  mysql-connect-fail: "§c▸ §7MySQL 连接失败"
-  mysql-reconnecting: "§e▸ §7MySQL 重新连接..."
-  mysql-check-fail: "§c▸ §7MySQL 连接检查失败"
-  mysql-closed: "§8▸ §7MySQL 已关闭 §8➜ §f{0}"
-  mysql-table-check-fail: "§c▸ §7MySQL 表检查失败 §f{0}"
-  sqlite-connect-success: "§b▸ §7SQLite 连接成功 §8➜ §f{0}"
-  sqlite-connect-fail: "§c▸ §7SQLite 连接失败"
-  sqlite-driver-fail: "§c▸ §7SQLite 驱动加载失败"
-  sqlite-path-fail: "§c▸ §7SQLite 路径获取失败"
-  sqlite-path-invalid: "§c▸ §7SQLite 路径无效"
-  sqlite-reconnecting: "§e▸ §7SQLite 重新连接..."
-  sqlite-check-fail: "§c▸ §7SQLite 连接检查失败"
-  sqlite-closed: "§8▸ §7SQLite 已关闭 §8➜ §f{0}"
-  sqlite-close-fail: "§c▸ §7SQLite 关闭失败"
-  sqlite-deleted: "§b▸ §7SQLite 数据库已删除 §8➜ §f{0}"
-  sqlite-delete-fail: "§c▸ §7SQLite 数据库删除失败 §f{0}"
-  sqlite-backup-success: "§b▸ §7SQLite 备份成功 §8➜ §f{0}"
-  sqlite-backup-fail: "§c▸ §7SQLite 备份失败"
-  sqlite-table-check-fail: "§c▸ §7SQLite 表检查失败 §f{0}"
-  sql-execute: "§8▸ §7执行SQL §8➜ §f{0}"
-  sql-query: "§8▸ §7查询SQL §8➜ §f{0}"
-  sql-execute-fail: "§c▸ §7SQL执行失败 §8| §f{0}"
-  sql-query-fail: "§c▸ §7SQL查询失败 §8| §f{0}"
-  sql-param-execute-fail: "§c▸ §7参数化SQL执行失败 §8| §f{0}"
-  sql-param-query-fail: "§c▸ §7参数化SQL查询失败 §8| §f{0}"
-  table-cleared: "§8▸ §7数据表已清空 §8➜ §f{0}"

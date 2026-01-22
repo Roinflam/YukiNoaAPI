@@ -151,7 +151,6 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(lang.getMessage("debug.help-debug"));
         sender.sendMessage(lang.getMessage("debug.help-classes"));
         sender.sendMessage(lang.getMessage("debug.help-reload"));
-        sender.sendMessage(lang.getMessage("debug.help-footer"));
     }
 
     @Override

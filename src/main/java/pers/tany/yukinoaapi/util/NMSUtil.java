@@ -320,11 +320,7 @@ public class NMSUtil {
             return key;
         }
 
-        if (args == null || args.length == 0) {
-            return ((Main) Main.plugin).getLanguageManager().getMessage(key);
-        } else {
-            return ((Main) Main.plugin).getLanguageManager().getMessage(key, key, String.valueOf(args[0]));
-        }
+        return ((Main) Main.plugin).getLanguageManager().getMessage(key, args);
     }
 
     /*

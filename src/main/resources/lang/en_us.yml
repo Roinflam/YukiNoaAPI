@@ -6,11 +6,7 @@ common:
   prefix: "§8[§fYukiNoaAPI§8] "
   on: "ON"
   off: "OFF"
-  enabled: "Enabled"
-  disabled: "Disabled"
-  no-permission: "§c✘ §7Permission denied"
   player-only: "§c✘ §7Player only command"
-  unknown-command: "§c✘ §7Unknown command §8| §7Use §b/yn help"
   reload-success: "§b✔ §7Configuration reloaded"
   reload-fail: "§c✘ §7Reload failed"
 
@@ -47,7 +43,6 @@ debug:
   help-debug: "§b/yn debug §8- §7Toggle debug mode"
   help-classes: "§b/yn classes §8- §7Scan Minecraft classes"
   help-reload: "§b/yn reload §8- §7Reload config"
-  help-footer: "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   enabled: "§b✔ §7Debug mode §b[ON] §8| §7Right-click to inspect items/blocks/entities"
   disabled: "§8✔ §7Debug mode §8[OFF]"
   scanning: "§8▸ §7Scanning Minecraft classes..."
@@ -77,19 +72,6 @@ nms:
   field-not-found: "§c  ✘ §7Field §f{0} §7not found"
   methods-accessible: "§8▸ §7Set §f{0} §7methods accessible"
   methods-accessible-fail: "§c▸ §7Set methods accessible failed §8| §c{0}"
-
-# ==================== Skull Utilities ====================
-skull:
-  init-complete: "§8▸ §7Skull system initialized §8[§b{0}§8]"
-  reload-complete: "§8▸ §7Skull system reloaded §8[§b{0}§8]"
-  listener-registered: "§8▸ §7Skull listener registered"
-  listener-unregistered: "§8▸ §7Skull listener unregistered"
-  already-cached: "§8▸ §7{0} skull already cached"
-  player-offline: "§8▸ §7{0} offline, skipping preload"
-  preload-success: "§8▸ §7{0} skull preloaded"
-  preload-fail: "§c▸ §7{0} skull preload failed"
-  cache-removed: "§8▸ §7{0} skull cache removed"
-  cache-cleared: "§8▸ §7Cleared {0} skull caches"
 
 # ==================== Item Information ====================
 item:
@@ -128,38 +110,3 @@ inventory:
   size: "§8▸ §7Inventory size §f{0}"
   slot: "§8▸ §7Slot §f{0}"
   raw-slot: "§8▸ §7Raw slot §f{0}"
-
-# ==================== Vault Economy ====================
-vault:
-  economy-not-found: "§c✘ §7Economy not detected"
-  economy-found: "§b✔ §7Economy connected"
-
-# ==================== Database ====================
-database:
-  mysql-connect-success: "§b▸ §7MySQL connected §8➜ §f{0}"
-  mysql-connect-fail: "§c▸ §7MySQL connection failed"
-  mysql-reconnecting: "§e▸ §7MySQL reconnecting..."
-  mysql-check-fail: "§c▸ §7MySQL connection check failed"
-  mysql-closed: "§8▸ §7MySQL closed §8➜ §f{0}"
-  mysql-table-check-fail: "§c▸ §7MySQL table check failed §f{0}"
-  sqlite-connect-success: "§b▸ §7SQLite connected §8➜ §f{0}"
-  sqlite-connect-fail: "§c▸ §7SQLite connection failed"
-  sqlite-driver-fail: "§c▸ §7SQLite driver load failed"
-  sqlite-path-fail: "§c▸ §7SQLite path fetch failed"
-  sqlite-path-invalid: "§c▸ §7SQLite path invalid"
-  sqlite-reconnecting: "§e▸ §7SQLite reconnecting..."
-  sqlite-check-fail: "§c▸ §7SQLite connection check failed"
-  sqlite-closed: "§8▸ §7SQLite closed §8➜ §f{0}"
-  sqlite-close-fail: "§c▸ §7SQLite close failed"
-  sqlite-deleted: "§b▸ §7SQLite database deleted §8➜ §f{0}"
-  sqlite-delete-fail: "§c▸ §7SQLite database deletion failed §f{0}"
-  sqlite-backup-success: "§b▸ §7SQLite backup success §8➜ §f{0}"
-  sqlite-backup-fail: "§c▸ §7SQLite backup failed"
-  sqlite-table-check-fail: "§c▸ §7SQLite table check failed §f{0}"
-  sql-execute: "§8▸ §7Executing SQL §8➜ §f{0}"
-  sql-query: "§8▸ §7Querying SQL §8➜ §f{0}"
-  sql-execute-fail: "§c▸ §7SQL execution failed §8| §f{0}"
-  sql-query-fail: "§c▸ §7SQL query failed §8| §f{0}"
-  sql-param-execute-fail: "§c▸ §7Parameterized SQL execution failed §8| §f{0}"
-  sql-param-query-fail: "§c▸ §7Parameterized SQL query failed §8| §f{0}"
-  table-cleared: "§8▸ §7Table cleared §8➜ §f{0}"
