@@ -17,7 +17,6 @@ import pers.tany.yukinoaapi.interfacepart.encrypt.IEncrypt;
 import pers.tany.yukinoaapi.interfacepart.entity.IEntity;
 import pers.tany.yukinoaapi.interfacepart.item.IItem;
 import pers.tany.yukinoaapi.realizationpart.builder.ItemBuilder;
-import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.annotation.Nullable;
@@ -270,8 +269,7 @@ public interface ISerializer {
                 try {
                     block.setBlockData(Bukkit.createBlockData(str[1]));
                 } catch (Exception e) {
-                    // BlockData 解析失败，类型已设置，忽略
-                    LogUtil.debug(LangUtil.get("block.deserialize-blockdata-fail", e.getMessage()));
+                    e.printStackTrace();
                 }
             } else {
                 // 1.12 及以下使用 data 值
@@ -313,7 +311,6 @@ public interface ISerializer {
 
             // 检查必要组件
             if (parse == null || getTileEntity == null || getHandle == null || load == null) {
-                LogUtil.debug(LangUtil.get("block.nbt-reflection-unavailable"));
                 return;
             }
 
@@ -350,7 +347,6 @@ public interface ISerializer {
             }
 
             if (tileEntity == null) {
-                LogUtil.debug(LangUtil.get("block.no-tile-entity"));
                 return;
             }
 
@@ -366,7 +362,7 @@ public interface ISerializer {
             }
 
         } catch (Exception e) {
-            LogUtil.debug(LangUtil.get("block.nbt-set-fail", e.getMessage()));
+            e.printStackTrace();
         }
     }
 

@@ -2,6 +2,7 @@ package pers.tany.yukinoaapi.util;
 
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
+import pers.tany.yukinoaapi.Main;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -307,25 +308,41 @@ public class NMSUtil {
      */
     public static Field target;
 
+    /**
+     * 获取语言文本（辅助方法）
+     *
+     * @param key  语言键
+     * @param args 参数
+     * @return 语言文本
+     */
+    private static String getLang(String key, Object... args) {
+        if (Main.plugin == null || ((Main) Main.plugin).getLanguageManager() == null) {
+            return key;
+        }
+
+        if (args == null || args.length == 0) {
+            return ((Main) Main.plugin).getLanguageManager().getMessage(key);
+        } else {
+            return ((Main) Main.plugin).getLanguageManager().getMessage(key, key, String.valueOf(args[0]));
+        }
+    }
+
     /*
      * 静态初始化块
      * 检测服务器版本并初始化所有反射对象
-     *
-     * 注意：此静态块在 Main.onEnable() 中 LangUtil.init() 之后才会被触发
-     * 因此可以安全使用 LangUtil
      */
     static {
         version = detectVersion();
         majorVersion = parseMajorVersion(version);
-        LogUtil.info(LangUtil.get("nms.detected-version", version));
+        LogUtil.info(getLang("nms.detected-version", version));
 
         try {
             initializeReflection();
             initialized = true;
-            LogUtil.success(LangUtil.get("nms.init-success"));
+            LogUtil.success(getLang("nms.init-success"));
         } catch (Exception e) {
             initError = e.getMessage();
-            LogUtil.error(LangUtil.get("nms.init-fail"), e);
+            LogUtil.error(getLang("nms.init-fail"), e);
         }
     }
 
@@ -337,32 +354,32 @@ public class NMSUtil {
     private static String detectVersion() {
         try {
             String packageName = Bukkit.getServer().getClass().getPackage().getName();
-            LogUtil.debug(LangUtil.get("nms.server-package", packageName));
+            LogUtil.debug(getLang("nms.server-package", packageName));
 
             String[] parts = packageName.split("\\.");
-            LogUtil.debug(LangUtil.get("nms.package-segments", parts.length));
+            LogUtil.debug(getLang("nms.package-segments", parts.length));
 
             // 标准 CraftBukkit 结构: org.bukkit.craftbukkit.v1_xx_Rx
             if (parts.length >= 4 && parts[2].equals("craftbukkit")) {
                 String detectedVersion = parts[3];
-                LogUtil.debug(LangUtil.get("nms.version-from-package", detectedVersion));
+                LogUtil.debug(getLang("nms.version-from-package", detectedVersion));
                 return detectedVersion;
             }
 
             // 备用方案：在所有分段中查找版本号
             for (String part : parts) {
                 if (part.startsWith("v1_")) {
-                    LogUtil.debug(LangUtil.get("nms.version-found", part));
+                    LogUtil.debug(getLang("nms.version-found", part));
                     return part;
                 }
             }
 
             // 最后的备用方案
-            LogUtil.warning(LangUtil.get("nms.version-default", "v1_21_R1"));
+            LogUtil.warning(getLang("nms.version-default", "v1_21_R1"));
             return "v1_21_R1";
 
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("nms.version-exception", "v1_21_R1"), e);
+            LogUtil.error(getLang("nms.version-exception", "v1_21_R1"), e);
             return "v1_21_R1";
         }
     }
@@ -406,7 +423,7 @@ public class NMSUtil {
      * 初始化玩家相关反射
      */
     private static void initPlayerRelated() {
-        LogUtil.debug(LangUtil.get("nms.module-init-start", "Player"));
+        LogUtil.debug(getLang("nms.module-init-start", "Player"));
 
         try {
             // playerConnection 字段
@@ -477,9 +494,9 @@ public class NMSUtil {
             );
             logClassStatus("ChatMessageType", chatMessageType);
 
-            LogUtil.debug(LangUtil.get("nms.module-init-complete", "Player"));
+            LogUtil.debug(getLang("nms.module-init-complete", "Player"));
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("nms.module-init-fail", "Player", e.getMessage()));
+            LogUtil.error(getLang("nms.module-init-fail", "Player", e.getMessage()));
         }
     }
 
@@ -487,7 +504,7 @@ public class NMSUtil {
      * 初始化物品相关反射
      */
     private static void initItemRelated() {
-        LogUtil.debug(LangUtil.get("nms.module-init-start", "Item"));
+        LogUtil.debug(getLang("nms.module-init-start", "Item"));
 
         try {
             // CraftItemStack 类
@@ -575,9 +592,9 @@ public class NMSUtil {
                 logMethodStatus("Item.getName", getName_Item);
             }
 
-            LogUtil.debug(LangUtil.get("nms.module-init-complete", "Item"));
+            LogUtil.debug(getLang("nms.module-init-complete", "Item"));
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("nms.module-init-fail", "Item", e.getMessage()));
+            LogUtil.error(getLang("nms.module-init-fail", "Item", e.getMessage()));
         }
     }
 
@@ -585,7 +602,7 @@ public class NMSUtil {
      * 初始化服务器相关反射
      */
     private static void initServerRelated() {
-        LogUtil.debug(LangUtil.get("nms.module-init-start", "Server"));
+        LogUtil.debug(getLang("nms.module-init-start", "Server"));
 
         try {
             // MinecraftServer 类
@@ -605,9 +622,9 @@ public class NMSUtil {
             craftServerClass = safeGetClass(getOBCPack() + ".CraftServer");
             logClassStatus("CraftServer", craftServerClass);
 
-            LogUtil.debug(LangUtil.get("nms.module-init-complete", "Server"));
+            LogUtil.debug(getLang("nms.module-init-complete", "Server"));
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("nms.module-init-fail", "Server", e.getMessage()));
+            LogUtil.error(getLang("nms.module-init-fail", "Server", e.getMessage()));
         }
     }
 
@@ -615,7 +632,7 @@ public class NMSUtil {
      * 初始化实体相关反射
      */
     private static void initEntityRelated() {
-        LogUtil.debug(LangUtil.get("nms.module-init-start", "Entity"));
+        LogUtil.debug(getLang("nms.module-init-start", "Entity"));
 
         try {
             // CraftEntity 类
@@ -685,9 +702,9 @@ public class NMSUtil {
                 logMethodStatus("CraftEntity.getEntity", getEntity);
             }
 
-            LogUtil.debug(LangUtil.get("nms.module-init-complete", "Entity"));
+            LogUtil.debug(getLang("nms.module-init-complete", "Entity"));
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("nms.module-init-fail", "Entity", e.getMessage()));
+            LogUtil.error(getLang("nms.module-init-fail", "Entity", e.getMessage()));
         }
     }
 
@@ -695,7 +712,7 @@ public class NMSUtil {
      * 初始化 NBT 解析相关反射
      */
     private static void initNBTRelated() {
-        LogUtil.debug(LangUtil.get("nms.module-init-start", "NBT"));
+        LogUtil.debug(getLang("nms.module-init-start", "NBT"));
 
         try {
             // MojangsonParser 类
@@ -715,9 +732,9 @@ public class NMSUtil {
                 logMethodStatus("MojangsonParser.parse", parse);
             }
 
-            LogUtil.debug(LangUtil.get("nms.module-init-complete", "NBT"));
+            LogUtil.debug(getLang("nms.module-init-complete", "NBT"));
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("nms.module-init-fail", "NBT", e.getMessage()));
+            LogUtil.error(getLang("nms.module-init-fail", "NBT", e.getMessage()));
         }
     }
 
@@ -725,7 +742,7 @@ public class NMSUtil {
      * 初始化方块实体相关反射
      */
     private static void initBlockRelated() {
-        LogUtil.debug(LangUtil.get("nms.module-init-start", "Block"));
+        LogUtil.debug(getLang("nms.module-init-start", "Block"));
 
         try {
             // CraftWorld 类
@@ -809,9 +826,9 @@ public class NMSUtil {
                 logMethodStatus("CraftBlock.setData", setData);
             }
 
-            LogUtil.debug(LangUtil.get("nms.module-init-complete", "Block"));
+            LogUtil.debug(getLang("nms.module-init-complete", "Block"));
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("nms.module-init-fail", "Block", e.getMessage()));
+            LogUtil.error(getLang("nms.module-init-fail", "Block", e.getMessage()));
         }
     }
 
@@ -819,7 +836,7 @@ public class NMSUtil {
      * 初始化文本组件相关反射
      */
     private static void initTextComponentRelated() {
-        LogUtil.debug(LangUtil.get("nms.module-init-start", "TextComponent"));
+        LogUtil.debug(getLang("nms.module-init-start", "TextComponent"));
 
         try {
             // IChatBaseComponent 类
@@ -838,9 +855,9 @@ public class NMSUtil {
                 logMethodStatus("IChatBaseComponent.getString", getString_IChatBaseComponent);
             }
 
-            LogUtil.debug(LangUtil.get("nms.module-init-complete", "TextComponent"));
+            LogUtil.debug(getLang("nms.module-init-complete", "TextComponent"));
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("nms.module-init-fail", "TextComponent", e.getMessage()));
+            LogUtil.error(getLang("nms.module-init-fail", "TextComponent", e.getMessage()));
         }
     }
 
@@ -848,7 +865,7 @@ public class NMSUtil {
      * 初始化附魔相关反射
      */
     private static void initEnchantmentRelated() {
-        LogUtil.debug(LangUtil.get("nms.module-init-start", "Enchantment"));
+        LogUtil.debug(getLang("nms.module-init-start", "Enchantment"));
 
         try {
             // CraftEnchantment 类
@@ -885,9 +902,9 @@ public class NMSUtil {
                 }
             }
 
-            LogUtil.debug(LangUtil.get("nms.module-init-complete", "Enchantment"));
+            LogUtil.debug(getLang("nms.module-init-complete", "Enchantment"));
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("nms.module-init-fail", "Enchantment", e.getMessage()));
+            LogUtil.error(getLang("nms.module-init-fail", "Enchantment", e.getMessage()));
         }
     }
 
@@ -904,9 +921,9 @@ public class NMSUtil {
                     count++;
                 }
             }
-            LogUtil.debug(LangUtil.get("nms.methods-accessible", count));
+            LogUtil.debug(getLang("nms.methods-accessible", count));
         } catch (Exception e) {
-            LogUtil.debug(LangUtil.get("nms.methods-accessible-fail", e.getMessage()));
+            LogUtil.debug(getLang("nms.methods-accessible-fail", e.getMessage()));
         }
     }
 
@@ -999,9 +1016,9 @@ public class NMSUtil {
      */
     private static void logClassStatus(String name, Class<?> clazz) {
         if (clazz != null) {
-            LogUtil.debug(LangUtil.get("nms.class-found", name, clazz.getName()));
+            LogUtil.debug(getLang("nms.class-found", name, clazz.getName()));
         } else {
-            LogUtil.warning(LangUtil.get("nms.class-not-found", name));
+            LogUtil.warning(getLang("nms.class-not-found", name));
         }
     }
 
@@ -1010,9 +1027,9 @@ public class NMSUtil {
      */
     private static void logMethodStatus(String name, Method method) {
         if (method != null) {
-            LogUtil.debug(LangUtil.get("nms.method-found", name));
+            LogUtil.debug(getLang("nms.method-found", name));
         } else {
-            LogUtil.warning(LangUtil.get("nms.method-not-found", name));
+            LogUtil.warning(getLang("nms.method-not-found", name));
         }
     }
 
@@ -1021,9 +1038,9 @@ public class NMSUtil {
      */
     private static void logFieldStatus(String name, Field field) {
         if (field != null) {
-            LogUtil.debug(LangUtil.get("nms.field-found", name));
+            LogUtil.debug(getLang("nms.field-found", name));
         } else {
-            LogUtil.warning(LangUtil.get("nms.field-not-found", name));
+            LogUtil.warning(getLang("nms.field-not-found", name));
         }
     }
 

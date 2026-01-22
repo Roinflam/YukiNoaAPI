@@ -1,446 +1,253 @@
 package pers.tany.yukinoaapi.interfacepart.configuration;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
-import pers.tany.yukinoaapi.util.LangUtil;
-import pers.tany.yukinoaapi.util.LogUtil;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 配置文件操作相关接口
- * 提供配置文件的创建、读取、保存等功能
- * 使用缓存机制优化路径计算和文件访问
+ * 配置文件操作接口
+ * 提供统一的配置文件管理功能
  */
 public interface IConfig {
 
     /**
-     * 路径分隔符（缓存，避免重复判断系统类型）
-     */
-    String PATH_SEPARATOR = System.getProperty("os.name").toLowerCase().contains("windows") ? "\\" : "/";
-
-    /**
-     * 是否为Windows系统
-     */
-    boolean IS_WINDOWS = System.getProperty("os.name").toLowerCase().contains("windows");
-
-    /**
-     * 插件数据目录缓存
-     * 避免重复计算和创建目录
-     */
-    ConcurrentHashMap<String, File> DATA_FOLDER_CACHE = new ConcurrentHashMap<>(16);
-
-    /**
-     * 获取有效的插件数据文件夹（带缓存）
+     * 获取有效的插件数据文件夹
      *
      * @param plugin 插件实例
-     * @return 有效的插件数据文件夹
+     * @return 数据文件夹
      */
-    static File getValidPluginDataFolder(Plugin plugin) {
-        String pluginName = plugin.getName();
-
-        // YukiNoaAPI 始终使用默认目录
-        if ("YukiNoaAPI".equals(pluginName)) {
+    static File getValidPluginDataFolder(@Nonnull Plugin plugin) {
+        if ("YukiNoaAPI".equals(plugin.getName())) {
             return plugin.getDataFolder();
-        }
-
-        File cached = DATA_FOLDER_CACHE.get(pluginName);
-        if (cached != null && cached.exists()) {
-            return cached;
-        }
-
-        String customDir = Main.config.getString("CustomDataDirectory", "");
-        File baseDir;
-
-        if (customDir != null && !customDir.isEmpty()) {
-            baseDir = new File(customDir, pluginName);
-            if (!baseDir.exists() && !baseDir.mkdirs()) {
-                if (LangUtil.isInitialized()) {
-                    LogUtil.error(pluginName, LangUtil.get("config.custom-dir-invalid", baseDir.getAbsolutePath()));
-                    LogUtil.warning(pluginName, LangUtil.get("config.custom-dir-fallback"));
-                }
-                baseDir = plugin.getDataFolder();
-            } else {
-                if (LangUtil.isInitialized()) {
-                    LogUtil.debug(LangUtil.get("config.custom-dir-using", pluginName, baseDir.getAbsolutePath()));
-                }
-            }
         } else {
-            baseDir = plugin.getDataFolder();
-            if (LangUtil.isInitialized()) {
-                LogUtil.debug(LangUtil.get("config.default-dir-using", pluginName, baseDir.getAbsolutePath()));
+            String customDir = Main.config.getString("CustomDataDirectory", "");
+            boolean showDefaultPathLogs = Main.config.getBoolean("Logging.ShowDefaultPathLogs", false);
+            File baseDir;
+            if (customDir != null && !customDir.isEmpty()) {
+                baseDir = new File(customDir, plugin.getName());
+                if (!baseDir.exists() && !baseDir.mkdirs()) {
+                    Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c自定义数据目录无效或无法创建: " + baseDir.getAbsolutePath());
+                    Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c将使用默认插件数据文件夹");
+                    baseDir = plugin.getDataFolder();
+                } else {
+                    Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §a使用自定义数据目录: " + baseDir.getAbsolutePath());
+                }
+            } else {
+                baseDir = plugin.getDataFolder();
+                if (showDefaultPathLogs) {
+                    Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §a使用默认数据目录: " + baseDir.getAbsolutePath());
+                }
             }
+
+            return baseDir;
         }
-
-        DATA_FOLDER_CACHE.put(pluginName, baseDir);
-        return baseDir;
     }
 
     /**
-     * 清空目录缓存
-     * 在配置重载后调用
-     */
-    static void clearCache() {
-        DATA_FOLDER_CACHE.clear();
-    }
-
-    /**
-     * 格式化路径（使用缓存的分隔符）
+     * 创建目录（包含子目录）
      *
-     * @param path 原始路径
-     * @return 格式化后的路径
+     * @param plugin 插件实例
+     * @param dirName 目录名称
+     * @return 是否成功
      */
-    static String formatPath(String path) {
-        if (IS_WINDOWS) {
-            return path.replace("/", "\\");
-        }
-        return path.replace("\\", "/");
-    }
-
-    /**
-     * 构建文件路径
-     * 避免字符串拼接，使用 File 构造器
-     *
-     * @param base     基础目录
-     * @param subPath  子路径
-     * @param fileName 文件名
-     * @return 完整文件对象
-     */
-    static File buildFile(File base, String subPath, String fileName) {
-        if (subPath == null || subPath.isEmpty()) {
-            return new File(base, fileName);
-        }
-        return new File(new File(base, subPath), fileName);
-    }
-
-    /**
-     * 在插件文件夹里生成文件夹
-     *
-     * @param plugin  主类
-     * @param dirName 文件夹路径/名
-     * @return 是否创建成功
-     */
-    static boolean createDir(Plugin plugin, String dirName) {
+    static boolean createDir(@Nonnull Plugin plugin, String dirName) {
         return createDir(plugin, dirName, true);
     }
 
     /**
-     * 在插件文件夹里生成文件夹
+     * 创建目录
+     * 跨平台修复：使用 File 构造函数而非硬编码路径分隔符
      *
-     * @param plugin       主类
-     * @param dirName      文件夹路径/名
-     * @param subdirectory 是否生成子目录
-     * @return 是否创建成功
+     * @param plugin 插件实例
+     * @param dirName 目录名称
+     * @param subdirectory 是否创建子目录
+     * @return 是否成功
      */
-    static boolean createDir(Plugin plugin, String dirName, boolean subdirectory) {
-        String pluginName = plugin.getName();
-        boolean isYukiNoaAPI = "YukiNoaAPI".equals(pluginName);
-
+    static boolean createDir(@Nonnull Plugin plugin, String dirName, boolean subdirectory) {
         try {
             File baseDir = getValidPluginDataFolder(plugin);
+            // 跨平台修复：使用 File 构造函数
             File dir = new File(baseDir, dirName);
-
             boolean result = subdirectory ? dir.mkdirs() : dir.mkdir();
             if (!result && !dir.exists()) {
-                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                    LogUtil.error(pluginName, LangUtil.get("config.dir-create-fail", dir.getAbsolutePath()));
-                }
-            } else {
-                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                    LogUtil.debug(LangUtil.get("config.dir-create-success", pluginName, dir.getAbsolutePath()));
-                }
+                Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c无法创建目录: " + dir.getAbsolutePath());
             }
+
             return result || dir.exists();
-        } catch (Exception e) {
-            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                LogUtil.error(pluginName, LangUtil.get("config.dir-create-error"), e);
-            }
+        } catch (Exception exception) {
+            Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c创建目录时发生错误: " + exception.getMessage());
             return false;
         }
     }
 
     /**
-     * 从插件里把对应名称的资源创建到对应插件文件夹里（静默模式）
+     * 从 jar 包中创建资源文件
+     * 跨平台修复：
+     * 1. 使用 File 构造函数处理文件系统路径
+     * 2. 使用 / 作为jar内部资源路径分隔符
+     * 3. 正确拼接资源路径
      *
-     * @param plugin   主类
-     * @param dirName  文件夹名
-     * @param fileName 文件名
-     * @param cover    是否覆盖
-     * @return 是否成功生成
+     * @param plugin 插件实例
+     * @param dirName 目录名称
+     * @param fileName 文件名称
+     * @param cover 是否覆盖现有文件
+     * @return 是否成功
      */
-    static boolean createResourceSilent(Plugin plugin, String dirName, String fileName, boolean cover) {
-        try {
-            File baseDir = plugin.getDataFolder();
-            File dir = (dirName == null || dirName.isEmpty()) ? baseDir : new File(baseDir, dirName);
-            dir.mkdirs();
-
-            File file = new File(dir, fileName);
-
-            if (!file.exists() || cover) {
-                try (InputStream is = plugin.getClass().getClassLoader().getResourceAsStream(fileName)) {
-                    if (is == null) {
-                        return false;
-                    }
-                    Files.copy(is, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    return true;
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return false;
-    }
-
-    /**
-     * 从插件里把对应名称的资源创建到对应插件文件夹里
-     *
-     * @param plugin   主类
-     * @param dirName  文件夹名
-     * @param fileName 文件名
-     * @param cover    是否覆盖
-     * @return 是否成功生成
-     */
-    static boolean createResource(Plugin plugin, String dirName, String fileName, boolean cover) {
-        String pluginName = plugin.getName();
-        boolean isYukiNoaAPI = "YukiNoaAPI".equals(pluginName);
-
+    static boolean createResource(@Nonnull Plugin plugin, String dirName, String fileName, boolean cover) {
         try {
             File baseDir = getValidPluginDataFolder(plugin);
-            File dir = (dirName == null || dirName.isEmpty()) ? baseDir : new File(baseDir, dirName);
+            // 跨平台修复：使用 File 构造函数
+            File dir = new File(baseDir, dirName);
             dir.mkdirs();
-
             File file = new File(dir, fileName);
 
-            if (!file.exists() || cover) {
-                try (InputStream is = plugin.getClass().getClassLoader().getResourceAsStream(fileName)) {
-                    if (is == null) {
-                        if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                            LogUtil.error(pluginName, LangUtil.get("config.resource-not-found", fileName));
-                        }
-                        return false;
-                    }
+            if (file.exists() && !cover) {
+                return false;
+            }
 
-                    Files.copy(is, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                    if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                        LogUtil.debug(LangUtil.get("config.resource-created", pluginName, file.getName()));
-                    }
-                    return true;
-                }
+            // 构造jar内部资源路径（统一使用正斜杠）
+            String resourcePath;
+            if (dirName == null || dirName.isEmpty()) {
+                resourcePath = fileName;
             } else {
-                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                    LogUtil.debug(LangUtil.get("config.resource-exists", pluginName, file.getName()));
-                }
+                // jar内部资源路径必须使用 / 作为分隔符
+                resourcePath = dirName.replace("\\", "/").replace(File.separator, "/") + "/" + fileName;
             }
+
+            // 尝试获取资源输入流
+            InputStream resourceStream = plugin.getClass().getClassLoader().getResourceAsStream(resourcePath);
+
+            if (resourceStream == null) {
+                Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c资源文件未找到: " + resourcePath);
+                return false;
+            }
+
+            // 复制资源文件
+            Files.copy(resourceStream, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            resourceStream.close();
+
+            return true;
         } catch (Exception e) {
-            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                LogUtil.error(pluginName, LangUtil.get("config.resource-create-error", fileName), e);
-            }
+            e.printStackTrace();
             return false;
         }
-        return false;
     }
 
     /**
-     * 读取插件的yml配置文件（静默模式）
+     * 加载配置文件
+     * 跨平台修复：使用 File 构造函数
      *
-     * @param plugin   主类
-     * @param dirName  文件夹名
-     * @param fileName 文件名
-     * @return 文件的YamlConfiguration实例
+     * @param plugin 插件实例
+     * @param dirName 目录名称
+     * @param fileName 文件名称
+     * @return 配置对象，加载失败返回 null
      */
-    @Nonnull
-    static YamlConfiguration loadConfigSilent(Plugin plugin, String dirName, String fileName) {
+    @Nullable
+    static YamlConfiguration loadConfig(@Nonnull Plugin plugin, String dirName, @Nonnull String fileName) {
         try {
-            File baseDir = plugin.getDataFolder();
-            File dir = (dirName == null || dirName.isEmpty()) ? baseDir : new File(baseDir, dirName);
-            String actualFileName = fileName.endsWith(".yml") ? fileName : fileName + ".yml";
-            File configFile = new File(dir, actualFileName);
+            File baseDir = getValidPluginDataFolder(plugin);
+            // 跨平台修复：使用 File 构造函数
+            File dir = new File(baseDir, dirName);
+            File configFile = new File(dir, fileName.endsWith(".yml") ? fileName : fileName + ".yml");
 
             if (!configFile.exists()) {
-                return new YamlConfiguration();
+                Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c配置文件不存在: " + configFile.getAbsolutePath());
+                return null;
             }
 
             return YamlConfiguration.loadConfiguration(configFile);
         } catch (Exception e) {
-            return new YamlConfiguration();
-        }
-    }
-
-    /**
-     * 读取插件的yml配置文件
-     *
-     * @param plugin   主类
-     * @param dirName  文件夹名
-     * @param fileName 文件名
-     * @return 文件的YamlConfiguration实例，加载失败返回null
-     */
-    @Nullable
-    static YamlConfiguration loadConfig(Plugin plugin, String dirName, String fileName) {
-        String pluginName = plugin.getName();
-        boolean isYukiNoaAPI = "YukiNoaAPI".equals(pluginName);
-
-        try {
-            File baseDir = getValidPluginDataFolder(plugin);
-            File dir = (dirName == null || dirName.isEmpty()) ? baseDir : new File(baseDir, dirName);
-            String actualFileName = fileName.endsWith(".yml") ? fileName : fileName + ".yml";
-            File configFile = new File(dir, actualFileName);
-
-            if (!configFile.exists()) {
-                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                    LogUtil.warning(pluginName, LangUtil.get("config.file-not-found", configFile.getAbsolutePath()));
-                }
-                return null;
-            }
-
-            YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
-
-            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                LogUtil.debug(LangUtil.get("config.loaded", pluginName, configFile.getName()));
-            }
-
-            return config;
-        } catch (Exception e) {
-            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                LogUtil.error(pluginName, LangUtil.get("config.load-error"), e);
-            }
+            Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c加载配置文件时发生错误: " + e.getMessage());
             return null;
         }
     }
 
     /**
-     * 读取系统路径下的yml配置文件
+     * 加载系统配置文件
      *
-     * @param plugin   主类
-     * @param dirName  文件夹完整路径
-     * @param fileName 文件名
-     * @return 文件的YamlConfiguration实例
+     * @param plugin 插件实例
+     * @param dirName 目录名称
+     * @param fileName 文件名称
+     * @return 配置对象
      */
     @Nonnull
-    static YamlConfiguration loadSystemConfig(Plugin plugin, String dirName, String fileName) {
-        String pluginName = plugin.getName();
-        String actualFileName = fileName.endsWith(".yml") ? fileName : fileName + ".yml";
-        File configFile = new File(dirName, actualFileName);
-
-        if (LangUtil.isInitialized()) {
-            LogUtil.debug(LangUtil.get("config.system-loaded", pluginName, configFile.getAbsolutePath()));
-        }
-
-        return YamlConfiguration.loadConfiguration(configFile);
+    static YamlConfiguration loadSystemConfig(Plugin plugin, String dirName, @Nonnull String fileName) {
+        return YamlConfiguration.loadConfiguration(new File(dirName, fileName.endsWith(".yml") ? fileName : fileName + ".yml"));
     }
 
     /**
-     * 保存配置文件到系统路径
+     * 保存系统配置文件
      *
-     * @param plugin   主类
-     * @param config   配置文件实例
-     * @param dirName  文件夹完整路径
+     * @param plugin 插件实例
+     * @param config 配置对象
+     * @param dirName 目录名称
      * @param fileName 文件名称
      */
-    static void saveSystemConfig(Plugin plugin, FileConfiguration config, String dirName, String fileName) {
-        String pluginName = plugin.getName();
-
+    static void saveSystemConfig(Plugin plugin, @Nonnull final FileConfiguration config, @Nonnull String dirName, @Nonnull String fileName) {
         try {
-            File dir = new File(dirName);
-            dir.mkdirs();
-
-            String actualFileName = fileName.endsWith(".yml") ? fileName : fileName + ".yml";
-            File file = new File(dir, actualFileName);
+            (new File(dirName)).mkdirs();
+            final File file = new File(dirName, fileName.endsWith(".yml") ? fileName : fileName + ".yml");
 
             try {
-                config.save(file);
-                if (LangUtil.isInitialized()) {
-                    LogUtil.debug(LangUtil.get("config.system-saved", pluginName, file.getAbsolutePath()));
+                try {
+                    config.save(file);
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
                 }
-            } catch (IOException e) {
-                if (LangUtil.isInitialized()) {
-                    LogUtil.debug(LangUtil.get("config.sync-save-fail", pluginName));
-                }
-                new BukkitRunnable() {
-                    @Override
+            } catch (Exception var7) {
+                (new BukkitRunnable() {
                     public void run() {
                         try {
                             config.save(file);
-                            if (LangUtil.isInitialized()) {
-                                LogUtil.debug(LangUtil.get("config.sync-save-success", pluginName, file.getName()));
-                            }
-                        } catch (IOException ex) {
-                            if (LangUtil.isInitialized()) {
-                                LogUtil.error(pluginName, LangUtil.get("config.sync-save-error"), ex);
-                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
-                }.runTask(plugin);
+                }).runTask(plugin);
             }
         } catch (Exception e) {
-            if (LangUtil.isInitialized()) {
-                LogUtil.error(pluginName, LangUtil.get("config.save-error"), e);
-            }
+            e.printStackTrace();
         }
     }
 
     /**
-     * 保存配置文件到插件数据文件夹
+     * 保存配置文件
+     * 跨平台修复：使用 File 构造函数
      *
-     * @param plugin   主类
-     * @param config   配置文件实例
-     * @param dirName  子目录名称
+     * @param plugin 插件实例
+     * @param config 配置对象
+     * @param dirName 目录名称
      * @param fileName 文件名称
      */
-    static void saveConfig(Plugin plugin, FileConfiguration config, String dirName, String fileName) {
-        String pluginName = plugin.getName();
-        boolean isYukiNoaAPI = "YukiNoaAPI".equals(pluginName);
-
+    static void saveConfig(@Nonnull Plugin plugin, @Nonnull FileConfiguration config, String dirName, @Nonnull String fileName) {
         try {
             File baseDir = getValidPluginDataFolder(plugin);
-            File dir = (dirName == null || dirName.isEmpty()) ? baseDir : new File(baseDir, dirName);
+            // 跨平台修复：使用 File 构造函数
+            File dir = new File(baseDir, dirName);
             dir.mkdirs();
-
-            String actualFileName = fileName.endsWith(".yml") ? fileName : fileName + ".yml";
-            File file = new File(dir, actualFileName);
+            File file = new File(dir, fileName.endsWith(".yml") ? fileName : fileName + ".yml");
 
             try {
                 config.save(file);
-
-                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                    LogUtil.debug(LangUtil.get("config.saved", pluginName, file.getName()));
+                if (Main.config.getBoolean("Logging.VerboseConfigLogs", false)) {
+                    Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §a成功保存配置文件: " + file.getAbsolutePath());
                 }
-
-            } catch (IOException e) {
-                if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                    LogUtil.error(pluginName, LangUtil.get("config.save-io-error"), e);
-                }
+            } catch (IOException ioException) {
+                Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c保存配置文件时发生错误: " + ioException.getMessage());
             }
         } catch (Exception e) {
-            if (!isYukiNoaAPI && LangUtil.isInitialized()) {
-                LogUtil.error(pluginName, LangUtil.get("config.save-error"), e);
-            }
+            Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c保存配置文件时发生未知错误: " + e.getMessage());
         }
-    }
-
-    /**
-     * 异步保存配置文件
-     *
-     * @param plugin   主类
-     * @param config   配置文件实例
-     * @param dirName  子目录名称
-     * @param fileName 文件名称
-     */
-    static void saveConfigAsync(Plugin plugin, FileConfiguration config, String dirName, String fileName) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                saveConfig(plugin, config, dirName, fileName);
-            }
-        }.runTaskAsynchronously(plugin);
     }
 }

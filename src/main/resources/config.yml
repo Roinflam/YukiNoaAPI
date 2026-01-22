@@ -1,146 +1,142 @@
-# ==================== 语言设置 / Language Settings ====================
-# 设置插件显示语言
-# 可选值: zh_cn(简体中文), en_us(English)
-# 语言文件位于 plugins/YukiNoaAPI/lang/ 目录下
-# 你可以自定义语言文件或修改现有语言文件
-# ---
-# Set plugin display language
-# Available: zh_cn(Simplified Chinese), en_us(English)
-# Language files are located in plugins/YukiNoaAPI/lang/
-# You can customize or modify existing language files
-Language: zh_cn
+# ========================================
+# Configuration file version - DO NOT MODIFY!
+# Config files will only be overwritten when the MAJOR version number (first digit) changes
+# ----------------------------------------
+# 配置文件版本号 - 请勿修改！
+# 只有当主版本号（第一个数字）发生变化时，插件才会自动覆盖所有配置文件
+# ========================================
+ConfigVersion: '3.0.0'
 
-# ==================== 日志设置 / Logging Settings ====================
+# ========================================
+# Language Settings
+# 语言设置
+# ========================================
+
+# Available options:
+#   default  - Auto-detect system language (recommended)
+#   zh_cn    - Simplified Chinese (简体中文)
+#   en_us    - English
+# ----------------------------------------
+# 可选值:
+#   default  - 自动检测系统语言（推荐）
+#   zh_cn    - 简体中文
+#   en_us    - English
+Language: default
+
+# ========================================
+# Logging Settings
+# 日志设置
+# ========================================
 Logging:
-  # 调试模式（整合所有详细日志）
-  # 开启后会在控制台输出：
-  # - NMS反射初始化的详细过程（每个类、方法、字段是否找到）
-  # - 配置文件操作的详细日志（创建、加载、保存）
-  # - 插件数据目录使用情况
-  # - 其他调试信息
-  # 建议仅在出现问题时开启，正常使用请保持关闭
-  # ---
-  # Debug mode (consolidates all verbose logging)
-  # When enabled, outputs:
-  # - Detailed NMS reflection initialization (each class/method/field status)
-  # - Detailed config operations (create/load/save)
-  # - Plugin data directory usage
-  # - Other debug information
-  # Recommended to enable only when troubleshooting
+  # Enable debug mode
+  # Shows detailed logs for NMS reflection, config operations, etc.
+  # Recommended only for troubleshooting
+  # ----------------------------------------
+  # 启用调试模式
+  # 显示 NMS 反射、配置操作等详细日志
+  # 建议仅在故障排查时开启
   Debug: false
 
-  # 异常堆栈打印
-  # 开启后发生错误时会打印完整的异常堆栈信息
-  # 关闭则只显示简要错误信息
-  # ---
-  # Exception stack trace printing
-  # When enabled, full stack trace will be printed on errors
-  # When disabled, only brief error messages will be shown
+  # Print full exception stack traces
+  # When disabled, only shows brief error messages
+  # ----------------------------------------
+  # 打印完整异常堆栈
+  # 关闭时仅显示简要错误信息
   PrintStackTrace: true
 
-# ==================== 物品序列化 / Item Serialization ====================
-# ProtocolLib物品序列化
-# 使用ProtocolLib库来序列化物品，可以解决某些特殊情况下的问题：
-# - 特殊字符被序列化为 ? 的问题
-# - 1.7版本无法正常序列化物品的问题
-# 警告：修改此选项后，之前所有使用物品序列化功能的插件数据都需要重新配置！
-# 如果你从未使用过相关功能，可以放心修改
-# ---
-# ProtocolLib item serialization
-# Uses ProtocolLib to serialize items, solving issues like:
-# - Special characters being serialized as ?
-# - Items cannot be serialized properly in 1.7
-# WARNING: Changing this will require reconfiguring all plugins using item serialization!
-# Safe to change if you've never used related features
+# ========================================
+# Item Serialization
+# 物品序列化
+# ========================================
+
+# Use ProtocolLib for item serialization
+# Fixes issues with special characters and 1.7 compatibility
+# WARNING: Changing this requires reconfiguring all plugins using item serialization!
+# ----------------------------------------
+# 使用 ProtocolLib 进行物品序列化
+# 修复特殊字符问题和 1.7 版本兼容性
+# 警告：修改此项需要重新配置所有使用物品序列化的插件！
 ProtocolLibItem: true
 
-# ==================== 数据目录 / Data Directory ====================
-# 自定义数据目录
-# 允许将依赖本API的插件数据存储到指定位置
-#
-# 工作原理：
-# - 如果此项为空：插件使用默认的 plugins/插件名 目录
-# - 如果设置了路径：插件使用 指定路径/插件名 作为数据目录
-#
-# 示例：
-# - 设置为 'D:\ServerData' 后，插件数据将存储在 D:\ServerData\插件名 目录
-# - 设置为 '/home/minecraft/data' 后，插件数据将存储在 /home/minecraft/data/插件名 目录
-#
-# 注意：此设置不适用于 YukiNoaAPI 本身，YukiNoaAPI 始终使用 plugins/YukiNoaAPI 目录
-# ---
-# Custom data directory
-# Allows plugins depending on this API to store data in a specified location
-#
-# How it works:
-# - If empty: plugins use default plugins/PluginName directory
-# - If set: plugins use SpecifiedPath/PluginName as data directory
+# ========================================
+# Data Directory
+# 数据目录
+# ========================================
+
+# Custom data directory for plugins depending on this API
+# If empty, plugins use default plugins/PluginName directory
+# If set, plugins use SpecifiedPath/PluginName as data directory
 #
 # Examples:
-# - Set to 'D:\ServerData': plugin data stored in D:\ServerData\PluginName
-# - Set to '/home/minecraft/data': plugin data stored in /home/minecraft/data/PluginName
+#   'D:\ServerData' -> D:\ServerData\PluginName
+#   '/home/minecraft/data' -> /home/minecraft/data/PluginName
 #
-# Note: This does not apply to YukiNoaAPI itself, which always uses plugins/YukiNoaAPI
+# Note: Does not apply to YukiNoaAPI itself
+# ----------------------------------------
+# 依赖此 API 的插件的自定义数据目录
+# 留空则使用默认的 plugins/插件名 目录
+# 设置后使用 指定路径/插件名 作为数据目录
+#
+# 示例：
+#   'D:\ServerData' -> D:\ServerData\插件名
+#   '/home/minecraft/data' -> /home/minecraft/data/插件名
+#
+# 注意：不适用于 YukiNoaAPI 本身
 CustomDataDirectory: ''
 
-# ==================== 数据库设置 / Database Settings ====================
+# ========================================
+# Database Settings
+# 数据库设置
+# ========================================
 Database:
   MySQL:
-    # MySQL连接参数
-    # 用于自定义数据库连接字符串的参数部分
-    # 留空则使用默认配置：useSSL=false&autoReconnect=true&characterEncoding=UTF-8
-    #
-    # 常用参数说明：
-    # - useSSL=false          禁用SSL连接（本地数据库建议关闭）
-    # - autoReconnect=true    自动重连（连接断开时自动恢复）
-    # - characterEncoding=UTF-8  字符编码（支持中文等特殊字符）
-    # - serverTimezone=UTC    服务器时区（某些驱动版本需要）
-    # - allowPublicKeyRetrieval=true  允许公钥检索（MySQL 8.0+可能需要）
-    #
-    # 示例：useSSL=false&autoReconnect=true&serverTimezone=Asia/Shanghai
-    # ---
     # MySQL connection parameters
-    # Used to customize the parameter part of database connection string
-    # If empty, defaults to: useSSL=false&autoReconnect=true&characterEncoding=UTF-8
+    # If empty, defaults to: useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8
     #
     # Common parameters:
-    # - useSSL=false          Disable SSL (recommended for local databases)
-    # - autoReconnect=true    Auto reconnect on connection loss
-    # - characterEncoding=UTF-8  Character encoding (for special characters)
-    # - serverTimezone=UTC    Server timezone (required by some driver versions)
-    # - allowPublicKeyRetrieval=true  Allow public key retrieval (may be needed for MySQL 8.0+)
+    #   useSSL=false - Disable SSL (recommended for local databases)
+    #   autoReconnect=true - Auto reconnect on connection loss
+    #   characterEncoding=UTF-8 - Character encoding
+    #   serverTimezone=UTC - Server timezone
+    #   allowPublicKeyRetrieval=true - Allow public key retrieval (MySQL 8.0+)
+    # ----------------------------------------
+    # MySQL 连接参数
+    # 留空则使用默认：useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8
     #
-    # Example: useSSL=false&autoReconnect=true&serverTimezone=Asia/Shanghai
+    # 常用参数：
+    #   useSSL=false - 禁用 SSL（本地数据库建议）
+    #   autoReconnect=true - 自动重连
+    #   characterEncoding=UTF-8 - 字符编码
+    #   serverTimezone=UTC - 服务器时区
+    #   allowPublicKeyRetrieval=true - 允许公钥检索（MySQL 8.0+）
     Parameters: ''
 
-# ==================== 头颅设置 / Skull Settings ====================
+# ========================================
+# Skull Settings
+# 头颅设置
+# ========================================
 Skull:
-  # 头颅预加载
-  # 开启后玩家进入服务器时会异步预加载头颅纹理到缓存
-  # 这样在获取玩家头颅时不会因为网络请求而卡住主线程
-  # 适合大量使用玩家头颅的服务器（如菜单、排行榜等）
-  # ---
-  # Skull preloading
-  # When enabled, player skull textures are preloaded asynchronously on join
-  # This prevents main thread lag when getting player skulls
-  # Recommended for servers that use player skulls frequently (menus, leaderboards, etc.)
+  # Preload player skulls on join
+  # Prevents main thread lag when getting player skulls
+  # Recommended for servers using player skulls frequently
+  # ----------------------------------------
+  # 玩家进服时预加载头颅
+  # 防止获取头颅时主线程卡顿
+  # 推荐频繁使用玩家头颅的服务器开启
   Preload: false
 
-  # 退出清除缓存
-  # 开启后玩家退出服务器时会从缓存中移除该玩家的头颅
-  # 开启：节省内存，但下次进服需要重新加载
-  # 关闭：保留缓存，适合玩家频繁进出的服务器
-  # ---
-  # Clear cache on quit
-  # When enabled, player skull cache is cleared when they leave
-  # Enabled: Saves memory, but requires reload on next join
-  # Disabled: Keeps cache, better for servers with frequent joins/quits
+  # Clear skull cache when player quits
+  # Enabled: Saves memory, requires reload on next join
+  # Disabled: Keeps cache, better for frequent joins/quits
+  # ----------------------------------------
+  # 玩家退出时清除头颅缓存
+  # 启用：节省内存，下次进服需重新加载
+  # 禁用：保留缓存，适合频繁进出的服务器
   ClearOnQuit: false
 
-  # 预加载延迟（tick，20 tick = 1秒）
-  # 玩家进入服务器后延迟多少tick再预加载头颅
-  # 延迟加载可以避免进服瞬间服务器压力过大
-  # ---
-  # Preload delay (ticks, 20 ticks = 1 second)
-  # How many ticks to wait after player joins before preloading skull
-  # Delayed loading helps avoid server stress during player login
+  # Delay before preloading skull (ticks, 20 ticks = 1 second)
+  # Helps avoid server stress during player login
+  # ----------------------------------------
+  # 预加载头颅前的延迟（tick，20 tick = 1 秒）
+  # 避免玩家登录时服务器压力过大
   PreloadDelay: 20

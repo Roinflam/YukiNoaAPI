@@ -9,62 +9,37 @@ import javax.annotation.Nullable;
 
 /**
  * 日志管理工具类
- * 提供统一的日志输出接口，支持调试模式控制
- * 使用缓存机制优化性能，避免频繁获取控制台发送者
+ * 提供统一的日志输出接口,支持调试模式控制
+ *
+ * @author tany
+ * @since 3.0.0
  */
 public final class LogUtil {
 
-    /**
-     * 插件名称前缀 - 使用灰白配色
-     */
-    private static final String PREFIX = "§8[§fYukiNoaAPI§8]";
-
-    /**
-     * 调试模式前缀 - 使用蓝色高亮
-     */
-    private static final String DEBUG_PREFIX = "§8[§bDebug§8]";
-
-    /**
-     * 缓存的控制台发送者实例
-     * 使用 volatile 保证多线程可见性
-     */
+    /** 缓存的控制台发送者 */
     private static volatile ConsoleCommandSender cachedConsoleSender;
 
-    /**
-     * 调试模式状态缓存
-     * 避免每次都读取配置文件
-     */
+    /** 调试模式缓存 */
     private static volatile Boolean cachedDebugEnabled;
 
-    /**
-     * 堆栈打印状态缓存
-     */
+    /** 堆栈打印缓存 */
     private static volatile Boolean cachedPrintStackTrace;
 
-    /**
-     * 缓存失效时间戳
-     * 每隔一段时间刷新缓存，确保配置变更生效
-     */
+    /** 缓存失效时间 */
     private static volatile long cacheExpireTime = 0;
 
-    /**
-     * 缓存有效期（毫秒）
-     * 5秒后缓存失效，重新读取配置
-     */
+    /** 缓存有效期（毫秒） */
     private static final long CACHE_DURATION = 5000L;
 
     /**
-     * 私有构造函数，防止实例化
+     * 私有构造函数
      */
     private LogUtil() {
         throw new UnsupportedOperationException("工具类不允许实例化");
     }
 
     /**
-     * 获取控制台发送者（带缓存）
-     * 使用双重检查锁定模式确保线程安全
-     *
-     * @return 控制台发送者实例
+     * 获取控制台发送者
      */
     @Nonnull
     private static ConsoleCommandSender getConsoleSender() {
@@ -82,8 +57,27 @@ public final class LogUtil {
     }
 
     /**
-     * 检查并刷新配置缓存
-     * 当缓存过期时重新读取配置文件
+     * 获取语言文本
+     *
+     * @param key  语言键
+     * @param args 参数
+     * @return 语言文本
+     */
+    @Nonnull
+    private static String getLang(@Nonnull String key, Object... args) {
+        if (Main.plugin == null || ((Main) Main.plugin).getLanguageManager() == null) {
+            return key;
+        }
+
+        if (args == null || args.length == 0) {
+            return ((Main) Main.plugin).getLanguageManager().getMessage(key);
+        } else {
+            return ((Main) Main.plugin).getLanguageManager().getMessage(key, key, String.valueOf(args[0]));
+        }
+    }
+
+    /**
+     * 刷新缓存
      */
     private static void refreshCacheIfNeeded() {
         long now = System.currentTimeMillis();
@@ -100,7 +94,6 @@ public final class LogUtil {
 
     /**
      * 强制刷新缓存
-     * 在配置重载后调用此方法
      */
     public static void invalidateCache() {
         synchronized (LogUtil.class) {
@@ -111,9 +104,7 @@ public final class LogUtil {
     }
 
     /**
-     * 检查调试模式是否开启（带缓存）
-     *
-     * @return 如果调试模式开启返回true，否则返回false
+     * 检查调试模式是否开启
      */
     public static boolean isDebugEnabled() {
         refreshCacheIfNeeded();
@@ -129,21 +120,19 @@ public final class LogUtil {
                 return cached;
             }
 
-            if (Main.config == null) {
+            if (Main.plugin == null || ((Main) Main.plugin).getConfigManager() == null) {
                 cachedDebugEnabled = false;
                 return false;
             }
 
-            cached = Main.config.getBoolean("Logging.Debug", false);
+            cached = ((Main) Main.plugin).getConfigManager().isDebugEnabled();
             cachedDebugEnabled = cached;
             return cached;
         }
     }
 
     /**
-     * 检查是否打印异常堆栈（带缓存）
-     *
-     * @return 如果需要打印堆栈返回true，否则返回false
+     * 检查是否打印堆栈
      */
     public static boolean isPrintStackTraceEnabled() {
         refreshCacheIfNeeded();
@@ -159,195 +148,73 @@ public final class LogUtil {
                 return cached;
             }
 
-            if (Main.config == null) {
+            if (Main.plugin == null || ((Main) Main.plugin).getConfigManager() == null) {
                 cachedPrintStackTrace = true;
                 return true;
             }
 
-            cached = Main.config.getBoolean("Logging.PrintStackTrace", true);
+            cached = ((Main) Main.plugin).getConfigManager().isPrintStackTrace();
             cachedPrintStackTrace = cached;
             return cached;
         }
     }
 
     /**
-     * 输出信息级别日志
-     *
-     * @param message 日志消息
+     * 输出信息日志
      */
     public static void info(@Nonnull String message) {
-        getConsoleSender().sendMessage(PREFIX + "§7 " + message);
+        getConsoleSender().sendMessage(getLang("common.prefix") + "§7" + message);
     }
 
     /**
-     * 输出信息级别日志（带插件名称）
-     *
-     * @param pluginName 插件名称
-     * @param message    日志消息
-     */
-    public static void info(@Nonnull String pluginName, @Nonnull String message) {
-        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]§7 " + message);
-    }
-
-    /**
-     * 输出调试级别日志
-     * 仅在配置文件中 Logging.Debug 为 true 时才会输出
-     *
-     * @param message 日志消息
+     * 输出调试日志
      */
     public static void debug(@Nonnull String message) {
         if (isDebugEnabled()) {
-            getConsoleSender().sendMessage(PREFIX + DEBUG_PREFIX + "§7 " + message);
+            getConsoleSender().sendMessage(getLang("common.prefix") + "§8[§bDebug§8] §7" + message);
         }
     }
 
     /**
-     * 输出调试级别日志（带插件名称）
-     * 仅在配置文件中 Logging.Debug 为 true 时才会输出
-     *
-     * @param pluginName 插件名称
-     * @param message    日志消息
-     */
-    public static void debug(@Nonnull String pluginName, @Nonnull String message) {
-        if (isDebugEnabled()) {
-            getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]" + DEBUG_PREFIX + "§7 " + message);
-        }
-    }
-
-    /**
-     * 输出警告级别日志
-     *
-     * @param message 日志消息
+     * 输出警告日志
      */
     public static void warning(@Nonnull String message) {
-        getConsoleSender().sendMessage(PREFIX + "§e " + message);
+        getConsoleSender().sendMessage(getLang("common.prefix") + "§e" + message);
     }
 
     /**
-     * 输出警告级别日志（带插件名称）
-     *
-     * @param pluginName 插件名称
-     * @param message    日志消息
-     */
-    public static void warning(@Nonnull String pluginName, @Nonnull String message) {
-        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]§e " + message);
-    }
-
-    /**
-     * 输出错误级别日志
-     *
-     * @param message 日志消息
+     * 输出错误日志
      */
     public static void error(@Nonnull String message) {
-        getConsoleSender().sendMessage(PREFIX + "§c " + message);
+        getConsoleSender().sendMessage(getLang("common.prefix") + "§c" + message);
     }
 
     /**
-     * 输出错误级别日志（带插件名称）
-     *
-     * @param pluginName 插件名称
-     * @param message    日志消息
-     */
-    public static void error(@Nonnull String pluginName, @Nonnull String message) {
-        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]§c " + message);
-    }
-
-    /**
-     * 输出错误级别日志（带异常信息）
-     * 根据配置决定是否打印完整堆栈
-     *
-     * @param message   日志消息
-     * @param throwable 异常对象
+     * 输出错误日志（带异常）
      */
     public static void error(@Nonnull String message, @Nullable Throwable throwable) {
         ConsoleCommandSender sender = getConsoleSender();
-        sender.sendMessage(PREFIX + "§c " + message);
+        sender.sendMessage(getLang("common.prefix") + "§c" + message);
 
         if (throwable != null) {
             if (isPrintStackTraceEnabled()) {
                 throwable.printStackTrace();
             } else {
-                sender.sendMessage(PREFIX + "§c 错误类型: " + throwable.getClass().getSimpleName());
+                sender.sendMessage(getLang("common.prefix") + "§c" +
+                        getLang("error.type", throwable.getClass().getSimpleName()));
                 String errorMsg = throwable.getMessage();
                 if (errorMsg != null) {
-                    sender.sendMessage(PREFIX + "§c 错误信息: " + errorMsg);
+                    sender.sendMessage(getLang("common.prefix") + "§c" +
+                            getLang("error.message", errorMsg));
                 }
             }
         }
     }
 
     /**
-     * 输出错误级别日志（带插件名称和异常信息）
-     * 根据配置决定是否打印完整堆栈
-     *
-     * @param pluginName 插件名称
-     * @param message    日志消息
-     * @param throwable  异常对象
-     */
-    public static void error(@Nonnull String pluginName, @Nonnull String message, @Nullable Throwable throwable) {
-        String prefix = "§8[§f" + pluginName + "§8]§c ";
-        ConsoleCommandSender sender = getConsoleSender();
-        sender.sendMessage(prefix + message);
-
-        if (throwable != null) {
-            if (isPrintStackTraceEnabled()) {
-                throwable.printStackTrace();
-            } else {
-                sender.sendMessage(prefix + "错误类型: " + throwable.getClass().getSimpleName());
-                String errorMsg = throwable.getMessage();
-                if (errorMsg != null) {
-                    sender.sendMessage(prefix + "错误信息: " + errorMsg);
-                }
-            }
-        }
-    }
-
-    /**
-     * 输出成功级别日志（蓝色高亮）
-     *
-     * @param message 日志消息
+     * 输出成功日志
      */
     public static void success(@Nonnull String message) {
-        getConsoleSender().sendMessage(PREFIX + "§b " + message);
-    }
-
-    /**
-     * 输出成功级别日志（带插件名称）
-     *
-     * @param pluginName 插件名称
-     * @param message    日志消息
-     */
-    public static void success(@Nonnull String pluginName, @Nonnull String message) {
-        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]§b " + message);
-    }
-
-    /**
-     * 输出原始消息（不带任何前缀）
-     *
-     * @param message 日志消息
-     */
-    public static void raw(@Nonnull String message) {
-        getConsoleSender().sendMessage(message);
-    }
-
-    /**
-     * 输出带自定义颜色的日志
-     *
-     * @param colorCode 颜色代码（如 "§6" 表示金色）
-     * @param message   日志消息
-     */
-    public static void colored(@Nonnull String colorCode, @Nonnull String message) {
-        getConsoleSender().sendMessage(PREFIX + colorCode + " " + message);
-    }
-
-    /**
-     * 输出带自定义颜色的日志（带插件名称）
-     *
-     * @param pluginName 插件名称
-     * @param colorCode  颜色代码（如 "§6" 表示金色）
-     * @param message    日志消息
-     */
-    public static void colored(@Nonnull String pluginName, @Nonnull String colorCode, @Nonnull String message) {
-        getConsoleSender().sendMessage("§8[§f" + pluginName + "§8]" + colorCode + " " + message);
+        getConsoleSender().sendMessage(getLang("common.prefix") + "§b" + message);
     }
 }

@@ -7,8 +7,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import pers.tany.yukinoaapi.Main;
+import pers.tany.yukinoaapi.config.LanguageManager;
 import pers.tany.yukinoaapi.interfacepart.player.IMessage;
-import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 import pers.tany.yukinoaapi.util.NMSUtil;
 
@@ -18,7 +18,7 @@ import java.util.*;
  * Debug命令处理类
  *
  * @author tany
- * @since 1.0.0
+ * @since 3.0.0
  */
 public class DebugCommands implements CommandExecutor, TabCompleter {
 
@@ -29,8 +29,10 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        LanguageManager lang = ((Main) Main.plugin).getLanguageManager();
+
         if (args.length == 0) {
-            sendHelp(sender);
+            sendHelp(sender, lang);
             return true;
         }
 
@@ -38,17 +40,17 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
 
         switch (subCommand) {
             case "debug":
-                handleDebugCommand(sender);
+                handleDebugCommand(sender, lang);
                 break;
             case "classes":
-                handleClassesCommand(sender);
+                handleClassesCommand(sender, lang);
                 break;
             case "reload":
-                handleReloadCommand(sender);
+                handleReloadCommand(sender, lang);
                 break;
             case "help":
             default:
-                sendHelp(sender);
+                sendHelp(sender, lang);
                 break;
         }
 
@@ -59,22 +61,25 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
      * 处理 debug 子命令
      *
      * @param sender 命令发送者
+     * @param lang   语言管理器
      */
-    private void handleDebugCommand(CommandSender sender) {
+    private void handleDebugCommand(CommandSender sender, LanguageManager lang) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(LangUtil.get("common.player-only"));
+            sender.sendMessage(lang.getMessage("common.player-only"));
             return;
         }
 
         Player player = (Player) sender;
         String playerName = player.getName();
+
         IMessage.sendActionBar(player, "§6666", 5);
+
         if (DEBUG.contains(playerName)) {
             DEBUG.remove(playerName);
-            player.sendMessage(LangUtil.get("debug.disabled"));
+            player.sendMessage(lang.getMessage("debug.disabled"));
         } else {
             DEBUG.add(playerName);
-            player.sendMessage(LangUtil.get("debug.enabled"));
+            player.sendMessage(lang.getMessage("debug.enabled"));
         }
     }
 
@@ -82,10 +87,11 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
      * 处理 classes 子命令
      *
      * @param sender 命令发送者
+     * @param lang   语言管理器
      */
-    private void handleClassesCommand(CommandSender sender) {
-        sender.sendMessage(LangUtil.get("debug.scanning"));
-        LogUtil.info(LangUtil.get("main.scan-start"));
+    private void handleClassesCommand(CommandSender sender, LanguageManager lang) {
+        sender.sendMessage(lang.getMessage("debug.scanning"));
+        LogUtil.info(lang.getMessage("main.scan-start"));
 
         String[] basePaths = {
                 "net.minecraft",
@@ -97,23 +103,23 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
 
         for (String basePath : basePaths) {
             try {
-                LogUtil.info(LangUtil.get("main.scan-package", basePath));
+                LogUtil.info(lang.getMessage("main.scan-package", basePath));
                 ClassLoader classLoader = NMSUtil.class.getClassLoader();
                 ClassPath classPath = ClassPath.from(classLoader);
 
                 for (ClassPath.ClassInfo classInfo : classPath.getTopLevelClasses()) {
                     if (classInfo.getName().startsWith(basePath)) {
                         try {
-                            LogUtil.debug(LangUtil.get("main.class-found", classInfo.getName()));
+                            LogUtil.debug(lang.getMessage("main.class-found", classInfo.getName()));
                             Class.forName(classInfo.getName());
-                            LogUtil.debug(LangUtil.get("main.class-load-success"));
+                            LogUtil.debug(lang.getMessage("main.class-load-success"));
                         } catch (Throwable e) {
-                            LogUtil.debug(LangUtil.get("main.class-load-fail", e.getMessage()));
+                            LogUtil.debug(lang.getMessage("main.class-load-fail", e.getMessage()));
                         }
                     }
                 }
             } catch (Exception e) {
-                LogUtil.error(LangUtil.get("main.scan-error", basePath), e);
+                LogUtil.error(lang.getMessage("main.scan-error", basePath), e);
             }
         }
     }
@@ -122,13 +128,15 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
      * 处理 reload 子命令
      *
      * @param sender 命令发送者
+     * @param lang   语言管理器
      */
-    private void handleReloadCommand(CommandSender sender) {
+    private void handleReloadCommand(CommandSender sender, LanguageManager lang) {
         try {
             Main.reload();
-            sender.sendMessage(LangUtil.get("common.reload-success"));
+            sender.sendMessage(lang.getMessage("common.reload-success"));
         } catch (Exception e) {
-            sender.sendMessage(LangUtil.get("common.reload-fail"));
+            sender.sendMessage(lang.getMessage("common.reload-fail"));
+            LogUtil.error(lang.getMessage("common.reload-fail"), e);
         }
     }
 
@@ -136,13 +144,14 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
      * 发送帮助信息
      *
      * @param sender 命令发送者
+     * @param lang   语言管理器
      */
-    private void sendHelp(CommandSender sender) {
-        sender.sendMessage(LangUtil.get("debug.help-title"));
-        sender.sendMessage(LangUtil.get("debug.help-debug"));
-        sender.sendMessage(LangUtil.get("debug.help-classes"));
-        sender.sendMessage(LangUtil.get("debug.help-reload"));
-        sender.sendMessage(LangUtil.get("debug.help-footer"));
+    private void sendHelp(CommandSender sender, LanguageManager lang) {
+        sender.sendMessage(lang.getMessage("debug.help-title"));
+        sender.sendMessage(lang.getMessage("debug.help-debug"));
+        sender.sendMessage(lang.getMessage("debug.help-classes"));
+        sender.sendMessage(lang.getMessage("debug.help-reload"));
+        sender.sendMessage(lang.getMessage("debug.help-footer"));
     }
 
     @Override

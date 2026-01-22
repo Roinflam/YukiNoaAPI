@@ -11,7 +11,7 @@ import java.lang.reflect.Method;
  */
 public interface IServerState {
     /**
-     * 获取服务器当前MS(不是网络延迟)
+     * 获取服务器当前MSPT
      *
      * @return 服务器当前延迟
      */

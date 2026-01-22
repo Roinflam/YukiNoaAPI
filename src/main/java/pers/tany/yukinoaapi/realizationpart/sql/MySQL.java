@@ -4,7 +4,6 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.interfacepart.sql.ISql;
-import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.annotation.Nullable;
@@ -73,6 +72,25 @@ public class MySQL implements ISql {
     }
 
     /**
+     * 获取语言文本（辅助方法）
+     *
+     * @param key  语言键
+     * @param args 参数
+     * @return 语言文本
+     */
+    private static String getLang(String key, Object... args) {
+        if (Main.plugin == null || ((Main) Main.plugin).getLanguageManager() == null) {
+            return key;
+        }
+
+        if (args == null || args.length == 0) {
+            return ((Main) Main.plugin).getLanguageManager().getMessage(key);
+        } else {
+            return ((Main) Main.plugin).getLanguageManager().getMessage(key, key, String.valueOf(args[0]));
+        }
+    }
+
+    /**
      * 初始化HikariCP连接池
      */
     private void initDataSource() {
@@ -101,9 +119,9 @@ public class MySQL implements ISql {
 
             dataSource = new HikariDataSource(config);
 
-            LogUtil.success(LangUtil.get("database.mysql-connect-success", databaseName));
+            LogUtil.success(getLang("database.mysql-connect-success", databaseName));
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("database.mysql-connect-fail"), e);
+            LogUtil.error(getLang("database.mysql-connect-fail"), e);
         }
     }
 
@@ -113,11 +131,11 @@ public class MySQL implements ISql {
     private void ensureConnection() {
         try {
             if (dataSource == null || dataSource.isClosed()) {
-                LogUtil.warning(LangUtil.get("database.mysql-reconnecting"));
+                LogUtil.warning(getLang("database.mysql-reconnecting"));
                 initDataSource();
             }
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("database.mysql-check-fail"), e);
+            LogUtil.error(getLang("database.mysql-check-fail"), e);
         }
     }
 
@@ -127,7 +145,7 @@ public class MySQL implements ISql {
         try {
             return dataSource.getConnection();
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.mysql-connect-fail"), e);
+            LogUtil.error(getLang("database.mysql-connect-fail"), e);
             return null;
         }
     }
@@ -135,13 +153,13 @@ public class MySQL implements ISql {
     @Override
     public void doCommand(String statement) {
         ensureConnection();
-        LogUtil.debug(LangUtil.get("database.sql-execute", statement));
+        LogUtil.debug(getLang("database.sql-execute", statement));
 
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(statement);
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sql-execute-fail", statement), e);
+            LogUtil.error(getLang("database.sql-execute-fail", statement), e);
         }
     }
 
@@ -149,14 +167,14 @@ public class MySQL implements ISql {
     @Nullable
     public ResultSet selectTable(String statement) {
         ensureConnection();
-        LogUtil.debug(LangUtil.get("database.sql-query", statement));
+        LogUtil.debug(getLang("database.sql-query", statement));
 
         try {
             Connection conn = dataSource.getConnection();
             Statement stmt = conn.createStatement();
             return stmt.executeQuery(statement);
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sql-query-fail", statement), e);
+            LogUtil.error(getLang("database.sql-query-fail", statement), e);
             return null;
         }
     }
@@ -170,7 +188,7 @@ public class MySQL implements ISql {
      */
     public int doCommand(String sql, Object... params) {
         ensureConnection();
-        LogUtil.debug(LangUtil.get("database.sql-execute", sql));
+        LogUtil.debug(getLang("database.sql-execute", sql));
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -181,7 +199,7 @@ public class MySQL implements ISql {
 
             return ps.executeUpdate();
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sql-param-execute-fail", sql), e);
+            LogUtil.error(getLang("database.sql-param-execute-fail", sql), e);
             return -1;
         }
     }
@@ -196,7 +214,7 @@ public class MySQL implements ISql {
     @Nullable
     public ResultSet selectTable(String sql, Object... params) {
         ensureConnection();
-        LogUtil.debug(LangUtil.get("database.sql-query", sql));
+        LogUtil.debug(getLang("database.sql-query", sql));
 
         try {
             Connection conn = dataSource.getConnection();
@@ -208,7 +226,7 @@ public class MySQL implements ISql {
 
             return ps.executeQuery();
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sql-param-query-fail", sql), e);
+            LogUtil.error(getLang("database.sql-param-query-fail", sql), e);
             return null;
         }
     }
@@ -234,7 +252,7 @@ public class MySQL implements ISql {
                 }
             }
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.mysql-table-check-fail", tableName), e);
+            LogUtil.error(getLang("database.mysql-table-check-fail", tableName), e);
         }
 
         return false;
@@ -243,14 +261,14 @@ public class MySQL implements ISql {
     @Override
     public void clearTable(String table) {
         doCommand("TRUNCATE TABLE " + table);
-        LogUtil.debug(LangUtil.get("database.table-cleared", table));
+        LogUtil.debug(getLang("database.table-cleared", table));
     }
 
     @Override
     public void close() {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
-            LogUtil.info(LangUtil.get("database.mysql-closed", databaseName));
+            LogUtil.info(getLang("database.mysql-closed", databaseName));
         }
     }
 

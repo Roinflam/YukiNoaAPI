@@ -1,21 +1,29 @@
 # YukiNoaAPI 简体中文语言文件
-# 科技风格配色：§8深灰 §7灰色 §f白色 §b青色 §3深青
-# 占位符说明: {0}, {1}, {2}... 会被替换为实际内容
+# 版本: 3.0.0
 
 # ==================== 通用消息 ====================
 common:
-  prefix: "§8[§b§YukiNoaAPI§8] §7"
+  prefix: "§8[§fYukiNoaAPI§8] "
+  on: "开启"
+  off: "关闭"
+  enabled: "启用"
+  disabled: "禁用"
   no-permission: "§c✘ §7权限不足"
   player-only: "§c✘ §7仅限玩家执行"
   unknown-command: "§c✘ §7未知指令 §8| §7使用 §b/yn help §7查看帮助"
   reload-success: "§b✔ §7配置重载完成"
   reload-fail: "§c✘ §7配置重载失败"
 
+# ==================== 错误信息 ====================
+error:
+  type: "错误类型: {0}"
+  message: "错误信息: {0}"
+
 # ==================== 主类日志 ====================
 main:
   enabled: "§b▸ §f系统已启动"
   disabled: "§8▸ §7系统已关闭"
-  debug-enabled: "§b▸ §7调试模式 §b[ON]"
+  debug-mode: "§b▸ §7调试模式 §8[§b{0}§8]"
   server-version: "§8▸ §7核心版本 §f{0}"
   current-language: "§8▸ §7语言配置 §f{0}"
   nms-init-success: "§b▸ §7NMS反射初始化成功"
@@ -28,6 +36,10 @@ main:
   class-load-success: "§b    ✔ §7加载成功"
   class-load-fail: "§c    ✘ §7加载失败 §8| §c{0}"
   scan-error: "§c▸ §7扫描异常 §8| §f{0}"
+
+# ==================== 配置管理 ====================
+config:
+  invalid-skull-delay: "头颅预加载延迟配置无效，已调整为 §f1"
 
 # ==================== Debug命令 ====================
 debug:
@@ -54,27 +66,30 @@ nms:
   version-exception: "§c▸ §7版本检测异常，使用默认 §f{0}"
   init-success: "§b▸ §7NMS 反射初始化完成"
   init-fail: "§c▸ §7NMS 反射初始化失败"
-
-  # 模块初始化
   module-init-start: "§8▸ §7初始化模块 §f{0} §8..."
   module-init-complete: "§b▸ §7模块 §f{0} §7初始化完成"
   module-init-fail: "§c▸ §7模块 §f{0} §7初始化失败 §8| §c{1}"
-
-  # 类加载
   class-found: "§8  ✔ §7类 §f{0} §8➜ §7{1}"
   class-not-found: "§c  ✘ §7类 §f{0} §7未找到"
-
-  # 方法查找
   method-found: "§8  ✔ §7方法 §f{0}"
   method-not-found: "§c  ✘ §7方法 §f{0} §7未找到"
-
-  # 字段查找
   field-found: "§8  ✔ §7字段 §f{0}"
   field-not-found: "§c  ✘ §7字段 §f{0} §7未找到"
-
-  # 方法可访问性
   methods-accessible: "§8▸ §7已设置 §f{0} §7个方法可访问"
   methods-accessible-fail: "§c▸ §7设置方法可访问失败 §8| §c{0}"
+
+# ==================== 头颅工具 ====================
+skull:
+  init-complete: "§8▸ §7头颅系统初始化 §8[§b{0}§8]"
+  reload-complete: "§8▸ §7头颅系统重载 §8[§b{0}§8]"
+  listener-registered: "§8▸ §7头颅监听器已注册"
+  listener-unregistered: "§8▸ §7头颅监听器已注销"
+  already-cached: "§8▸ §7{0} 头颅已缓存"
+  player-offline: "§8▸ §7{0} 已离线，跳过预加载"
+  preload-success: "§8▸ §7{0} 头颅预加载成功"
+  preload-fail: "§c▸ §7{0} 头颅预加载失败"
+  cache-removed: "§8▸ §7{0} 头颅缓存已移除"
+  cache-cleared: "§8▸ §7已清空 {0} 个头颅缓存"
 
 # ==================== 物品信息 ====================
 item:
@@ -104,13 +119,6 @@ entity:
   vector: "§8▸ §7朝向 §f{0}"
   nbt: "§8▸ §7NBT数据 §8:\n§7{0}"
   nbt-fail: "§c▸ §7NBT获取失败 §8| §c{0}"
-  nms-not-init: "§e▸ §7NMS未初始化，返回类型名"
-  get-name-fail: "§c▸ §7获取名称失败 §8| §c{0}"
-  get-save-id-unavailable: "§e▸ §7getSaveID方法不可用"
-  get-save-fail: "§c▸ §7获取保存ID失败 §8| §c{0}"
-  get-save-name-fail: "§c▸ §7获取保存名称失败 §8| §c{0}"
-  nbt-reflect-unavailable: "§e▸ §7NBT反射不可用"
-  get-nbt-fail: "§c▸ §7获取NBT失败 §8| §c{0}"
 
 # ==================== 物品栏信息 ====================
 inventory:
@@ -126,103 +134,28 @@ vault:
   economy-not-found: "§c✘ §7未检测到经济系统"
   economy-found: "§b✔ §7经济系统已连接"
 
-# ==================== 公式计算 ====================
-formula:
-  calc-fail: "§c▸ §7公式计算失败 §8| §f{0}"
-  judge-fail: "§c▸ §7公式判断失败 §8| §f{0}"
-  engine-fail: "§e▸ §7脚本引擎失败，使用内置解析器 §8| §7{0}"
-  engine-judge-fail: "§e▸ §7引擎判断失败，使用内置解析器 §8| §7{0}"
-  no-engine: "§e▸ §7无可用脚本引擎，使用内置解析器"
-
-# ==================== 消息系统 ====================
-message:
-  version-incompatible: "§c✘ §7版本不兼容，无法发送消息"
-  send-fail: "§c▸ §7消息发送失败 §8| §c{0}"
-  actionbar-unsupported: "▸ ActionBar 在当前版本不支持，已回退到普通消息"
-  actionbar-fail: "▸ ActionBar 发送失败: {0}"
-
-# ==================== 语言系统 ====================
-lang:
-  init-start: "§8▸ §7初始化语言系统..."
-  extract-success: "§b▸ §7语言文件已释放 §f{0}"
-  extract-fail: "§c▸ §7语言文件释放失败 §f{0} §8| §c{1}"
-  load-success: "§b▸ §7语言文件加载成功 §f{0}"
-  load-fail: "§c▸ §7语言文件加载失败 §f{0} §8| §c{1}"
-  init-complete: "§b▸ §7语言系统初始化完成"
-  reload-complete: "§b▸ §7语言系统重载完成"
-  key-not-found: "§c[缺失] §7{0}"
-  format-error: "§c[格式错误] §7{0}"
-
-# ==================== 日志系统 ====================
-log:
-  prefix: "§8[§fYukiNoaAPI§8]"
-  debug-prefix: "§8[§bDebug§8]"
-  info: "§7{0}"
-  debug: "§8{0}"
-  warning: "§e⚠ §7{0}"
-  error: "§c✘ §7{0}"
-  success: "§a✔ §7{0}"
-
-# ==================== 配置系统 ====================
-config:
-  # 目录使用
-  custom-dir-using: "§b▸ §f{0} §7使用自定义目录 §8➜ §f{1}"
-  default-dir-using: "§8▸ §f{0} §7使用默认目录 §8➜ §f{1}"
-  custom-dir-invalid: "§c▸ §7自定义目录无效 §f{0}"
-  custom-dir-fallback: "§e▸ §7回退到默认目录"
-
-  # 文件操作
-  dir-create-success: "§b▸ §f{0} §7目录创建成功 §8➜ §f{1}"
-  dir-create-fail: "§c▸ §7目录创建失败 §f{0}"
-  dir-create-error: "§c▸ §7目录创建异常"
-
-  resource-created: "§b▸ §f{0} §7资源文件已创建 §8➜ §f{1}"
-  resource-exists: "§8▸ §f{0} §7资源文件已存在 §8➜ §f{1}"
-  resource-not-found: "§c▸ §7资源文件未找到 §f{0}"
-  resource-create-error: "§c▸ §7资源创建异常 §f{0}"
-
-  file-not-found: "§e▸ §7配置文件不存在 §f{0}"
-  loaded: "§8▸ §f{0} §7配置加载 §8➜ §f{1}"
-  load-error: "§c▸ §7配置加载异常"
-
-  saved: "§8▸ §f{0} §7配置保存 §8➜ §f{1}"
-  save-io-error: "§c▸ §7配置保存IO异常"
-  save-error: "§c▸ §7配置保存异常"
-
-  system-loaded: "§8▸ §f{0} §7系统配置加载 §8➜ §f{1}"
-  system-saved: "§8▸ §f{0} §7系统配置保存 §8➜ §f{1}"
-  sync-save-fail: "§e▸ §f{0} §7同步保存失败，尝试异步"
-  sync-save-success: "§b▸ §f{0} §7异步保存成功 §8➜ §f{1}"
-  sync-save-error: "§c▸ §7异步保存异常"
-
 # ==================== 数据库 ====================
 database:
-  # MySQL
-  mysql-init: "§8▸ §7MySQL 初始化..."
   mysql-connect-success: "§b▸ §7MySQL 连接成功 §8➜ §f{0}"
   mysql-connect-fail: "§c▸ §7MySQL 连接失败"
   mysql-reconnecting: "§e▸ §7MySQL 重新连接..."
   mysql-check-fail: "§c▸ §7MySQL 连接检查失败"
   mysql-closed: "§8▸ §7MySQL 已关闭 §8➜ §f{0}"
   mysql-table-check-fail: "§c▸ §7MySQL 表检查失败 §f{0}"
-
-  # SQLite
-  sqlite-path-fail: "§c▸ §7SQLite 路径获取失败"
-  sqlite-path-invalid: "§c▸ §7SQLite 路径无效"
   sqlite-connect-success: "§b▸ §7SQLite 连接成功 §8➜ §f{0}"
   sqlite-connect-fail: "§c▸ §7SQLite 连接失败"
   sqlite-driver-fail: "§c▸ §7SQLite 驱动加载失败"
+  sqlite-path-fail: "§c▸ §7SQLite 路径获取失败"
+  sqlite-path-invalid: "§c▸ §7SQLite 路径无效"
   sqlite-reconnecting: "§e▸ §7SQLite 重新连接..."
   sqlite-check-fail: "§c▸ §7SQLite 连接检查失败"
-  sqlite-table-check-fail: "§c▸ §7SQLite 表检查失败 §f{0}"
   sqlite-closed: "§8▸ §7SQLite 已关闭 §8➜ §f{0}"
   sqlite-close-fail: "§c▸ §7SQLite 关闭失败"
   sqlite-deleted: "§b▸ §7SQLite 数据库已删除 §8➜ §f{0}"
   sqlite-delete-fail: "§c▸ §7SQLite 数据库删除失败 §f{0}"
   sqlite-backup-success: "§b▸ §7SQLite 备份成功 §8➜ §f{0}"
   sqlite-backup-fail: "§c▸ §7SQLite 备份失败"
-
-  # 通用
+  sqlite-table-check-fail: "§c▸ §7SQLite 表检查失败 §f{0}"
   sql-execute: "§8▸ §7执行SQL §8➜ §f{0}"
   sql-query: "§8▸ §7查询SQL §8➜ §f{0}"
   sql-execute-fail: "§c▸ §7SQL执行失败 §8| §f{0}"

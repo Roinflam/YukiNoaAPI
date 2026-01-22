@@ -1,5 +1,3 @@
-// 文件：SkullUtil.java
-// 路径：src/main/java/pers/tany/yukinoaapi/realizationpart/item/SkullUtil.java
 package pers.tany.yukinoaapi.realizationpart.item;
 
 import org.bukkit.Bukkit;
@@ -18,7 +16,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.interfacepart.builder.IItemBuilder;
 import pers.tany.yukinoaapi.realizationpart.builder.ItemBuilder;
-import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 import pers.tany.yukinoaapi.util.NMSUtil;
 
@@ -113,6 +110,25 @@ public class SkullUtil implements Listener {
         return instance;
     }
 
+    /**
+     * 获取语言文本（辅助方法）
+     *
+     * @param key  语言键
+     * @param args 参数
+     * @return 语言文本
+     */
+    private static String getLang(String key, Object... args) {
+        if (Main.plugin == null || ((Main) Main.plugin).getLanguageManager() == null) {
+            return key;
+        }
+
+        if (args == null || args.length == 0) {
+            return ((Main) Main.plugin).getLanguageManager().getMessage(key);
+        } else {
+            return ((Main) Main.plugin).getLanguageManager().getMessage(key, key, String.valueOf(args[0]));
+        }
+    }
+
     // ==================== 初始化与配置 ====================
 
     /**
@@ -126,8 +142,8 @@ public class SkullUtil implements Listener {
             registerListener();
         }
 
-        LogUtil.debug(LangUtil.get("skull.init-complete",
-                preloadEnabled ? LangUtil.get("common.enabled") : LangUtil.get("common.disabled")));
+        LogUtil.debug(getLang("skull.init-complete",
+                preloadEnabled ? getLang("common.enabled") : getLang("common.disabled")));
     }
 
     /**
@@ -162,8 +178,8 @@ public class SkullUtil implements Listener {
             unregisterListener();
         }
 
-        LogUtil.debug(LangUtil.get("skull.reload-complete",
-                preloadEnabled ? LangUtil.get("common.enabled") : LangUtil.get("common.disabled")));
+        LogUtil.debug(getLang("skull.reload-complete",
+                preloadEnabled ? getLang("common.enabled") : getLang("common.disabled")));
     }
 
     /**
@@ -173,7 +189,7 @@ public class SkullUtil implements Listener {
         if (!listenerRegistered && Main.plugin != null) {
             Bukkit.getPluginManager().registerEvents(this, Main.plugin);
             listenerRegistered = true;
-            LogUtil.debug(LangUtil.get("skull.listener-registered"));
+            LogUtil.debug(getLang("skull.listener-registered"));
         }
     }
 
@@ -184,7 +200,7 @@ public class SkullUtil implements Listener {
         if (listenerRegistered) {
             HandlerList.unregisterAll(this);
             listenerRegistered = false;
-            LogUtil.debug(LangUtil.get("skull.listener-unregistered"));
+            LogUtil.debug(getLang("skull.listener-unregistered"));
         }
     }
 
@@ -207,7 +223,7 @@ public class SkullUtil implements Listener {
 
         // 已缓存则跳过
         if (skulls.containsKey(uuid)) {
-            LogUtil.debug(LangUtil.get("skull.already-cached", player.getName()));
+            LogUtil.debug(getLang("skull.already-cached", player.getName()));
             return;
         }
 
@@ -217,7 +233,7 @@ public class SkullUtil implements Listener {
             public void run() {
                 // 检查玩家是否还在线
                 if (!player.isOnline()) {
-                    LogUtil.debug(LangUtil.get("skull.player-offline", player.getName()));
+                    LogUtil.debug(getLang("skull.player-offline", player.getName()));
                     return;
                 }
 
@@ -232,9 +248,9 @@ public class SkullUtil implements Listener {
                     ItemStack skull = createSkullItem(player);
                     skulls.put(uuid, skull);
 
-                    LogUtil.debug(LangUtil.get("skull.preload-success", player.getName()));
+                    LogUtil.debug(getLang("skull.preload-success", player.getName()));
                 } catch (Exception e) {
-                    LogUtil.error(LangUtil.get("skull.preload-fail", player.getName()), e);
+                    LogUtil.error(getLang("skull.preload-fail", player.getName()), e);
                 }
             }
         }.runTaskLater(Main.plugin, preloadDelay);
@@ -250,7 +266,7 @@ public class SkullUtil implements Listener {
         if (clearOnQuit) {
             UUID uuid = event.getPlayer().getUniqueId();
             if (skulls.remove(uuid) != null) {
-                LogUtil.debug(LangUtil.get("skull.cache-removed", event.getPlayer().getName()));
+                LogUtil.debug(getLang("skull.cache-removed", event.getPlayer().getName()));
             }
         }
     }
@@ -453,7 +469,7 @@ public class SkullUtil implements Listener {
         if (!skulls.containsKey(uuid)) {
             ItemStack skull = createSkullItem(player);
             skulls.put(uuid, skull);
-            LogUtil.debug(LangUtil.get("skull.preload-success", player.getName()));
+            LogUtil.debug(getLang("skull.preload-success", player.getName()));
         }
     }
 
@@ -495,7 +511,7 @@ public class SkullUtil implements Listener {
     public void clearCache() {
         int size = skulls.size();
         skulls.clear();
-        LogUtil.debug(LangUtil.get("skull.cache-cleared", size));
+        LogUtil.debug(getLang("skull.cache-cleared", size));
     }
 
     /**

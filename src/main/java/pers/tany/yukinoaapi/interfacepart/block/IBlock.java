@@ -3,7 +3,6 @@ package pers.tany.yukinoaapi.interfacepart.block;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 import pers.tany.yukinoaapi.util.NMSUtil;
 
@@ -74,7 +73,7 @@ public interface IBlock {
         } catch (NullPointerException e) {
             return null;
         } catch (Exception e) {
-            LogUtil.debug(LangUtil.get("block.nbt-get-fail", e.getMessage()));
+            e.printStackTrace();
             return null;
         }
     }
@@ -111,7 +110,6 @@ public interface IBlock {
             Object tileEntity = getTileEntityAt(nmsWorld, location, getTileEntity, blockPositionClass);
 
             if (tileEntity == null) {
-                LogUtil.debug(LangUtil.get("block.no-tile-entity"));
                 return false;
             }
 
@@ -121,7 +119,7 @@ public interface IBlock {
             return true;
 
         } catch (Exception e) {
-            LogUtil.debug(LangUtil.get("block.nbt-set-fail", e.getMessage()));
+            e.printStackTrace();
             return false;
         }
     }

@@ -7,7 +7,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.util.NMSUtil;
 import pers.tany.yukinoaapi.interfacepart.other.IString;
-import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import java.lang.reflect.Field;
@@ -65,7 +64,6 @@ public interface IMessage {
         // 1.7 不支持 ActionBar，直接发送普通消息
         if (!NMSUtil.isVersionAtLeast(8)) {
             player.sendMessage(coloredMessage);
-            LogUtil.debug(LangUtil.get("message.actionbar-unsupported"));
             return;
         }
 
@@ -93,7 +91,6 @@ public interface IMessage {
                         sendActionBarNMS(player, coloredMessage);
                     }
                 } catch (Exception e) {
-                    LogUtil.debug(LangUtil.get("message.actionbar-fail", e.getMessage()));
                     player.sendMessage(coloredMessage);
                     cancel();
                     return;

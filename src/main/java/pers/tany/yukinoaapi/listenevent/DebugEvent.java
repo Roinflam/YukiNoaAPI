@@ -1,5 +1,5 @@
 // 文件：DebugEvent.java
-// 路径：src/main/java/pers/tany/yukinoaapi/realizationpart/listenevent/DebugEvent.java
+// 路径：src/main/java/pers/tany/yukinoaapi/listenevent/DebugEvent.java
 package pers.tany.yukinoaapi.listenevent;
 
 import de.tr7zw.nbtapi.NBTEntity;
@@ -18,21 +18,32 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
+import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.command.DebugCommands;
+import pers.tany.yukinoaapi.config.LanguageManager;
 import pers.tany.yukinoaapi.interfacepart.enchantment.IEnchantment;
 import pers.tany.yukinoaapi.interfacepart.entity.IEntity;
 import pers.tany.yukinoaapi.interfacepart.item.IItem;
 import pers.tany.yukinoaapi.interfacepart.other.IDouble;
-import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 /**
  * Debug模式事件监听器
  *
  * @author tany
- * @since 1.0.0
+ * @since 3.0.0
  */
 public class DebugEvent implements Listener {
+
+    /** 语言管理器 */
+    private LanguageManager lang;
+
+    /**
+     * 构造函数
+     */
+    public DebugEvent() {
+        this.lang = ((Main) Main.plugin).getLanguageManager();
+    }
 
     /**
      * 监听玩家交互事件
@@ -124,37 +135,39 @@ public class DebugEvent implements Listener {
         int maxStackSize = itemStack.getMaxStackSize();
         String itemNBT = IItem.getItemNBT(itemStack);
 
-        player.sendMessage(LangUtil.get("item.name", itemName));
-        player.sendMessage(LangUtil.get("item.type", itemType));
-        player.sendMessage(LangUtil.get("item.sub-id", durability));
-        player.sendMessage(LangUtil.get("item.max-stack", maxStackSize));
+        player.sendMessage(lang.getMessage("item.name", itemName));
+        player.sendMessage(lang.getMessage("item.type", itemType));
+        player.sendMessage(lang.getMessage("item.sub-id", durability));
+        player.sendMessage(lang.getMessage("item.max-stack", maxStackSize));
 
         if (!itemStack.getEnchantments().isEmpty()) {
-            player.sendMessage(LangUtil.get("item.enchantments"));
+            player.sendMessage(lang.getMessage("item.enchantments"));
             for (Enchantment enchantment : itemStack.getEnchantments().keySet()) {
                 int level = itemStack.getEnchantments().get(enchantment);
-                player.sendMessage(LangUtil.get("item.enchantment-entry", IEnchantment.getName(enchantment), level));
+                player.sendMessage(lang.getMessage("item.enchantment-entry",
+                        IEnchantment.getName(enchantment), level));
             }
         }
 
-        player.sendMessage(LangUtil.get("item.nbt", itemNBT));
+        player.sendMessage(lang.getMessage("item.nbt", itemNBT));
 
-        // 控制台输出（国际化）
-        LogUtil.debug(LangUtil.get("debug.player-view-item", player.getName(), itemName));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.name", itemName));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.type", itemType));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.sub-id", durability));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.max-stack", maxStackSize));
+        // 控制台输出
+        LogUtil.debug(lang.getMessage("debug.player-view-item", player.getName(), itemName));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.name", itemName));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.type", itemType));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.sub-id", durability));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.max-stack", maxStackSize));
 
         if (!itemStack.getEnchantments().isEmpty()) {
-            Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.enchantments"));
+            Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.enchantments"));
             for (Enchantment enchantment : itemStack.getEnchantments().keySet()) {
                 int level = itemStack.getEnchantments().get(enchantment);
-                Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.enchantment-entry", IEnchantment.getName(enchantment), level));
+                Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.enchantment-entry",
+                        IEnchantment.getName(enchantment), level));
             }
         }
 
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("item.nbt", itemNBT));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.nbt", itemNBT));
     }
 
     /**
@@ -169,17 +182,17 @@ public class DebugEvent implements Listener {
         String biome = block.getBiome().toString();
         String blockNBT = getBlockNBTSafe(block);
 
-        player.sendMessage(LangUtil.get("block.type", blockType));
-        player.sendMessage(LangUtil.get("block.data", blockData));
-        player.sendMessage(LangUtil.get("block.biome", biome));
-        player.sendMessage(LangUtil.get("block.nbt", blockNBT));
+        player.sendMessage(lang.getMessage("block.type", blockType));
+        player.sendMessage(lang.getMessage("block.data", blockData));
+        player.sendMessage(lang.getMessage("block.biome", biome));
+        player.sendMessage(lang.getMessage("block.nbt", blockNBT));
 
-        // 控制台输出（国际化）
-        LogUtil.debug(LangUtil.get("debug.player-view-block", player.getName(), blockType));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("block.type", blockType));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("block.data", blockData));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("block.biome", biome));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("block.nbt", blockNBT));
+        // 控制台输出
+        LogUtil.debug(lang.getMessage("debug.player-view-block", player.getName(), blockType));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("block.type", blockType));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("block.data", blockData));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("block.biome", biome));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("block.nbt", blockNBT));
     }
 
     /**
@@ -207,23 +220,23 @@ public class DebugEvent implements Listener {
                 IDouble.shortenDouble(vector.getZ(), 2);
         String entityNBT = getEntityNBTSafe(entity);
 
-        player.sendMessage(LangUtil.get("entity.name", entityName));
-        player.sendMessage(LangUtil.get("entity.save-name", saveName));
-        player.sendMessage(LangUtil.get("entity.type", entityType));
-        player.sendMessage(LangUtil.get("entity.uuid", uuid));
-        player.sendMessage(LangUtil.get("entity.location", locationStr));
-        player.sendMessage(LangUtil.get("entity.vector", vectorStr));
-        player.sendMessage(LangUtil.get("entity.nbt", entityNBT));
+        player.sendMessage(lang.getMessage("entity.name", entityName));
+        player.sendMessage(lang.getMessage("entity.save-name", saveName));
+        player.sendMessage(lang.getMessage("entity.type", entityType));
+        player.sendMessage(lang.getMessage("entity.uuid", uuid));
+        player.sendMessage(lang.getMessage("entity.location", locationStr));
+        player.sendMessage(lang.getMessage("entity.vector", vectorStr));
+        player.sendMessage(lang.getMessage("entity.nbt", entityNBT));
 
-        // 控制台输出（国际化）
-        LogUtil.debug(LangUtil.get("debug.player-view-entity", player.getName(), entityName));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.name", entityName));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.save-name", saveName));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.type", entityType));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.uuid", uuid));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.location", locationStr));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.vector", vectorStr));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("entity.nbt", entityNBT));
+        // 控制台输出
+        LogUtil.debug(lang.getMessage("debug.player-view-entity", player.getName(), entityName));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.name", entityName));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.save-name", saveName));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.type", entityType));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.uuid", uuid));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.location", locationStr));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.vector", vectorStr));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.nbt", entityNBT));
     }
 
     /**
@@ -242,19 +255,19 @@ public class DebugEvent implements Listener {
         int slot = evt.getSlot();
         int rawSlot = evt.getRawSlot();
 
-        player.sendMessage(LangUtil.get("inventory.click-type", clickType));
-        player.sendMessage(LangUtil.get("inventory.title", title));
-        player.sendMessage(LangUtil.get("inventory.type", inventoryType));
-        player.sendMessage(LangUtil.get("inventory.size", size));
-        player.sendMessage(LangUtil.get("inventory.slot", slot));
-        player.sendMessage(LangUtil.get("inventory.raw-slot", rawSlot));
+        player.sendMessage(lang.getMessage("inventory.click-type", clickType));
+        player.sendMessage(lang.getMessage("inventory.title", title));
+        player.sendMessage(lang.getMessage("inventory.type", inventoryType));
+        player.sendMessage(lang.getMessage("inventory.size", size));
+        player.sendMessage(lang.getMessage("inventory.slot", slot));
+        player.sendMessage(lang.getMessage("inventory.raw-slot", rawSlot));
 
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("inventory.click-type", clickType));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("inventory.title", title));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("inventory.type", inventoryType));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("inventory.size", size));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("inventory.slot", slot));
-        Bukkit.getConsoleSender().sendMessage(LangUtil.get("inventory.raw-slot", rawSlot));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("inventory.click-type", clickType));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("inventory.title", title));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("inventory.type", inventoryType));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("inventory.size", size));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("inventory.slot", slot));
+        Bukkit.getConsoleSender().sendMessage(lang.getMessage("inventory.raw-slot", rawSlot));
     }
 
     /**
@@ -267,7 +280,7 @@ public class DebugEvent implements Listener {
         try {
             return new NBTTileEntity(block.getState()).toString();
         } catch (Exception e) {
-            return LangUtil.get("block.nbt-none");
+            return lang.getMessage("block.nbt-none");
         }
     }
 
@@ -281,7 +294,7 @@ public class DebugEvent implements Listener {
         try {
             return new NBTEntity(entity).toString();
         } catch (Exception e) {
-            return LangUtil.get("entity.nbt-fail", e.getMessage());
+            return lang.getMessage("entity.nbt-fail", e.getMessage());
         }
     }
 }

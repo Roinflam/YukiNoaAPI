@@ -1,7 +1,8 @@
 package pers.tany.yukinoaapi.realizationpart.sql;
 
+import pers.tany.yukinoaapi.Main;
+import pers.tany.yukinoaapi.config.LanguageManager;
 import pers.tany.yukinoaapi.interfacepart.sql.ISql;
-import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.annotation.Nullable;
@@ -20,24 +21,21 @@ import java.sql.Statement;
  * SQLite数据库操作实现类
  *
  * @author tany
- * @since 1.0.0
+ * @since 3.0.0
  */
 public class Sqlite implements ISql {
 
-    /**
-     * 数据库连接
-     */
+    /** 数据库连接 */
     private Connection connection;
 
-    /**
-     * 数据库文件路径
-     */
+    /** 数据库文件路径 */
     private final String dbPath;
 
-    /**
-     * 数据库文件
-     */
+    /** 数据库文件 */
     private final File dbFile;
+
+    /** 语言管理器 */
+    private LanguageManager lang;
 
     /**
      * 构造SQLite数据库连接
@@ -47,11 +45,13 @@ public class Sqlite implements ISql {
      * @param dataBaseName 数据库名称（不含.db后缀）
      */
     public Sqlite(String pluginName, String dirName, String dataBaseName) {
+        this.lang = ((Main) Main.plugin).getLanguageManager();
+
         String path;
         try {
             path = new File("plugins/" + pluginName + "/" + dirName).getCanonicalPath();
         } catch (IOException e) {
-            LogUtil.error(LangUtil.get("database.sqlite-path-fail"), e);
+            LogUtil.error(lang.getMessage("database.sqlite-path-fail"), e);
             path = "plugins/" + pluginName + "/" + dirName;
         }
 
@@ -76,7 +76,7 @@ public class Sqlite implements ISql {
             Class.forName("org.sqlite.JDBC");
 
             if (dbFile == null) {
-                LogUtil.error(LangUtil.get("database.sqlite-path-invalid"));
+                LogUtil.error(lang.getMessage("database.sqlite-path-invalid"));
                 return;
             }
 
@@ -87,11 +87,8 @@ public class Sqlite implements ISql {
                 stmt.execute("PRAGMA foreign_keys = ON");
             }
 
-            LogUtil.success(LangUtil.get("database.sqlite-connect-success", dbFile.getName()));
-        } catch (ClassNotFoundException e) {
-            LogUtil.error(LangUtil.get("database.sqlite-driver-fail"), e);
-        } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sqlite-connect-fail"), e);
+        } catch (ClassNotFoundException | SQLException e) {
+            e.printStackTrace();
         }
     }
 
@@ -101,11 +98,11 @@ public class Sqlite implements ISql {
     private void ensureConnection() {
         try {
             if (connection == null || connection.isClosed()) {
-                LogUtil.warning(LangUtil.get("database.sqlite-reconnecting"));
+                LogUtil.warning(lang.getMessage("database.sqlite-reconnecting"));
                 initConnection();
             }
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sqlite-check-fail"), e);
+            LogUtil.error(lang.getMessage("database.sqlite-check-fail"), e);
         }
     }
 
@@ -118,12 +115,11 @@ public class Sqlite implements ISql {
     @Override
     public void doCommand(String statement) {
         ensureConnection();
-        LogUtil.debug(LangUtil.get("database.sql-execute", statement));
 
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate(statement);
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sql-execute-fail", statement), e);
+            e.printStackTrace();
         }
     }
 
@@ -131,13 +127,12 @@ public class Sqlite implements ISql {
     @Nullable
     public ResultSet selectTable(String statement) {
         ensureConnection();
-        LogUtil.debug(LangUtil.get("database.sql-query", statement));
 
         try {
             Statement stmt = connection.createStatement();
             return stmt.executeQuery(statement);
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sql-query-fail", statement), e);
+            e.printStackTrace();
             return null;
         }
     }
@@ -151,7 +146,6 @@ public class Sqlite implements ISql {
      */
     public int doCommand(String sql, Object... params) {
         ensureConnection();
-        LogUtil.debug(LangUtil.get("database.sql-execute", sql));
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             for (int i = 0; i < params.length; i++) {
@@ -159,7 +153,7 @@ public class Sqlite implements ISql {
             }
             return ps.executeUpdate();
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sql-param-execute-fail", sql), e);
+            e.printStackTrace();
             return -1;
         }
     }
@@ -174,7 +168,6 @@ public class Sqlite implements ISql {
     @Nullable
     public ResultSet selectTable(String sql, Object... params) {
         ensureConnection();
-        LogUtil.debug(LangUtil.get("database.sql-query", sql));
 
         try {
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -183,7 +176,7 @@ public class Sqlite implements ISql {
             }
             return ps.executeQuery();
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sql-param-query-fail", sql), e);
+            e.printStackTrace();
             return null;
         }
     }
@@ -203,7 +196,7 @@ public class Sqlite implements ISql {
                 return rs.next();
             }
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sqlite-table-check-fail", tableName), e);
+            e.printStackTrace();
         }
 
         return false;
@@ -213,7 +206,6 @@ public class Sqlite implements ISql {
     public void clearTable(String table) {
         doCommand("DELETE FROM " + table);
         doCommand("DELETE FROM sqlite_sequence WHERE name = '" + table + "'");
-        LogUtil.debug(LangUtil.get("database.table-cleared", table));
     }
 
     @Override
@@ -221,10 +213,9 @@ public class Sqlite implements ISql {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
-                LogUtil.info(LangUtil.get("database.sqlite-closed", dbFile.getName()));
             }
         } catch (SQLException e) {
-            LogUtil.error(LangUtil.get("database.sqlite-close-fail"), e);
+            e.printStackTrace();
         }
     }
 
@@ -246,13 +237,7 @@ public class Sqlite implements ISql {
         close();
 
         if (dbFile.exists()) {
-            boolean deleted = dbFile.delete();
-            if (deleted) {
-                LogUtil.info(LangUtil.get("database.sqlite-deleted", dbFile.getName()));
-            } else {
-                LogUtil.error(LangUtil.get("database.sqlite-delete-fail", dbFile.getName()));
-            }
-            return deleted;
+            return dbFile.delete();
         }
 
         return true;
@@ -267,10 +252,9 @@ public class Sqlite implements ISql {
     public boolean backup(File backupFile) {
         try {
             Files.copy(dbFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            LogUtil.success(LangUtil.get("database.sqlite-backup-success", backupFile.getName()));
             return true;
         } catch (IOException e) {
-            LogUtil.error(LangUtil.get("database.sqlite-backup-fail"), e);
+            e.printStackTrace();
             return false;
         }
     }

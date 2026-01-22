@@ -1,168 +1,156 @@
-// ==================== 插件配置 ====================
-// Java插件：让Gradle知道这是一个Java项目
 plugins {
     id 'java'
 }
 
-// ==================== 项目基本信息 ====================
-// 组ID：通常是你的域名倒写，比如 pers.tany
-group = 'pers.tany'
+// ========================================
+// 从 settings.gradle 读取项目配置
+// ========================================
+group = 'com.flameforge'
+version = gradle.ext.projectVersion
 
-// 版本号：修改这里会自动同步到 plugin.yml
-version = '3.0.0'
-
-// ==================== 依赖仓库 ====================
-// Gradle会从这些地方下载你需要的依赖库
+// 配置项目的依赖仓库
 repositories {
-    // Maven中央仓库：最大的Java库仓库
     mavenCentral()
-
-    // SpigotMC仓库：Bukkit/Spigot API
     maven {
         name = "spigotmc-repo"
         url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
     }
-
-    // Sonatype仓库：一些开源项目的快照版本
     maven {
         name = "sonatype"
         url = "https://oss.sonatype.org/content/groups/public/"
     }
-
-    // 本地libs文件夹：放你手动下载的jar包
     flatDir {
         dirs 'libs'
     }
 }
 
-// ==================== 项目依赖 ====================
-// 你的项目需要用到的外部库
+// 项目依赖配置
 dependencies {
-    // HikariCP：高性能数据库连接池
     implementation 'com.zaxxer:HikariCP:4.0.3'
+    implementation 'org.xerial:sqlite-jdbc:3.42.0.0'
 
-    // 本地JAR：libs文件夹里的所有jar包（比如Spigot、NBTAPI、Vault等）
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
 
-// ==================== Java版本配置 ====================
-// 目标Java版本：8 表示兼容Java 8及以上
+// 设置Java版本
 def targetJavaVersion = 8
-
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    // 源代码兼容性：你写的代码要符合Java 8语法
     sourceCompatibility = javaVersion
-    // 编译目标：编译出来的class文件能在Java 8上运行
     targetCompatibility = javaVersion
-
-    // 如果你的JDK版本比目标版本低，自动下载对应版本的JDK
     if (JavaVersion.current() < javaVersion) {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
 }
 
-// ==================== 编译配置 ====================
+// 配置Java编译任务
 tasks.withType(JavaCompile).configureEach {
-    // 源代码编码：防止中文乱码
     options.encoding = 'UTF-8'
-
-    // Java 10+ 需要指定 release 版本
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         options.release.set(targetJavaVersion)
     }
 }
 
-// ==================== 资源处理 ====================
-processResources {
-    // 定义要替换的变量
-    def props = [version: version]
-    inputs.properties props
-    filteringCharset 'UTF-8'
-
-    // 在 plugin.yml 中把 ${version} 替换成实际版本号
-    filesMatching('plugin.yml') {
-        expand props
-    }
-}
-
-// ==================== 版本同步任务 ====================
-// 自动把版本号写入 plugin.yml（双保险）
-task updatePluginVersion {
+// ========================================
+// 自动更新 plugin.yml 的版本号
+// ========================================
+task updatePluginYml {
     doLast {
         def pluginYml = file('src/main/resources/plugin.yml')
-        if (pluginYml.exists()) {
-            def content = pluginYml.text
-            // 用正则替换版本号那一行
-            content = content.replaceAll(/(?<!\S)version:\s*['"]?.*['"]?/, "version: '${version}'")
-            pluginYml.text = content
-            println "✓ 已同步版本号到 plugin.yml: ${version}"
+        if (!pluginYml.exists()) {
+            println "警告: plugin.yml 文件不存在"
+            return
         }
+
+        def lines = pluginYml.readLines()
+        def writer = new PrintWriter(pluginYml, 'UTF-8')
+
+        lines.each { line ->
+            if (line.startsWith('version:')) {
+                writer.println("version: '${gradle.ext.projectVersion}'")
+            } else {
+                writer.println(line)
+            }
+        }
+
+        writer.close()
+        println "✓ 已更新 plugin.yml 版本为 ${gradle.ext.projectVersion}"
     }
 }
 
-// 确保在处理资源之前先更新版本号
-processResources.dependsOn updatePluginVersion
+// ========================================
+// 自动更新 config.yml 的 ConfigVersion
+// ========================================
+task updateConfigYml {
+    doLast {
+        def configYml = file('src/main/resources/config.yml')
+        if (!configYml.exists()) {
+            println "警告: config.yml 文件不存在"
+            return
+        }
 
-// ==================== JAR打包配置 ====================
+        def lines = configYml.readLines()
+        def writer = new PrintWriter(configYml, 'UTF-8')
+
+        lines.each { line ->
+            if (line.startsWith('ConfigVersion:')) {
+                writer.println("ConfigVersion: '${gradle.ext.projectVersion}'")
+            } else {
+                writer.println(line)
+            }
+        }
+
+        writer.close()
+        println "✓ 已更新 config.yml ConfigVersion 为 ${gradle.ext.projectVersion}"
+    }
+}
+
+// ========================================
+// 配置资源处理任务
+// ========================================
+processResources {
+    filteringCharset 'UTF-8'
+
+    doLast {
+        println "✓ 资源处理完成"
+    }
+}
+
+// 确保在处理资源之前更新配置文件
+processResources.dependsOn updatePluginYml, updateConfigYml
+
+// ========================================
+// 配置JAR任务
+// ========================================
 jar {
-    // 重复文件处理：如果有重复的文件，保留第一个
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    // 1. 包含编译后的class文件
     from sourceSets.main.output
 
-    // 2. 包含依赖库（排除libs目录的jar，因为那些是服务端已有的）
     from {
         configurations.runtimeClasspath
-                .findAll { file ->
-                    // 排除libs目录里的jar（Spigot、NBTAPI这些服务端已经有了）
-                    !file.path.startsWith(project.file('libs').absolutePath)
-                }
-                .collect { file ->
-                    // 如果是jar就解压，如果是目录就直接包含
-                    file.isDirectory() ? file : zipTree(file)
-                }
+                .findAll { !it.name.endsWith('jar') || !it.path.startsWith(project.file('libs').path) }
+                .collect { it.isDirectory() ? it : zipTree(it) }
     }
 
-    // 打包完成后的提示
     doLast {
-        println ""
-        println "==================== 打包完成 ===================="
-        println "✓ JAR文件: ${archiveFile.get().asFile.absolutePath}"
-        println "✓ 包含内容: 编译代码 + HikariCP"
-        println "✓ 排除内容: libs目录的JAR（服务端已有）"
-        println "=================================================="
+        println "✓ JAR 文件已创建: ${archiveFileName.get()}"
     }
 }
 
-// ==================== 额外的JAR任务（可选） ====================
-// 源代码JAR：方便别人查看你的源码
+// ========================================
+// 添加源代码和文档JAR任务
+// ========================================
 tasks.register('sourcesJar', Jar) {
     archiveClassifier.set('sources')
     from sourceSets.main.allSource
-
-    doLast {
-        println "✓ 源代码JAR已生成: ${archiveFile.get().asFile.name}"
-    }
 }
 
-// ==================== 构建产物 ====================
+tasks.register('javadocJar', Jar) {
+    archiveClassifier.set('javadoc')
+    from javadoc.destinationDir
+}
+
 artifacts {
-    archives sourcesJar
-}
-
-// ==================== 便捷任务 ====================
-// 一键打包所有：主JAR + 源码JAR
-task buildAll {
-    dependsOn jar, sourcesJar
-
-    doLast {
-        println ""
-        println "==================== 全部打包完成 ===================="
-        println "生成的文件在 build/libs/ 目录下："
-        println "  - YukiNoaAPI-${version}.jar         (主插件)"
-        println "  - YukiNoaAPI-${version}-sources.jar (源代码)"
-        println "====================================================="
-    }
+    archives javadocJar
 }

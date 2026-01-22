@@ -1,6 +1,5 @@
 package pers.tany.yukinoaapi.interfacepart.other;
 
-import pers.tany.yukinoaapi.util.LangUtil;
 import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.script.ScriptEngine;
@@ -71,7 +70,7 @@ public interface IFormula {
             cacheResult(trimmed, evaluated);
             return evaluated;
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("formula.calc-fail", formula), e);
+            e.printStackTrace();
             return 0;
         }
     }
@@ -120,7 +119,7 @@ public interface IFormula {
             cacheBooleanResult(trimmed, evaluated);
             return evaluated;
         } catch (Exception e) {
-            LogUtil.error(LangUtil.get("formula.judge-fail", formula), e);
+            e.printStackTrace();
             return false;
         }
     }
@@ -156,7 +155,7 @@ public interface IFormula {
             }
             return Double.parseDouble(result.toString());
         } catch (ScriptException e) {
-            LogUtil.debug(LangUtil.get("formula.engine-fail", e.getMessage()));
+            e.printStackTrace();
             return null;
         }
     }
@@ -180,7 +179,7 @@ public interface IFormula {
             }
             return Boolean.parseBoolean(result.toString());
         } catch (ScriptException e) {
-            LogUtil.debug(LangUtil.get("formula.engine-judge-fail", e.getMessage()));
+            e.printStackTrace();
             return null;
         }
     }
@@ -219,8 +218,6 @@ public interface IFormula {
                 return engine;
             }
         }
-
-        LogUtil.debug(LangUtil.get("formula.no-engine"));
         return null;
     }
 
