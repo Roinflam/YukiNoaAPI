@@ -141,9 +141,6 @@ public class SkullUtil implements Listener {
         if (preloadEnabled && !listenerRegistered) {
             registerListener();
         }
-
-        LogUtil.debug(getLang("skull.init-complete",
-                preloadEnabled ? getLang("common.enabled") : getLang("common.disabled")));
     }
 
     /**
@@ -177,9 +174,6 @@ public class SkullUtil implements Listener {
         } else if (!preloadEnabled && listenerRegistered) {
             unregisterListener();
         }
-
-        LogUtil.debug(getLang("skull.reload-complete",
-                preloadEnabled ? getLang("common.enabled") : getLang("common.disabled")));
     }
 
     /**

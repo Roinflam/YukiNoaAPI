@@ -110,3 +110,8 @@ inventory:
   size: "§8▸ §7界面大小 §f{0}"
   slot: "§8▸ §7槽位 §f{0}"
   raw-slot: "§8▸ §7原始槽位 §f{0}"
+
+# ==================== Vault Integration ====================
+vault:
+  economy-not-found: "§c▸ §7Vault economy system not found"
+  economy-found: "§b▸ §7Vault economy system loaded"

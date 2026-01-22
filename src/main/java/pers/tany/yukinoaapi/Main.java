@@ -77,8 +77,6 @@ public class Main extends JavaPlugin {
 
         // ==================== 启动信息输出 ====================
         LogUtil.success(languageManager.getMessage("main.enabled"));
-        LogUtil.debug(languageManager.getMessage("main.debug-mode",
-                LogUtil.isDebugEnabled() ? languageManager.getMessage("common.on") : languageManager.getMessage("common.off")));
         LogUtil.debug(languageManager.getMessage("main.server-version", NMSUtil.getVersion()));
         LogUtil.debug(languageManager.getMessage("main.current-language", languageManager.getCurrentLanguage()));
 
