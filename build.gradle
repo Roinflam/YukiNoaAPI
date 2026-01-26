@@ -26,9 +26,6 @@ repositories {
 
 // 项目依赖配置
 dependencies {
-    implementation 'com.zaxxer:HikariCP:4.0.3'
-    implementation 'org.xerial:sqlite-jdbc:3.42.0.0'
-
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
 

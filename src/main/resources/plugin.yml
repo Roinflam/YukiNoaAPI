@@ -1,7 +1,7 @@
 name: YukiNoaAPI
 main: pers.tany.yukinoaapi.Main
-version: '3.0.0'
-author: tany
+version: '3.0.1'
+author: Roinflam
 softdepend: [ NBTAPI,Vault,ProtocolLib ]
 description: 结城希亚的专属开发库
 api-version: 1.13
@@ -10,3 +10,6 @@ commands:
   YukiNoaAPI:
     usage: /YukiNoaAPI
     aliases: [ yn,ynapi ]
+  Hologram:
+    usage: /hologram
+    aliases: [holo, ynhd]

@@ -1,16 +1,13 @@
 package pers.tany.yukinoaapi.interfacepart.jsonText;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.HoverEvent.Action;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import pers.tany.yukinoaapi.interfacepart.other.IString;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Bungee消息接口
@@ -142,53 +139,6 @@ public interface IBungee {
 
         TextComponent all = buildPartMessage(message, part, changeMessage, (parts) -> {
             parts.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, url));
-            parts.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
-                    (new ComponentBuilder(IString.color(showMessage))).create()));
-        });
-
-        sendComponent(player, all);
-    }
-
-    // ========================================
-    // 复制文本相关方法（新增）
-    // ========================================
-
-    /**
-     * 发送点击复制文本的消息（带悬停提示）
-     *
-     * @param player      接收玩家（null表示广播）
-     * @param message     显示的消息
-     * @param showMessage 悬停时显示的内容
-     * @param copyText    要复制的文本
-     */
-    static void sendCopyMessage(@Nullable Player player, String message, String showMessage, String copyText) {
-        TextComponent send = new TextComponent(IString.color(message));
-        send.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, copyText));
-        send.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
-                (new ComponentBuilder(IString.color(showMessage))).create()));
-
-        sendComponent(player, send);
-    }
-
-    /**
-     * 发送部分文本点击复制的消息
-     *
-     * @param player        接收玩家（null表示广播）
-     * @param message       完整消息
-     * @param part          需要替换的部分（占位符）
-     * @param changeMessage 替换后显示的文本
-     * @param showMessage   悬停时显示的内容
-     * @param copyText      要复制的文本
-     */
-    static void sendPartCopyMessage(@Nullable Player player, String message, String part,
-                                    @Nonnull String changeMessage, String showMessage, String copyText) {
-        if (!message.contains(part)) {
-            sendSimpleMessage(player, message);
-            return;
-        }
-
-        TextComponent all = buildPartMessage(message, part, changeMessage, (parts) -> {
-            parts.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, copyText));
             parts.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
                     (new ComponentBuilder(IString.color(showMessage))).create()));
         });
@@ -423,7 +373,9 @@ public interface IBungee {
      */
     static void sendComponent(@Nullable Player player, BaseComponent component) {
         if (player == null) {
-            Bukkit.getServer().spigot().broadcast(component);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.spigot().sendMessage(component);
+            }
         } else {
             player.spigot().sendMessage(component);
         }

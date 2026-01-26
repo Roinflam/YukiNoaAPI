@@ -3,9 +3,12 @@ package pers.tany.yukinoaapi;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import pers.tany.yukinoaapi.bstats.Metrics;
 import pers.tany.yukinoaapi.command.DebugCommands;
+import pers.tany.yukinoaapi.command.HologramCommands;
 import pers.tany.yukinoaapi.config.ConfigManager;
 import pers.tany.yukinoaapi.config.LanguageManager;
+import pers.tany.yukinoaapi.hologram.HologramManager;
 import pers.tany.yukinoaapi.interfacepart.register.IRegister;
 import pers.tany.yukinoaapi.listenevent.DebugEvent;
 import pers.tany.yukinoaapi.realizationpart.item.GlassPaneUtil;
@@ -19,7 +22,7 @@ import javax.annotation.Nullable;
 
 /**
  * YukiNoaAPI 主类
- * 插件的入口点，负责初始化所有模块和功能
+ * 插件的入口点,负责初始化所有模块和功能
  *
  * @author tany
  * @since 3.0.0
@@ -47,11 +50,22 @@ public class Main extends JavaPlugin {
      */
     private LanguageManager languageManager;
 
+    /** bStats统计对象 */
+    private Metrics metrics;
+
+    /** bStats服务ID */
+    private static final int BSTATS_PLUGIN_ID = 28590;
+
     /**
      * 插件禁用时调用
      */
     @Override
     public void onDisable() {
+        // 关闭全息图管理器
+        if (HologramManager.getInstance() != null) {
+            HologramManager.getInstance().shutdown();
+        }
+
         if (languageManager != null) {
             LogUtil.warning(languageManager.getMessage("main.disabled"));
         }
@@ -102,6 +116,13 @@ public class Main extends JavaPlugin {
         // 初始化事件监听器
         PlayerEatFood.getInstance();
 
+        // 初始化bStats统计
+        metrics = new Metrics(this, BSTATS_PLUGIN_ID);
+
+        // ==================== 全息图系统初始化 ====================
+        HologramManager.getInstance();
+        IRegister.registerCommands(this, "hologram", new HologramCommands());
+
         LogUtil.debug(languageManager.getMessage("main.init-complete"));
     }
 
@@ -110,6 +131,11 @@ public class Main extends JavaPlugin {
      */
     public static void reload() {
         Main instance = (Main) plugin;
+
+        // 保存并重载全息图
+        if (HologramManager.getInstance() != null) {
+            HologramManager.getInstance().saveHolograms();
+        }
 
         // 重载配置
         if (instance.configManager != null) {

@@ -72,8 +72,6 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
         Player player = (Player) sender;
         String playerName = player.getName();
 
-        IMessage.sendActionBar(player, "§6666", 5);
-
         if (DEBUG.contains(playerName)) {
             DEBUG.remove(playerName);
             player.sendMessage(lang.getMessage("debug.disabled"));

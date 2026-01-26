@@ -115,3 +115,55 @@ inventory:
 vault:
   economy-not-found: "§c▸ §7未找到 Vault 经济系统"
   economy-found: "§b▸ §7Vault 经济系统已加载"
+
+# ==================== Hologram System ====================
+hologram:
+  mode: "§b▸ §7Hologram mode §f{0}"
+  loaded: "§b▸ §7Loaded §f{0} §7holograms"
+  init-success: "§b▸ §7Hologram system initialized"
+  shutdown: "§b▸ §7Hologram system shutdown"
+
+  created: "§b✔ §7Created hologram §f{0}"
+  deleted: "§b✔ §7Deleted hologram §f{0}"
+  cleared: "§b✔ §7Cleared all lines from §f{0}"
+  not-found: "§c✘ §7Hologram not found: §f{0}"
+
+  line-added: "§b✔ §7Added line to §f{0}§8: §7{1}"
+  line-set: "§b✔ §7Set line §f{1} §7of §f{0}§8: §7{2}"
+  line-removed: "§b✔ §7Removed line §f{1} §7from §f{0}"
+  line-inserted: "§b✔ §7Inserted line §f{1} §7into §f{0}§8: §7{2}"
+
+  invalid-number: "§c✘ §7Invalid number"
+  teleported: "§b✔ §7Teleported to hologram §f{0}"
+
+  list-title: "§8▸═════ §bHologram List §8═════▸"
+  list-empty: "§7  No holograms"
+  list-entry: "§8  • §f{0} §8| §7{1} lines §8| {2}"
+
+  info-title: "§8▸═════ §b{0} §7Info §8═════▸"
+  info-location: "§8  ▸ §7Location§8: §f{0} §8(§f{1}§8, §f{2}§8, §f{3}§8)"
+  info-lines: "§8  ▸ §7Lines§8: §f{0}"
+  info-content: "§8  ▸ §7Content§8:"
+  info-line: "§8    §7[§f{0}§7] §r{1}"
+
+  help-title: "§8▸═════ §b§lHologram Commands §8═════▸"
+  help-create: "§b  /hologram create <id> §8- §7Create hologram at current location"
+  help-delete: "§b  /hologram delete <id> §8- §7Delete hologram"
+  help-addline: "§b  /hologram addline <id> <text> §8- §7Add a line (supports & colors, &u rainbow)"
+  help-setline: "§b  /hologram setline <id> <index> <text> §8- §7Set specific line"
+  help-removeline: "§b  /hologram removeline <id> <index> §8- §7Remove specific line"
+  help-insertline: "§b  /hologram insertline <id> <index> <text> §8- §7Insert a line"
+  help-clear: "§b  /hologram clear <id> §8- §7Clear all lines"
+  help-list: "§b  /hologram list §8- §7List all holograms"
+  help-info: "§b  /hologram info <id> §8- §7View hologram info"
+  help-teleport: "§b  /hologram teleport <id> §8- §7Teleport to hologram"
+
+  usage-create: "§cUsage§8: §7/hologram create <id>"
+  usage-delete: "§cUsage§8: §7/hologram delete <id>"
+  usage-addline: "§cUsage§8: §7/hologram addline <id> <text>"
+  usage-setline: "§cUsage§8: §7/hologram setline <id> <index> <text>"
+  usage-removeline: "§cUsage§8: §7/hologram removeline <id> <index>"
+  usage-insertline: "§cUsage§8: §7/hologram insertline <id> <index> <text>"
+  usage-clear: "§cUsage§8: §7/hologram clear <id>"
+  usage-info: "§cUsage§8: §7/hologram info <id>"
+  usage-teleport: "§cUsage§8: §7/hologram teleport <id>"
