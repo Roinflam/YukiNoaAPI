@@ -5,6 +5,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.config.LanguageManager;
 import pers.tany.yukinoaapi.hologram.HologramManager;
@@ -73,6 +74,9 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
             case "tp":
                 handleTeleport(player, args, lang);
                 break;
+            case "reload":
+                handleReload(player, lang);
+                break;
             default:
                 sendHelp(player, lang);
                 break;
@@ -82,7 +86,10 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * 处理创建命令
+     * 处理创建命令（支持多行文本,使用 | 分隔）
+     * 用法：/hologram create <id> [行1 | 行2 | 行3 ...]
+     *
+     * 多行创建时，每5 tick添加一行，避免一次性创建导致的显示bug
      */
     private void handleCreate(Player player, String[] args, LanguageManager lang) {
         if (args.length < 2) {
@@ -92,14 +99,79 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
         String id = args[1];
 
-        // 使用玩家眼睛高度作为全息图起始位置（玩家上半身）
+        // 检查全息图是否已存在
+        if (HologramManager.getInstance().getHologram(id) != null) {
+            player.sendMessage(lang.getMessage("hologram.already-exists", id));
+            return;
+        }
+
+        // 使用玩家眼睛高度作为全息图起始位置
         IHologram hologram = HologramManager.getInstance().createHologram(
                 id,
-                player.getEyeLocation()
+                player.getEyeLocation(),
+                null // 先不添加文本
         );
-        hologram.show();
 
-        player.sendMessage(lang.getMessage("hologram.created", id));
+        // 解析多行文本（如果提供）
+        if (args.length > 2) {
+            // 合并所有参数为一个字符串
+            String fullText = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+
+            // 使用 | 分隔多行
+            String[] lines = fullText.split("\\|");
+
+            // 过滤空行并收集所有有效行
+            List<String> validLines = new ArrayList<>();
+            for (String line : lines) {
+                String trimmedLine = line.trim();
+                if (!trimmedLine.isEmpty()) {
+                    validLines.add(trimmedLine);
+                }
+            }
+
+            // 如果没有有效行，创建空全息图
+            if (validLines.isEmpty()) {
+                hologram.show();
+                player.sendMessage(lang.getMessage("hologram.created"));
+                return;
+            }
+
+            // 使用定时任务逐行添加（每5 tick添加一行）
+            new BukkitRunnable() {
+                /** 当前添加到第几行 */
+                private int currentIndex = 0;
+
+                @Override
+                public void run() {
+                    // 如果全息图已被删除，取消任务
+                    if (hologram.isDeleted()) {
+                        cancel();
+                        return;
+                    }
+
+                    // 如果所有行都已添加完成
+                    if (currentIndex >= validLines.size()) {
+                        // 保存数据
+                        HologramManager.getInstance().saveHolograms();
+
+                        // 发送完成消息
+                        player.sendMessage(lang.getMessage("hologram.created-with-lines"));
+
+                        cancel();
+                        return;
+                    }
+
+                    // 添加当前行（会自动调用show和updateAllPositions）
+                    hologram.appendLine(validLines.get(currentIndex));
+                    currentIndex++;
+                }
+            }.runTaskTimer(Main.plugin, 0L, 5L); // 立即开始，每5 tick执行一次
+
+        } else {
+            // 没有提供初始文本，创建空全息图
+            hologram.show();
+            player.sendMessage(lang.getMessage("hologram.created"));
+        }
     }
 
     /**
@@ -172,7 +244,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
             hologram.setLine(index, text);
             HologramManager.getInstance().saveHolograms();
 
-            player.sendMessage(lang.getMessage("hologram.line-set", id, index, text));
+            player.sendMessage(lang.getMessage("hologram.line-set", id, String.valueOf(index), text));
         } catch (NumberFormatException e) {
             player.sendMessage(lang.getMessage("hologram.invalid-number"));
         }
@@ -200,7 +272,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
             hologram.removeLine(index);
             HologramManager.getInstance().saveHolograms();
 
-            player.sendMessage(lang.getMessage("hologram.line-removed", id, index));
+            player.sendMessage(lang.getMessage("hologram.line-removed", id, String.valueOf(index)));
         } catch (NumberFormatException e) {
             player.sendMessage(lang.getMessage("hologram.invalid-number"));
         }
@@ -230,7 +302,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
             hologram.insertLine(index, text);
             HologramManager.getInstance().saveHolograms();
 
-            player.sendMessage(lang.getMessage("hologram.line-inserted", id, index, text));
+            player.sendMessage(lang.getMessage("hologram.line-inserted", id, String.valueOf(index), text));
         } catch (NumberFormatException e) {
             player.sendMessage(lang.getMessage("hologram.invalid-number"));
         }
@@ -271,10 +343,11 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
         }
 
         for (IHologram hologram : HologramManager.getInstance().getAllHolograms()) {
+            String status = hologram.isShown() ? "§a✔" : "§c✘";
             player.sendMessage(lang.getMessage("hologram.list-entry",
                     hologram.getId(),
-                    hologram.size(),
-                    hologram.isShown() ? "§a✔" : "§c✘"
+                    String.valueOf(hologram.size()),
+                    status
             ));
         }
     }
@@ -299,17 +372,17 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
         player.sendMessage(lang.getMessage("hologram.info-title", id));
         player.sendMessage(lang.getMessage("hologram.info-location",
                 hologram.getLocation().getWorld().getName(),
-                hologram.getLocation().getBlockX(),
-                hologram.getLocation().getBlockY(),
-                hologram.getLocation().getBlockZ()
+                String.valueOf(hologram.getLocation().getBlockX()),
+                String.valueOf(hologram.getLocation().getBlockY()),
+                String.valueOf(hologram.getLocation().getBlockZ())
         ));
-        player.sendMessage(lang.getMessage("hologram.info-lines", hologram.size()));
+        player.sendMessage(lang.getMessage("hologram.info-lines", String.valueOf(hologram.size())));
 
         if (hologram.size() > 0) {
             player.sendMessage(lang.getMessage("hologram.info-content"));
             List<String> lines = hologram.getLines();
             for (int i = 0; i < lines.size(); i++) {
-                player.sendMessage(lang.getMessage("hologram.info-line", i, lines.get(i)));
+                player.sendMessage(lang.getMessage("hologram.info-line", String.valueOf(i), lines.get(i)));
             }
         }
     }
@@ -336,6 +409,18 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
     }
 
     /**
+     * 处理重载命令
+     */
+    private void handleReload(Player player, LanguageManager lang) {
+        try {
+            HologramManager.getInstance().reload();
+            player.sendMessage(lang.getMessage("hologram.reload-success"));
+        } catch (Exception e) {
+            player.sendMessage(lang.getMessage("hologram.reload-fail"));
+        }
+    }
+
+    /**
      * 发送帮助信息
      */
     private void sendHelp(Player player, LanguageManager lang) {
@@ -350,6 +435,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
         player.sendMessage(lang.getMessage("hologram.help-list"));
         player.sendMessage(lang.getMessage("hologram.help-info"));
         player.sendMessage(lang.getMessage("hologram.help-teleport"));
+        player.sendMessage(lang.getMessage("hologram.help-reload"));
     }
 
     @Override
@@ -359,7 +445,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             List<String> subs = Arrays.asList(
                     "create", "delete", "addline", "setline", "removeline",
-                    "insertline", "clear", "list", "info", "teleport"
+                    "insertline", "clear", "list", "info", "teleport", "reload"
             );
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

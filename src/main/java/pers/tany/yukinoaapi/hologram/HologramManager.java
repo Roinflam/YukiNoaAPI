@@ -1,22 +1,21 @@
+// 文件：HologramManager.java
+// 路径：src/main/java/pers/tany/yukinoaapi/hologram/HologramManager.java
 package pers.tany.yukinoaapi.hologram;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.hologram.impl.HolographicDisplaysHologram;
 import pers.tany.yukinoaapi.hologram.impl.NativeHologram;
 import pers.tany.yukinoaapi.util.LogUtil;
 import pers.tany.yukinoaapi.util.NMSUtil;
 
-import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -41,8 +40,11 @@ public class HologramManager implements Listener {
     /** 是否使用HD插件 */
     private final boolean useHD;
 
-    /** 存储文件 */
-    private File dataFile;
+    /** 数据管理器 */
+    private HologramDataManager dataManager;
+
+    /** 是否已加载完成 */
+    private boolean loaded = false;
 
     /**
      * 私有构造函数
@@ -55,8 +57,8 @@ public class HologramManager implements Listener {
         this.useHD = !NMSUtil.isVersionAtLeast(12) &&
                 Bukkit.getPluginManager().getPlugin("HolographicDisplays") != null;
 
-        // 初始化存储
-        initStorage();
+        // 初始化数据管理器
+        this.dataManager = new HologramDataManager((Main) plugin);
 
         // 注册事件
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -65,6 +67,15 @@ public class HologramManager implements Listener {
                 "hologram.mode",
                 useHD ? "HolographicDisplays" : "Native (1.12+)"
         ));
+
+        // 延迟加载全息图（等待所有世界加载完成）
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                loadHolograms();
+                loaded = true;
+            }
+        }.runTaskLater(plugin, 20L); // 延迟1秒（20 tick）
     }
 
     /**
@@ -78,17 +89,16 @@ public class HologramManager implements Listener {
     }
 
     /**
-     * 初始化存储
-     */
-    private void initStorage() {
-        dataFile = new File(plugin.getDataFolder(), "holograms.yml");
-        loadHolograms();
-    }
-
-    /**
      * 创建全息图
      */
     public IHologram createHologram(String id, Location location) {
+        return createHologram(id, location, null);
+    }
+
+    /**
+     * 创建全息图（带初始文本）
+     */
+    public IHologram createHologram(String id, Location location, String initialText) {
         if (holograms.containsKey(id)) {
             LogUtil.warning("全息图ID已存在: " + id);
             return holograms.get(id);
@@ -101,6 +111,14 @@ public class HologramManager implements Listener {
         } else {
             hologram = new NativeHologram(id, location);
         }
+
+        // 添加初始文本
+        if (initialText != null && !initialText.isEmpty()) {
+            hologram.appendLine(initialText);
+        }
+
+        // 显示全息图
+        hologram.show();
 
         holograms.put(id, hologram);
         saveHolograms();
@@ -122,7 +140,7 @@ public class HologramManager implements Listener {
         IHologram hologram = holograms.remove(id);
         if (hologram != null) {
             hologram.delete();
-            saveHolograms();
+            dataManager.deleteHologram(id);
         }
     }
 
@@ -137,87 +155,69 @@ public class HologramManager implements Listener {
      * 保存所有全息图
      */
     public void saveHolograms() {
-        try {
-            YamlConfiguration config = new YamlConfiguration();
-
-            for (Map.Entry<String, IHologram> entry : holograms.entrySet()) {
-                IHologram hologram = entry.getValue();
-                if (hologram.isDeleted()) continue;
-
-                ConfigurationSection section = config.createSection(entry.getKey());
-                Location loc = hologram.getLocation();
-
-                section.set("world", loc.getWorld().getName());
-                section.set("x", loc.getX());
-                section.set("y", loc.getY());
-                section.set("z", loc.getZ());
-                section.set("lines", hologram.getLines());
-            }
-
-            config.save(dataFile);
-        } catch (Exception e) {
-            LogUtil.error("保存全息图数据失败", e);
-        }
+        dataManager.saveAll(holograms);
     }
 
     /**
      * 加载所有全息图
      */
-    public void loadHolograms() {
-        if (!dataFile.exists()) {
+    private void loadHolograms() {
+        // 在原生模式下，先清理上次崩溃/异常关闭遗留的孤儿盔甲架
+        // HolographicDisplays 会自动处理，不需要清理
+        if (!useHD) {
+            LogUtil.debug("开始清理孤儿全息图盔甲架...");
+            NativeHologram.cleanupAllOrphanedStands();
+        }
+
+        Map<String, HologramDataManager.HologramData> dataMap = dataManager.loadAllHolograms();
+
+        if (dataMap.isEmpty()) {
+            LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.no-data"
+            ));
             return;
         }
 
-        try {
-            YamlConfiguration config = YamlConfiguration.loadConfiguration(dataFile);
+        int successCount = 0;
 
-            for (String id : config.getKeys(false)) {
-                ConfigurationSection section = config.getConfigurationSection(id);
-                if (section == null) continue;
-
-                String worldName = section.getString("world");
-                World world = Bukkit.getWorld(worldName);
-                if (world == null) {
-                    LogUtil.warning("世界不存在，跳过全息图: " + id + " (世界: " + worldName + ")");
+        for (HologramDataManager.HologramData data : dataMap.values()) {
+            try {
+                // 检查是否已存在（避免重复加载）
+                if (holograms.containsKey(data.getId())) {
+                    LogUtil.warning("全息图已存在，跳过: " + data.getId());
                     continue;
                 }
 
-                double x = section.getDouble("x");
-                double y = section.getDouble("y");
-                double z = section.getDouble("z");
-                Location location = new Location(world, x, y, z);
-
-                List<String> lines = section.getStringList("lines");
-
-                // 直接创建全息图对象，不调用 createHologram 避免触发保存
+                // 创建全息图对象
                 IHologram hologram;
                 if (useHD) {
-                    hologram = new HolographicDisplaysHologram(id, location, plugin);
+                    hologram = new HolographicDisplaysHologram(data.getId(), data.getLocation(), plugin);
                 } else {
-                    hologram = new NativeHologram(id, location);
+                    hologram = new NativeHologram(data.getId(), data.getLocation());
                 }
 
-                // 添加所有行
-                for (String line : lines) {
+                // 添加所有行（此时 shown=false，不会生成盔甲架）
+                for (String line : data.getLines()) {
                     hologram.appendLine(line);
                 }
 
-                // 显示全息图
+                // 显示全息图（一次性生成所有盔甲架）
                 hologram.show();
 
                 // 添加到管理器
-                holograms.put(id, hologram);
+                holograms.put(data.getId(), hologram);
 
-                LogUtil.debug("加载全息图: " + id + " (" + lines.size() + " 行)");
+                successCount++;
+                LogUtil.debug("加载全息图: " + data.getId() + " (" + data.getLines().size() + " 行)");
+            } catch (Exception e) {
+                LogUtil.error("加载全息图失败: " + data.getId(), e);
             }
-
-            LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
-                    "hologram.loaded",
-                    holograms.size()
-            ));
-        } catch (Exception e) {
-            LogUtil.error("加载全息图数据失败", e);
         }
+
+        LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
+                "hologram.loaded",
+                successCount
+        ));
     }
 
     /**
@@ -226,11 +226,15 @@ public class HologramManager implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         // 原生实现需要重新显示全息图
-        if (!useHD) {
+        if (!useHD && loaded) {
+            int chunkX = event.getChunk().getX();
+            int chunkZ = event.getChunk().getZ();
+
             for (IHologram hologram : holograms.values()) {
                 Location loc = hologram.getLocation();
-                if (loc.getWorld().equals(event.getWorld()) &&
-                        loc.getChunk().equals(event.getChunk()) &&
+                if (loc.getWorld() != null &&
+                        loc.getWorld().equals(event.getWorld()) &&
+                        isInChunk(loc, chunkX, chunkZ) &&
                         !hologram.isShown()) {
                     hologram.show();
                 }
@@ -244,16 +248,34 @@ public class HologramManager implements Listener {
     @EventHandler
     public void onChunkUnload(ChunkUnloadEvent event) {
         // 原生实现需要隐藏全息图
-        if (!useHD) {
+        if (!useHD && loaded) {
+            int chunkX = event.getChunk().getX();
+            int chunkZ = event.getChunk().getZ();
+
             for (IHologram hologram : holograms.values()) {
                 Location loc = hologram.getLocation();
-                if (loc.getWorld().equals(event.getWorld()) &&
-                        loc.getChunk().equals(event.getChunk()) &&
+                if (loc.getWorld() != null &&
+                        loc.getWorld().equals(event.getWorld()) &&
+                        isInChunk(loc, chunkX, chunkZ) &&
                         hologram.isShown()) {
                     hologram.hide();
                 }
             }
         }
+    }
+
+    /**
+     * 检查位置是否在指定区块内
+     *
+     * @param location 位置
+     * @param chunkX   区块X坐标
+     * @param chunkZ   区块Z坐标
+     * @return 是否在区块内
+     */
+    private boolean isInChunk(Location location, int chunkX, int chunkZ) {
+        int locChunkX = location.getBlockX() >> 4;
+        int locChunkZ = location.getBlockZ() >> 4;
+        return locChunkX == chunkX && locChunkZ == chunkZ;
     }
 
     /**
@@ -267,6 +289,7 @@ public class HologramManager implements Listener {
         }
 
         holograms.clear();
+        loaded = false;
     }
 
     /**
@@ -274,5 +297,31 @@ public class HologramManager implements Listener {
      */
     public boolean isUsingHD() {
         return useHD;
+    }
+
+    /**
+     * 重载数据
+     */
+    public void reload() {
+        // 隐藏并清空现有全息图
+        for (IHologram hologram : holograms.values()) {
+            hologram.hide();
+        }
+        holograms.clear();
+
+        // 原生模式下重新清理孤儿盔甲架
+        if (!useHD) {
+            LogUtil.debug("重载时清理孤儿全息图盔甲架...");
+            NativeHologram.cleanupAllOrphanedStands();
+        }
+
+        // 重新加载数据
+        dataManager.reload();
+        loadHolograms();
+
+        LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
+                "hologram.reloaded",
+                holograms.size()
+        ));
     }
 }

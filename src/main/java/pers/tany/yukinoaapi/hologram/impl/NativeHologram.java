@@ -2,6 +2,7 @@ package pers.tany.yukinoaapi.hologram.impl;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -28,7 +29,7 @@ public class NativeHologram implements IHologram {
     /** 全息图ID */
     private final String id;
 
-    /** 基础位置 */
+    /** 基础位置（中心点）*/
     private Location location;
 
     /** 文本行列表（原始文本，包含 &u 等标记）*/
@@ -49,8 +50,11 @@ public class NativeHologram implements IHologram {
     /** 是否已删除 */
     private boolean deleted;
 
-    /** 行间距（格） */
+    /** 行间距（格）*/
     private static final double LINE_HEIGHT = 0.25;
+
+    /** 全息图盔甲架标记前缀 */
+    private static final String HOLOGRAM_TAG = "YukiNoaAPI_Hologram";
 
     /**
      * 构造函数
@@ -63,6 +67,35 @@ public class NativeHologram implements IHologram {
         this.rainbowProcessors = new HashMap<>();
         this.shown = false;
         this.deleted = false;
+    }
+
+    /**
+     * 清理所有孤儿盔甲架
+     */
+    public static void cleanupAllOrphanedStands() {
+        int cleanedCount = 0;
+
+        for (World world : Bukkit.getWorlds()) {
+            List<ArmorStand> orphanedStands = new ArrayList<>();
+
+            for (org.bukkit.entity.Entity entity : world.getEntities()) {
+                if (entity instanceof ArmorStand) {
+                    ArmorStand stand = (ArmorStand) entity;
+                    if (stand.getScoreboardTags().contains(HOLOGRAM_TAG)) {
+                        orphanedStands.add(stand);
+                    }
+                }
+            }
+
+            for (ArmorStand stand : orphanedStands) {
+                stand.remove();
+                cleanedCount++;
+            }
+        }
+
+        if (cleanedCount > 0) {
+            LogUtil.info("清理了 " + cleanedCount + " 个孤儿全息图盔甲架");
+        }
     }
 
     @Override
@@ -85,9 +118,7 @@ public class NativeHologram implements IHologram {
         this.location = location.clone();
 
         if (shown) {
-            // 重新生成所有盔甲架
-            hide();
-            show();
+            updateAllPositions();
         }
     }
 
@@ -106,11 +137,8 @@ public class NativeHologram implements IHologram {
         }
 
         lines.set(index, text);
-
-        // 更新彩虹处理器
         updateRainbowProcessor(index, text);
 
-        // 更新对应的盔甲架
         if (shown && index < armorStands.size()) {
             updateArmorStandText(index);
         }
@@ -122,16 +150,13 @@ public class NativeHologram implements IHologram {
 
         int index = lines.size();
         lines.add(text);
-
-        // 更新彩虹处理器
         updateRainbowProcessor(index, text);
 
         if (shown) {
-            // 创建新的盔甲架
+            updateAllPositions();
             spawnArmorStand(index, text);
         }
 
-        // 启动彩虹任务（如果需要）
         checkRainbowTask();
     }
 
@@ -147,12 +172,10 @@ public class NativeHologram implements IHologram {
         lines.add(index, text);
 
         if (shown) {
-            // 重新生成所有盔甲架
             hide();
             show();
         }
 
-        // 重建彩虹处理器
         rebuildRainbowProcessors();
         checkRainbowTask();
     }
@@ -169,12 +192,10 @@ public class NativeHologram implements IHologram {
         lines.remove(index);
 
         if (shown) {
-            // 重新生成所有盔甲架
             hide();
             show();
         }
 
-        // 重建彩虹处理器
         rebuildRainbowProcessors();
         checkRainbowTask();
     }
@@ -207,20 +228,16 @@ public class NativeHologram implements IHologram {
             return;
         }
 
-        // 确保在主线程中执行
         if (!Bukkit.isPrimaryThread()) {
             Bukkit.getScheduler().runTask(Main.plugin, this::show);
             return;
         }
 
-        // 生成所有盔甲架
         for (int i = 0; i < lines.size(); i++) {
             spawnArmorStand(i, lines.get(i));
         }
 
         shown = true;
-
-        // 启动彩虹更新任务
         checkRainbowTask();
     }
 
@@ -228,10 +245,8 @@ public class NativeHologram implements IHologram {
     public void hide() {
         if (!shown) return;
 
-        // 停止彩虹任务
         stopRainbowTask();
 
-        // 移除所有盔甲架
         for (ArmorStand stand : armorStands) {
             if (stand != null && !stand.isDead()) {
                 stand.remove();
@@ -250,7 +265,6 @@ public class NativeHologram implements IHologram {
     @Override
     public void delete() {
         if (deleted) return;
-
         hide();
         deleted = true;
     }
@@ -261,35 +275,75 @@ public class NativeHologram implements IHologram {
     }
 
     /**
-     * 生成盔甲架
+     * 计算居中后的Y坐标
+     *
+     * @param index 行索引
+     * @return 居中后的Y坐标
+     */
+    private double calculateCenteredY(int index) {
+        int totalLines = lines.size();
+        double halfHeight = (totalLines - 1) * LINE_HEIGHT / 2.0;
+        return location.getY() + halfHeight - (index * LINE_HEIGHT);
+    }
+
+    /**
+     * 更新所有盔甲架的位置
+     */
+    private void updateAllPositions() {
+        if (!shown || location.getWorld() == null) return;
+
+        if (!Bukkit.isPrimaryThread()) {
+            Bukkit.getScheduler().runTask(Main.plugin, this::updateAllPositions);
+            return;
+        }
+
+        for (int i = 0; i < armorStands.size(); i++) {
+            ArmorStand stand = armorStands.get(i);
+            if (stand != null && !stand.isDead()) {
+                double centeredY = calculateCenteredY(i);
+                Location newLoc = new Location(
+                        location.getWorld(),
+                        location.getX(),
+                        centeredY,
+                        location.getZ()
+                );
+                stand.teleport(newLoc);
+            }
+        }
+    }
+
+    /**
+     * 生成盔甲架（在临时位置生成，设置好属性后再传送到目标位置）
+     *
+     * @param index 行索引
+     * @param text  文本内容
      */
     private void spawnArmorStand(int index, String text) {
         if (location.getWorld() == null) return;
 
-        // 计算Y坐标（从上往下）
-        double y = location.getY() - (index * LINE_HEIGHT);
-        Location spawnLoc = new Location(
+        // 1. 先在临时位置生成（使用虚空位置，玩家看不到）
+        Location tempLoc = new Location(
                 location.getWorld(),
                 location.getX(),
-                y,
+                -100,  // 使用虚空位置，避免玩家看到盔甲架闪现
                 location.getZ()
         );
 
-        // 在主线程中生成
         ArmorStand stand = (ArmorStand) location.getWorld().spawnEntity(
-                spawnLoc,
+                tempLoc,
                 EntityType.ARMOR_STAND
         );
 
-        // 先设置所有基础属性（避免闪现）
+        // 2. 立即设置所有属性
         stand.setGravity(false);
-        stand.setVisible(false);        // 隐形
-        stand.setSmall(true);            // 小型
-        stand.setBasePlate(false);       // 无底板
-        stand.setArms(false);            // 无手臂
-        stand.setRemoveWhenFarAway(false); // 不会因距离远而移除
+        stand.setVisible(false);
+        stand.setBasePlate(false);
+        stand.setArms(false);
+        stand.setRemoveWhenFarAway(false);
 
-        // 1.8.3+ 设置为标记（无碰撞箱）
+        stand.addScoreboardTag(HOLOGRAM_TAG);
+        stand.addScoreboardTag("Hologram_" + id);
+
         if (NMSUtil.isVersionAtLeast(8)) {
             try {
                 stand.setMarker(true);
@@ -297,7 +351,6 @@ public class NativeHologram implements IHologram {
             }
         }
 
-        // 1.9+ 设置无敌
         if (NMSUtil.isVersionAtLeast(9)) {
             try {
                 stand.setInvulnerable(true);
@@ -305,7 +358,6 @@ public class NativeHologram implements IHologram {
             }
         }
 
-        // 1.10+ 禁用AI
         if (NMSUtil.isVersionAtLeast(10)) {
             try {
                 stand.setAI(false);
@@ -313,7 +365,6 @@ public class NativeHologram implements IHologram {
             }
         }
 
-        // 1.12+ 设置沉默（不发出声音）
         if (NMSUtil.isVersionAtLeast(12)) {
             try {
                 stand.setSilent(true);
@@ -321,23 +372,30 @@ public class NativeHologram implements IHologram {
             }
         }
 
-        // 延迟1 tick设置文本（避免闪现）
-        final int finalIndex = index;
-        Bukkit.getScheduler().runTaskLater(Main.plugin, () -> {
-            if (!stand.isDead()) {
-                updateArmorStandText(stand, finalIndex);
-            }
-        }, 1L);
+        // 3. 设置文本
+        updateArmorStandText(stand, index);
 
-        // 确保索引正确
+        // 4. 添加到列表
         while (armorStands.size() <= index) {
             armorStands.add(null);
         }
         armorStands.set(index, stand);
+
+        // 5. 最后传送到目标位置（此时属性已全部设置好）
+        double centeredY = calculateCenteredY(index);
+        Location targetLoc = new Location(
+                location.getWorld(),
+                location.getX(),
+                centeredY,
+                location.getZ()
+        );
+        stand.teleport(targetLoc);
     }
 
     /**
-     * 更新盔甲架文本
+     * 更新指定盔甲架的文本
+     *
+     * @param index 行索引
      */
     private void updateArmorStandText(int index) {
         if (index < 0 || index >= armorStands.size()) return;
@@ -349,19 +407,23 @@ public class NativeHologram implements IHologram {
     }
 
     /**
-     * 更新盔甲架文本
+     * 更新盔甲架的文本显示
+     *
+     * @param stand 盔甲架实体
+     * @param index 行索引
      */
     private void updateArmorStandText(ArmorStand stand, int index) {
+        if (index >= lines.size()) return;
+
         String text = lines.get(index);
         String displayText;
 
-        // 处理彩虹文本
         if (RainbowText.hasRainbow(text)) {
             RainbowText processor = rainbowProcessors.get(index);
             if (processor != null) {
                 displayText = processor.applyRainbow(text);
             } else {
-                displayText = text.replace("&u", "§c"); // 默认红色
+                displayText = text.replace("&u", "§c");
             }
         } else {
             displayText = text.replace("&", "§");
@@ -373,6 +435,9 @@ public class NativeHologram implements IHologram {
 
     /**
      * 更新彩虹处理器
+     *
+     * @param index 行索引
+     * @param text  文本内容
      */
     private void updateRainbowProcessor(int index, String text) {
         if (RainbowText.hasRainbow(text)) {
@@ -395,7 +460,7 @@ public class NativeHologram implements IHologram {
     }
 
     /**
-     * 检查并启动彩虹任务
+     * 检查是否需要启动或停止彩虹任务
      */
     private void checkRainbowTask() {
         if (!rainbowProcessors.isEmpty() && rainbowTask == null && shown) {
@@ -406,7 +471,7 @@ public class NativeHologram implements IHologram {
     }
 
     /**
-     * 启动彩虹更新任务
+     * 启动彩虹任务
      */
     private void startRainbowTask() {
         if (rainbowTask != null) return;
@@ -419,24 +484,21 @@ public class NativeHologram implements IHologram {
                     return;
                 }
 
-                // 更新所有彩虹处理器
                 for (RainbowText processor : rainbowProcessors.values()) {
                     processor.tick();
                 }
 
-                // 更新所有使用彩虹的盔甲架
                 for (int index : rainbowProcessors.keySet()) {
                     updateArmorStandText(index);
                 }
             }
         };
 
-        // 每 10 tick 更新一次（0.5秒，降低变化速度）
         rainbowTask.runTaskTimer(Main.plugin, 10L, 10L);
     }
 
     /**
-     * 停止彩虹更新任务
+     * 停止彩虹任务
      */
     private void stopRainbowTask() {
         if (rainbowTask != null) {

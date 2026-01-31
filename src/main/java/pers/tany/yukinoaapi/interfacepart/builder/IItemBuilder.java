@@ -1,11 +1,15 @@
 package pers.tany.yukinoaapi.interfacepart.builder;
 
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import pers.tany.yukinoaapi.realizationpart.builder.ItemBuilder;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 快速设置物品各项属性接口
@@ -141,6 +145,123 @@ public interface IItemBuilder {
      */
     ItemBuilder clearLore();
 
+    // ==================== 附魔相关方法 ====================
+
+    /**
+     * 添加附魔到物品
+     *
+     * @param enchantment 附魔类型
+     * @param level       附魔等级
+     * @return 修改后的对象
+     */
+    ItemBuilder addEnchant(@Nonnull Enchantment enchantment, int level);
+
+    /**
+     * 添加附魔到物品
+     *
+     * @param enchantment            附魔类型
+     * @param level                  附魔等级
+     * @param ignoreLevelRestriction 是否忽略等级限制
+     * @return 修改后的对象
+     */
+    ItemBuilder addEnchant(@Nonnull Enchantment enchantment, int level, boolean ignoreLevelRestriction);
+
+    /**
+     * 批量添加附魔
+     *
+     * @param enchantments 附魔映射（附魔类型 -> 等级）
+     * @return 修改后的对象
+     */
+    ItemBuilder addEnchants(@Nonnull Map<Enchantment, Integer> enchantments);
+
+    /**
+     * 批量添加附魔
+     *
+     * @param enchantments           附魔映射（附魔类型 -> 等级）
+     * @param ignoreLevelRestriction 是否忽略等级限制
+     * @return 修改后的对象
+     */
+    ItemBuilder addEnchants(@Nonnull Map<Enchantment, Integer> enchantments, boolean ignoreLevelRestriction);
+
+    /**
+     * 移除指定附魔
+     *
+     * @param enchantment 要移除的附魔类型
+     * @return 修改后的对象
+     */
+    ItemBuilder removeEnchant(@Nonnull Enchantment enchantment);
+
+    /**
+     * 清除所有附魔
+     *
+     * @return 修改后的对象
+     */
+    ItemBuilder clearEnchants();
+
+    /**
+     * 检查是否有指定附魔
+     *
+     * @param enchantment 附魔类型
+     * @return 如果有该附魔返回 true
+     */
+    boolean hasEnchant(@Nonnull Enchantment enchantment);
+
+    /**
+     * 获取指定附魔的等级
+     *
+     * @param enchantment 附魔类型
+     * @return 附魔等级，如果没有该附魔返回 0
+     */
+    int getEnchantLevel(@Nonnull Enchantment enchantment);
+
+    /**
+     * 获取所有附魔
+     *
+     * @return 附魔映射（附魔类型 -> 等级）
+     */
+    @Nonnull
+    Map<Enchantment, Integer> getEnchants();
+
+    /**
+     * 检查是否有任何附魔
+     *
+     * @return 如果有附魔返回 true
+     */
+    boolean hasEnchants();
+
+    /**
+     * 添加物品标志（1.8+）
+     * 用于隐藏附魔、属性等信息
+     *
+     * @param flags 物品标志
+     * @return 修改后的对象
+     */
+    ItemBuilder addItemFlags(@Nonnull ItemFlag... flags);
+
+    /**
+     * 移除物品标志（1.8+）
+     *
+     * @param flags 物品标志
+     * @return 修改后的对象
+     */
+    ItemBuilder removeItemFlags(@Nonnull ItemFlag... flags);
+
+    /**
+     * 隐藏所有物品信息（附魔、属性、破坏标志等）
+     * 需要 1.8+ 版本支持
+     *
+     * @return 修改后的对象
+     */
+    ItemBuilder hideAllFlags();
+
+    /**
+     * 设置物品为无法破坏（1.8+）
+     *
+     * @param unbreakable 是否无法破坏
+     * @return 修改后的对象
+     */
+    ItemBuilder setUnbreakable(boolean unbreakable);
+
     /**
      * 获得被建造模式对象修改后的物品
      *
@@ -148,4 +269,21 @@ public interface IItemBuilder {
      */
     @Nullable
     ItemStack getItemStack();
+
+    /**
+     * 构建物品并返回克隆副本
+     * 可以继续使用此建造器构建更多物品
+     *
+     * @return 物品副本，如果物品为空返回 null
+     */
+    @Nullable
+    ItemStack build();
+
+    /**
+     * 克隆当前建造器
+     *
+     * @return 新的建造器实例
+     */
+    @Nonnull
+    ItemBuilder clone();
 }

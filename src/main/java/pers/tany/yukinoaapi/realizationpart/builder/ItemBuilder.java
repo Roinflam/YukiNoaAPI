@@ -1,6 +1,8 @@
 package pers.tany.yukinoaapi.realizationpart.builder;
 
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import pers.tany.yukinoaapi.interfacepart.builder.IItemBuilder;
@@ -14,6 +16,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 物品建造器
@@ -264,6 +267,193 @@ public class ItemBuilder implements IItemBuilder {
         return this;
     }
 
+    // ==================== 附魔相关方法 ====================
+
+    /**
+     * 添加附魔到物品
+     *
+     * @param enchantment 附魔类型
+     * @param level       附魔等级
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder addEnchant(@Nonnull Enchantment enchantment, int level) {
+        itemMeta.addEnchant(enchantment, level, true);
+        return this;
+    }
+
+    /**
+     * 添加附魔到物品
+     *
+     * @param enchantment         附魔类型
+     * @param level               附魔等级
+     * @param ignoreLevelRestriction 是否忽略等级限制
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder addEnchant(@Nonnull Enchantment enchantment, int level, boolean ignoreLevelRestriction) {
+        itemMeta.addEnchant(enchantment, level, ignoreLevelRestriction);
+        return this;
+    }
+
+    /**
+     * 批量添加附魔
+     *
+     * @param enchantments 附魔映射（附魔类型 -> 等级）
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder addEnchants(@Nonnull Map<Enchantment, Integer> enchantments) {
+        for (Map.Entry<Enchantment, Integer> entry : enchantments.entrySet()) {
+            itemMeta.addEnchant(entry.getKey(), entry.getValue(), true);
+        }
+        return this;
+    }
+
+    /**
+     * 批量添加附魔
+     *
+     * @param enchantments           附魔映射（附魔类型 -> 等级）
+     * @param ignoreLevelRestriction 是否忽略等级限制
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder addEnchants(@Nonnull Map<Enchantment, Integer> enchantments, boolean ignoreLevelRestriction) {
+        for (Map.Entry<Enchantment, Integer> entry : enchantments.entrySet()) {
+            itemMeta.addEnchant(entry.getKey(), entry.getValue(), ignoreLevelRestriction);
+        }
+        return this;
+    }
+
+    /**
+     * 移除指定附魔
+     *
+     * @param enchantment 要移除的附魔类型
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder removeEnchant(@Nonnull Enchantment enchantment) {
+        itemMeta.removeEnchant(enchantment);
+        return this;
+    }
+
+    /**
+     * 清除所有附魔
+     *
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder clearEnchants() {
+        for (Enchantment enchantment : itemMeta.getEnchants().keySet()) {
+            itemMeta.removeEnchant(enchantment);
+        }
+        return this;
+    }
+
+    /**
+     * 检查是否有指定附魔
+     *
+     * @param enchantment 附魔类型
+     * @return 如果有该附魔返回 true
+     */
+    public boolean hasEnchant(@Nonnull Enchantment enchantment) {
+        return itemMeta.hasEnchant(enchantment);
+    }
+
+    /**
+     * 获取指定附魔的等级
+     *
+     * @param enchantment 附魔类型
+     * @return 附魔等级，如果没有该附魔返回 0
+     */
+    public int getEnchantLevel(@Nonnull Enchantment enchantment) {
+        return itemMeta.getEnchantLevel(enchantment);
+    }
+
+    /**
+     * 获取所有附魔
+     *
+     * @return 附魔映射（附魔类型 -> 等级）
+     */
+    @Nonnull
+    public Map<Enchantment, Integer> getEnchants() {
+        return itemMeta.getEnchants();
+    }
+
+    /**
+     * 检查是否有任何附魔
+     *
+     * @return 如果有附魔返回 true
+     */
+    public boolean hasEnchants() {
+        return itemMeta.hasEnchants();
+    }
+
+    /**
+     * 添加物品标志（1.8+）
+     * 用于隐藏附魔、属性等信息
+     *
+     * @param flags 物品标志
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder addItemFlags(@Nonnull ItemFlag... flags) {
+        try {
+            itemMeta.addItemFlags(flags);
+        } catch (NoSuchMethodError e) {
+            // 1.7 不支持 ItemFlag
+        }
+        return this;
+    }
+
+    /**
+     * 移除物品标志（1.8+）
+     *
+     * @param flags 物品标志
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder removeItemFlags(@Nonnull ItemFlag... flags) {
+        try {
+            itemMeta.removeItemFlags(flags);
+        } catch (NoSuchMethodError e) {
+            // 1.7 不支持 ItemFlag
+        }
+        return this;
+    }
+
+    /**
+     * 隐藏所有物品信息（附魔、属性、破坏标志等）
+     * 需要 1.8+ 版本支持
+     *
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder hideAllFlags() {
+        try {
+            itemMeta.addItemFlags(ItemFlag.values());
+        } catch (NoSuchMethodError e) {
+            // 1.7 不支持 ItemFlag
+        }
+        return this;
+    }
+
+    /**
+     * 设置物品为无法破坏（1.8+）
+     *
+     * @param unbreakable 是否无法破坏
+     * @return 当前建造器实例
+     */
+    @Nonnull
+    public ItemBuilder setUnbreakable(boolean unbreakable) {
+        try {
+            itemMeta.setUnbreakable(unbreakable);
+        } catch (NoSuchMethodError e) {
+            // 1.7 不支持 Unbreakable
+        }
+        return this;
+    }
+
     @Nullable
     @Override
     public ItemStack getItemStack() {
@@ -283,5 +473,19 @@ public class ItemBuilder implements IItemBuilder {
     public ItemStack build() {
         ItemStack result = getItemStack();
         return result != null ? result.clone() : null;
+    }
+
+    /**
+     * 克隆当前建造器
+     *
+     * @return 新的建造器实例
+     */
+    @Nonnull
+    public ItemBuilder clone() {
+        ItemStack item = getItemStack();
+        if (item != null) {
+            return new ItemBuilder(item);
+        }
+        return new ItemBuilder(Material.AIR);
     }
 }
