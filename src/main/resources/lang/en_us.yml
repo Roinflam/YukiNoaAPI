@@ -175,3 +175,18 @@ hologram:
   usage-clear: "§cUsage§8: §7/ynhd clear <id>"
   usage-info: "§cUsage§8: §7/ynhd info <id>"
   usage-teleport: "§cUsage§8: §7/ynhd teleport <id>"
+
+  # Cleanup related
+  cleanup-start: "Starting cleanup of orphaned hologram armor stands..."
+  cleanup-all: "Cleaned up {0} orphaned hologram armor stands"
+  cleanup-none: "No orphaned armor stands found"
+  cleanup-chunk: "Cleaned up {0} orphaned armor stands on chunk load (chunk: {1}, {2})"
+
+  # Error messages
+  teleport-deleted: "Attempted to teleport deleted hologram: {0}"
+  index-out-of-bounds: "Line index out of bounds: {0}"
+  world-null: "Hologram world is null: {0}"
+  id-exists: "Hologram ID already exists: {0}"
+  skip-exists: "Hologram already exists, skipping: {0}"
+  load-single: "Loaded hologram: {0} ({1} lines)"
+  load-fail: "Failed to load hologram: {0}"

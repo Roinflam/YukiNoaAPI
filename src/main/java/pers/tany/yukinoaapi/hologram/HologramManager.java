@@ -5,6 +5,7 @@ package pers.tany.yukinoaapi.hologram;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
@@ -16,7 +17,9 @@ import pers.tany.yukinoaapi.hologram.impl.NativeHologram;
 import pers.tany.yukinoaapi.util.LogUtil;
 import pers.tany.yukinoaapi.util.NMSUtil;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -48,6 +51,8 @@ public class HologramManager implements Listener {
 
     /**
      * 私有构造函数
+     *
+     * @param plugin 插件实例
      */
     private HologramManager(Plugin plugin) {
         this.plugin = plugin;
@@ -80,6 +85,8 @@ public class HologramManager implements Listener {
 
     /**
      * 获取单例
+     *
+     * @return HologramManager 实例
      */
     public static HologramManager getInstance() {
         if (instance == null) {
@@ -90,6 +97,10 @@ public class HologramManager implements Listener {
 
     /**
      * 创建全息图
+     *
+     * @param id       全息图唯一标识
+     * @param location 全息图位置
+     * @return 创建的全息图对象
      */
     public IHologram createHologram(String id, Location location) {
         return createHologram(id, location, null);
@@ -97,10 +108,18 @@ public class HologramManager implements Listener {
 
     /**
      * 创建全息图（带初始文本）
+     *
+     * @param id          全息图唯一标识
+     * @param location    全息图位置
+     * @param initialText 初始文本（可为null）
+     * @return 创建的全息图对象
      */
     public IHologram createHologram(String id, Location location, String initialText) {
         if (holograms.containsKey(id)) {
-            LogUtil.warning("全息图ID已存在: " + id);
+            LogUtil.warning(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.id-exists",
+                    id
+            ));
             return holograms.get(id);
         }
 
@@ -128,6 +147,9 @@ public class HologramManager implements Listener {
 
     /**
      * 获取全息图
+     *
+     * @param id 全息图唯一标识
+     * @return 全息图对象，不存在则返回null
      */
     public IHologram getHologram(String id) {
         return holograms.get(id);
@@ -135,6 +157,8 @@ public class HologramManager implements Listener {
 
     /**
      * 删除全息图
+     *
+     * @param id 全息图唯一标识
      */
     public void deleteHologram(String id) {
         IHologram hologram = holograms.remove(id);
@@ -146,6 +170,8 @@ public class HologramManager implements Listener {
 
     /**
      * 获取所有全息图
+     *
+     * @return 所有全息图的集合
      */
     public Collection<IHologram> getAllHolograms() {
         return new ArrayList<>(holograms.values());
@@ -165,7 +191,6 @@ public class HologramManager implements Listener {
         // 在原生模式下，先清理上次崩溃/异常关闭遗留的孤儿盔甲架
         // HolographicDisplays 会自动处理，不需要清理
         if (!useHD) {
-            LogUtil.debug("开始清理孤儿全息图盔甲架...");
             NativeHologram.cleanupAllOrphanedStands();
         }
 
@@ -184,7 +209,10 @@ public class HologramManager implements Listener {
             try {
                 // 检查是否已存在（避免重复加载）
                 if (holograms.containsKey(data.getId())) {
-                    LogUtil.warning("全息图已存在，跳过: " + data.getId());
+                    LogUtil.warning(((Main) Main.plugin).getLanguageManager().getMessage(
+                            "hologram.skip-exists",
+                            data.getId()
+                    ));
                     continue;
                 }
 
@@ -208,25 +236,41 @@ public class HologramManager implements Listener {
                 holograms.put(data.getId(), hologram);
 
                 successCount++;
-                LogUtil.debug("加载全息图: " + data.getId() + " (" + data.getLines().size() + " 行)");
+                LogUtil.debug(((Main) Main.plugin).getLanguageManager().getMessage(
+                        "hologram.load-single",
+                        data.getId(),
+                        String.valueOf(data.getLines().size())
+                ));
             } catch (Exception e) {
-                LogUtil.error("加载全息图失败: " + data.getId(), e);
+                LogUtil.error(((Main) Main.plugin).getLanguageManager().getMessage(
+                        "hologram.load-fail",
+                        data.getId()
+                ), e);
             }
         }
 
         LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
                 "hologram.loaded",
-                successCount
+                String.valueOf(successCount)
         ));
     }
 
     /**
      * 区块加载事件
+     * 【关键】先清理该区块中残留的旧盔甲架，再显示新全息图
+     *
+     * @param event 区块加载事件
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onChunkLoad(ChunkLoadEvent event) {
-        // 原生实现需要重新显示全息图
+        // 原生实现需要处理
         if (!useHD && loaded) {
+            // 【核心修复】先清理该区块中可能残留的旧盔甲架
+            // 这是解决盔甲架越来越多问题的关键
+            // 第二个参数为 true，表示输出清理日志
+            NativeHologram.cleanupOrphanedStandsInChunk(event.getChunk(), true);
+
+            // 再显示该区块内的全息图
             int chunkX = event.getChunk().getX();
             int chunkZ = event.getChunk().getZ();
 
@@ -244,6 +288,8 @@ public class HologramManager implements Listener {
 
     /**
      * 区块卸载事件
+     *
+     * @param event 区块卸载事件
      */
     @EventHandler
     public void onChunkUnload(ChunkUnloadEvent event) {
@@ -294,6 +340,8 @@ public class HologramManager implements Listener {
 
     /**
      * 是否使用 HD 插件
+     *
+     * @return true 表示使用 HolographicDisplays 插件
      */
     public boolean isUsingHD() {
         return useHD;
@@ -311,7 +359,6 @@ public class HologramManager implements Listener {
 
         // 原生模式下重新清理孤儿盔甲架
         if (!useHD) {
-            LogUtil.debug("重载时清理孤儿全息图盔甲架...");
             NativeHologram.cleanupAllOrphanedStands();
         }
 
@@ -321,7 +368,7 @@ public class HologramManager implements Listener {
 
         LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
                 "hologram.reloaded",
-                holograms.size()
+                String.valueOf(holograms.size())
         ));
     }
 }

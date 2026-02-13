@@ -1,6 +1,9 @@
+// 文件：NativeHologram.java
+// 路径：src/main/java/pers/tany/yukinoaapi/hologram/impl/NativeHologram.java
 package pers.tany.yukinoaapi.hologram.impl;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
@@ -58,6 +61,9 @@ public class NativeHologram implements IHologram {
 
     /**
      * 构造函数
+     *
+     * @param id       全息图唯一标识
+     * @param location 全息图位置
      */
     public NativeHologram(String id, Location location) {
         this.id = id;
@@ -70,31 +76,78 @@ public class NativeHologram implements IHologram {
     }
 
     /**
-     * 清理所有孤儿盔甲架
+     * 清理指定区块中的孤儿盔甲架
+     * 【关键方法】在区块加载时调用，清理该区块内残留的旧盔甲架
+     *
+     * @param chunk    要清理的区块
+     * @param logClean 是否输出清理日志
+     * @return 清理的盔甲架数量
      */
-    public static void cleanupAllOrphanedStands() {
+    public static int cleanupOrphanedStandsInChunk(Chunk chunk, boolean logClean) {
         int cleanedCount = 0;
 
-        for (World world : Bukkit.getWorlds()) {
-            List<ArmorStand> orphanedStands = new ArrayList<>();
-
-            for (org.bukkit.entity.Entity entity : world.getEntities()) {
-                if (entity instanceof ArmorStand) {
-                    ArmorStand stand = (ArmorStand) entity;
-                    if (stand.getScoreboardTags().contains(HOLOGRAM_TAG)) {
-                        orphanedStands.add(stand);
+        // 使用 chunk.getEntities() 获取该区块内的所有实体
+        for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
+            if (entity instanceof ArmorStand) {
+                ArmorStand stand = (ArmorStand) entity;
+                // 检查是否是本插件创建的全息图盔甲架
+                if (stand.getScoreboardTags().contains(HOLOGRAM_TAG)) {
+                    // 强制移除：先取消无敌状态，确保能被移除
+                    try {
+                        stand.setInvulnerable(false);
+                    } catch (NoSuchMethodError ignored) {
+                        // 低版本没有这个方法
                     }
+                    stand.remove();
+                    cleanedCount++;
                 }
-            }
-
-            for (ArmorStand stand : orphanedStands) {
-                stand.remove();
-                cleanedCount++;
             }
         }
 
+        // 输出清理日志
+        if (cleanedCount > 0 && logClean) {
+            LogUtil.debug(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.cleanup-chunk",
+                    String.valueOf(cleanedCount),
+                    String.valueOf(chunk.getX()),
+                    String.valueOf(chunk.getZ())
+            ));
+        }
+
+        return cleanedCount;
+    }
+
+    /**
+     * 清理所有已加载区块中的孤儿盔甲架
+     * 仅在服务器启动时调用，清理已加载区块
+     * 未加载区块的盔甲架会在区块加载时由 cleanupOrphanedStandsInChunk 清理
+     */
+    public static void cleanupAllOrphanedStands() {
+        // 输出开始清理日志
+        LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
+                "hologram.cleanup-start"
+        ));
+
+        int cleanedCount = 0;
+
+        for (World world : Bukkit.getWorlds()) {
+            // 遍历所有已加载的区块
+            for (Chunk chunk : world.getLoadedChunks()) {
+                // 不输出每个区块的日志，避免刷屏
+                cleanedCount += cleanupOrphanedStandsInChunk(chunk, false);
+            }
+        }
+
+        // 输出总清理数量日志
         if (cleanedCount > 0) {
-            LogUtil.info("清理了 " + cleanedCount + " 个孤儿全息图盔甲架");
+            LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.cleanup-all",
+                    String.valueOf(cleanedCount)
+            ));
+        } else {
+            LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.cleanup-none"
+            ));
         }
     }
 
@@ -111,7 +164,10 @@ public class NativeHologram implements IHologram {
     @Override
     public void teleport(Location location) {
         if (deleted) {
-            LogUtil.warning("尝试传送已删除的全息图: " + id);
+            LogUtil.warning(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.teleport-deleted",
+                    id
+            ));
             return;
         }
 
@@ -132,7 +188,10 @@ public class NativeHologram implements IHologram {
         if (deleted) return;
 
         if (index < 0 || index >= lines.size()) {
-            LogUtil.warning("行索引越界: " + index);
+            LogUtil.warning(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.index-out-of-bounds",
+                    String.valueOf(index)
+            ));
             return;
         }
 
@@ -165,7 +224,10 @@ public class NativeHologram implements IHologram {
         if (deleted) return;
 
         if (index < 0 || index > lines.size()) {
-            LogUtil.warning("行索引越界: " + index);
+            LogUtil.warning(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.index-out-of-bounds",
+                    String.valueOf(index)
+            ));
             return;
         }
 
@@ -185,7 +247,10 @@ public class NativeHologram implements IHologram {
         if (deleted) return;
 
         if (index < 0 || index >= lines.size()) {
-            LogUtil.warning("行索引越界: " + index);
+            LogUtil.warning(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.index-out-of-bounds",
+                    String.valueOf(index)
+            ));
             return;
         }
 
@@ -224,7 +289,10 @@ public class NativeHologram implements IHologram {
         if (deleted || shown) return;
 
         if (location.getWorld() == null) {
-            LogUtil.warning("全息图世界为空: " + id);
+            LogUtil.warning(((Main) Main.plugin).getLanguageManager().getMessage(
+                    "hologram.world-null",
+                    id
+            ));
             return;
         }
 

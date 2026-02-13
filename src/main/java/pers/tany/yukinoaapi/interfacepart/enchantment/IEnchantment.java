@@ -42,7 +42,7 @@ public interface IEnchantment {
                 return null;
             }
         }
-        return name.split("\\.").length > 2 ? enchantment.getName() : name.replace(" ", "");
+        return name.split("\\.").length > 2 ? enchantment.getName() : name.replace(" ", "").replace("128","");
     }
 
 

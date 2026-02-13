@@ -175,3 +175,18 @@ hologram:
   usage-clear: "§c用法§8: §7/ynhd clear <id>"
   usage-info: "§c用法§8: §7/ynhd info <id>"
   usage-teleport: "§c用法§8: §7/ynhd teleport <id>"
+
+  # 清理相关
+  cleanup-start: "开始清理孤儿全息图盔甲架..."
+  cleanup-all: "清理了 {0} 个孤儿全息图盔甲架"
+  cleanup-none: "未发现需要清理的孤儿盔甲架"
+  cleanup-chunk: "区块加载时清理了 {0} 个孤儿盔甲架 (区块: {1}, {2})"
+
+  # 错误提示
+  teleport-deleted: "尝试传送已删除的全息图: {0}"
+  index-out-of-bounds: "行索引越界: {0}"
+  world-null: "全息图世界为空: {0}"
+  id-exists: "全息图ID已存在: {0}"
+  skip-exists: "全息图已存在，跳过: {0}"
+  load-single: "加载全息图: {0} ({1} 行)"
+  load-fail: "加载全息图失败: {0}"
