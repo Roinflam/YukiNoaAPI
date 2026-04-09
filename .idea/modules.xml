@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/YukiNoaAPI.iml" filepath="$PROJECT_DIR$/YukiNoaAPI.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/YukiNoaAPI.main.iml" filepath="$PROJECT_DIR$/.idea/modules/YukiNoaAPI.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/YukiNoaAPI.test.iml" filepath="$PROJECT_DIR$/.idea/modules/YukiNoaAPI.test.iml" />
     </modules>

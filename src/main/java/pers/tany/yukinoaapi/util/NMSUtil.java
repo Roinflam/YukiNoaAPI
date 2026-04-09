@@ -10,6 +10,9 @@ import java.lang.reflect.Method;
 /**
  * NMS 跨版本兼容工具类
  * 支持 Minecraft 1.7-1.21+ 版本
+ * <p>
+ * 兼容 Spigot（带版本后缀的OBC包）和 Paper 1.20.5+（无版本后缀的OBC包）。
+ * </p>
  *
  * @author tany
  * @since 1.0.0
@@ -25,6 +28,15 @@ public class NMSUtil {
      * 主版本号缓存（如 1.12 返回 12）
      */
     private static final int majorVersion;
+
+    /**
+     * OBC 包是否包含版本后缀
+     * <p>
+     * Spigot / 旧版 Paper: org.bukkit.craftbukkit.v1_xx_Rx（带版本后缀）<br>
+     * Paper 1.20.5+: org.bukkit.craftbukkit（无版本后缀）
+     * </p>
+     */
+    private static final boolean obcVersioned;
 
     /**
      * 反射是否初始化成功
@@ -81,6 +93,8 @@ public class NMSUtil {
 
     /**
      * NBT复合标签类
+     * <p>1.20.4-: net.minecraft.nbt.NBTTagCompound（Spigot映射）</p>
+     * <p>1.20.5+: net.minecraft.nbt.CompoundTag（Mojang映射）</p>
      */
     public static Class<?> nbttagCompoundClass;
 
@@ -95,7 +109,9 @@ public class NMSUtil {
     public static Method asNMSCopy;
 
     /**
-     * 保存物品NBT方法
+     * 保存物品NBT方法（旧版：1.20.4及以下）
+     * <p>方法签名：ItemStack.save(NBTTagCompound) → NBTTagCompound</p>
+     * <p><b>1.20.5+ 该方法已移除，使用 {@link #save_ItemStack_v2} 代替</b></p>
      */
     public static Method save_ItemStack;
 
@@ -123,6 +139,41 @@ public class NMSUtil {
      * 获取物品类型名称方法
      */
     public static Method getName_Item;
+
+    // ==================== 1.20.5+ 新版物品相关 ====================
+
+    /**
+     * NBT Tag 基类接口
+     * <p>1.20.4-: net.minecraft.nbt.NBTBase（Spigot映射）</p>
+     * <p>1.20.5+: net.minecraft.nbt.Tag（Mojang映射）</p>
+     */
+    public static Class<?> tagClass;
+
+    /**
+     * HolderLookup.Provider 类（1.20.5+ 注册表上下文）
+     * <p>用于序列化/反序列化物品等需要注册表信息的操作</p>
+     */
+    public static Class<?> holderLookupProviderClass;
+
+    /**
+     * 保存物品NBT方法（新版：1.20.5+）
+     * <p>方法签名：ItemStack.save(HolderLookup.Provider) → Tag</p>
+     * <p>替代旧版 {@link #save_ItemStack}</p>
+     */
+    public static Method save_ItemStack_v2;
+
+    /**
+     * 静态解析物品方法（新版：1.20.5+）
+     * <p>方法签名：ItemStack.parse(HolderLookup.Provider, Tag) → Optional&lt;ItemStack&gt;</p>
+     * <p>替代旧版 {@link #load_ItemStack}</p>
+     */
+    public static Method parse_ItemStack_static;
+
+    /**
+     * 获取注册表上下文方法（1.20.5+）
+     * <p>方法签名：MinecraftServer.registryAccess() → RegistryAccess</p>
+     */
+    public static Method registryAccess;
 
     // ==================== 服务器相关 ====================
 
@@ -192,21 +243,27 @@ public class NMSUtil {
 
     /**
      * Mojangson解析器类
+     * <p>1.20.4-: net.minecraft.nbt.MojangsonParser（Spigot映射）</p>
+     * <p>1.20.5+: net.minecraft.nbt.TagParser（Mojang映射）</p>
      */
     public static Class<?> mojangsonParser;
 
     /**
      * 解析NBT字符串方法
+     * <p>1.20.4-: MojangsonParser.parse(String)</p>
+     * <p>1.20.5+: TagParser.parseTag(String)</p>
      */
     public static Method parse;
 
     /**
-     * 设置物品NBT方法
+     * 设置物品NBT方法（旧版：1.20.4及以下）
+     * <p><b>1.20.5+ 该方法已移除（DataComponents系统取代了tag复合标签）</b></p>
      */
     public static Method setTag;
 
     /**
-     * 从NBT加载物品方法
+     * 从NBT加载物品方法（旧版：1.20.4及以下）
+     * <p><b>1.20.5+ 该方法已移除，使用 {@link #parse_ItemStack_static} 代替</b></p>
      */
     public static Method load_ItemStack;
 
@@ -330,7 +387,9 @@ public class NMSUtil {
     static {
         version = detectVersion();
         majorVersion = parseMajorVersion(version);
+        obcVersioned = detectObcVersioned();
         LogUtil.info(getLang("nms.detected-version", version));
+        LogUtil.debug("[NMS] OBC包路径: " + getOBCPack() + " (版本后缀: " + obcVersioned + ")");
 
         try {
             initializeReflection();
@@ -344,8 +403,12 @@ public class NMSUtil {
 
     /**
      * 检测服务器版本
+     * <p>
+     * 优先从 CraftBukkit 包路径中提取（标准格式: org.bukkit.craftbukkit.v1_xx_Rx），
+     * 若包路径中无版本号（Paper 1.20.5+ / Mohist 等），则从 Bukkit.getBukkitVersion() 解析构造。
+     * </p>
      *
-     * @return 版本字符串
+     * @return 版本字符串（如 v1_20_R1）
      */
     private static String detectVersion() {
         try {
@@ -357,9 +420,11 @@ public class NMSUtil {
 
             // 标准 CraftBukkit 结构: org.bukkit.craftbukkit.v1_xx_Rx
             if (parts.length >= 4 && parts[2].equals("craftbukkit")) {
-                String detectedVersion = parts[3];
-                LogUtil.debug(getLang("nms.version-from-package", detectedVersion));
-                return detectedVersion;
+                String candidate = parts[3];
+                if (candidate.startsWith("v1_")) {
+                    LogUtil.debug(getLang("nms.version-from-package", candidate));
+                    return candidate;
+                }
             }
 
             // 备用方案：在所有分段中查找版本号
@@ -369,15 +434,99 @@ public class NMSUtil {
                     return part;
                 }
             }
+        } catch (Exception e) {
+            LogUtil.error("[NMS] 从包名检测版本失败: " + e.getMessage());
+        }
 
-            // 最后的备用方案
-            LogUtil.warning(getLang("nms.version-default", "v1_21_R1"));
-            return "v1_21_R1";
+        // 最终备用方案：从 Bukkit.getBukkitVersion() 解析（如 "1.20.1-R0.1-SNAPSHOT"）
+        return detectVersionFromBukkitAPI();
+    }
+
+    /**
+     * 从 Bukkit API 版本字符串解析并构造 NMS 版本号
+     * <p>
+     * Bukkit.getBukkitVersion() 返回格式如 "1.21.4-R0.1-SNAPSHOT"，
+     * 从中提取主版本号和修订号构造为 "v1_21_R1" 格式。
+     * 适用于 Paper 1.20.5+（OBC包路径无版本后缀）和 Mohist 等服务端。
+     * </p>
+     *
+     * @return 构造的版本字符串（如 v1_21_R1），解析失败返回 v1_21_R1
+     */
+    private static String detectVersionFromBukkitAPI() {
+        try {
+            // 格式: "1.21.4-R0.1-SNAPSHOT" 或 "1.20-R0.1-SNAPSHOT"
+            String bukkitVersion = Bukkit.getBukkitVersion();
+            LogUtil.debug("[NMS] Bukkit版本字符串: " + bukkitVersion);
+
+            // 分割出版本部分和修订部分
+            String[] dashParts = bukkitVersion.split("-");
+            if (dashParts.length < 2) {
+                LogUtil.warning("[NMS] 无法解析Bukkit版本: " + bukkitVersion);
+                return "v1_21_R1";
+            }
+
+            // 解析主版本号（如 "1.21.4" → major=21）
+            String mcVersion = dashParts[0]; // "1.21.4" 或 "1.20"
+            String[] versionParts = mcVersion.split("\\.");
+            if (versionParts.length < 2) {
+                LogUtil.warning("[NMS] 无法解析MC版本号: " + mcVersion);
+                return "v1_21_R1";
+            }
+
+            String major = versionParts[1]; // "21"
+
+            // 解析修订号（如 "R0.1" → revision=1）
+            String revisionPart = dashParts[1]; // "R0.1"
+            String revision = "1"; // 默认修订号
+            if (revisionPart.startsWith("R")) {
+                // 取 R 后面的第一个数字作为修订号
+                String revNum = revisionPart.substring(1).split("\\.")[0];
+                if (!revNum.isEmpty()) {
+                    int rev = Integer.parseInt(revNum);
+                    revision = String.valueOf(Math.max(rev, 1));
+                }
+            }
+
+            String constructed = "v1_" + major + "_R" + revision;
+            LogUtil.info("[NMS] 从Bukkit API构造版本号: " + constructed + " (源: " + bukkitVersion + ")");
+            return constructed;
 
         } catch (Exception e) {
-            LogUtil.error(getLang("nms.version-exception", "v1_21_R1"), e);
+            LogUtil.error("[NMS] 从Bukkit API检测版本失败，使用默认值 v1_21_R1", e);
             return "v1_21_R1";
         }
+    }
+
+    /**
+     * 检测 OBC 包路径是否包含版本后缀
+     * <p>
+     * Paper 1.20.5+ 移除了 OBC 包的版本后缀，包路径从
+     * org.bukkit.craftbukkit.v1_xx_Rx 变为 org.bukkit.craftbukkit。
+     * Spigot / 旧版 Paper 仍保留版本后缀。
+     * 通过尝试加载 CraftServer 类来运行时判断。
+     * </p>
+     *
+     * @return 如果 OBC 包含版本后缀返回 true，否则返回 false
+     */
+    private static boolean detectObcVersioned() {
+        // 优先尝试带版本后缀（Spigot / 旧版 Paper）
+        try {
+            Class.forName("org.bukkit.craftbukkit." + version + ".CraftServer");
+            return true;
+        } catch (ClassNotFoundException ignored) {
+        }
+
+        // 尝试不带版本后缀（Paper 1.20.5+ / Mohist 等）
+        try {
+            Class.forName("org.bukkit.craftbukkit.CraftServer");
+            LogUtil.info("[NMS] 检测到无版本后缀的OBC包（Paper 1.20.5+ 或类似服务端）");
+            return false;
+        } catch (ClassNotFoundException ignored) {
+        }
+
+        // 都找不到，默认使用带版本后缀
+        LogUtil.warning("[NMS] 无法确定OBC包结构，默认使用版本后缀");
+        return true;
     }
 
     /**
@@ -412,6 +561,8 @@ public class NMSUtil {
         initBlockRelated();
         initTextComponentRelated();
         initEnchantmentRelated();
+        // 1.20.5+ 新版本初始化（必须在 Server、Item、NBT 之后执行，依赖这些模块的类）
+        initNewVersionRelated();
         setAllMethodsAccessible();
     }
 
@@ -507,12 +658,13 @@ public class NMSUtil {
             craftItemStack = safeGetClass(getOBCPack() + ".inventory.CraftItemStack");
             logClassStatus("CraftItemStack", craftItemStack);
 
-            // NBTTagCompound 类
+            // NBTTagCompound 类（兼容新旧映射名）
             nbttagCompoundClass = safeGetClass(
                     getNMSPack() + ".NBTTagCompound",
-                    "net.minecraft.nbt.NBTTagCompound"
+                    "net.minecraft.nbt.NBTTagCompound",
+                    "net.minecraft.nbt.CompoundTag"          // 1.20.5+ Mojang映射
             );
-            logClassStatus("NBTTagCompound", nbttagCompoundClass);
+            logClassStatus("NBTTagCompound/CompoundTag", nbttagCompoundClass);
 
             // NMS ItemStack 类
             nmsItemStackClass = safeGetClass(
@@ -522,39 +674,39 @@ public class NMSUtil {
             logClassStatus("NMS ItemStack", nmsItemStackClass);
 
             if (craftItemStack != null && nmsItemStackClass != null) {
-                // asNMSCopy 方法
+                // asNMSCopy 方法（全版本通用，CraftItemStack 上的静态方法）
                 asNMSCopy = safeGetMethod(craftItemStack, "asNMSCopy", ItemStack.class);
                 logMethodStatus("asNMSCopy", asNMSCopy);
 
-                // asBukkitCopy 方法
+                // asBukkitCopy 方法（全版本通用）
                 asBukkitCopy = safeGetMethod(craftItemStack, "asBukkitCopy", nmsItemStackClass);
                 logMethodStatus("asBukkitCopy", asBukkitCopy);
             }
 
             if (nmsItemStackClass != null && nbttagCompoundClass != null) {
-                // save 方法
+                // save 方法（旧版：save(NBTTagCompound)，1.20.5+ 该签名已移除）
                 save_ItemStack = safeGetMethod(
                         nmsItemStackClass,
                         new String[]{"save", "b"},
                         nbttagCompoundClass
                 );
-                logMethodStatus("ItemStack.save", save_ItemStack);
+                logMethodStatus("ItemStack.save(NBTTagCompound) [旧版]", save_ItemStack);
 
-                // setTag 方法
+                // setTag 方法（旧版：setTag(NBTTagCompound)，1.20.5+ 已移除）
                 setTag = safeGetMethod(
                         nmsItemStackClass,
                         new String[]{"setTag", "c"},
                         nbttagCompoundClass
                 );
-                logMethodStatus("ItemStack.setTag", setTag);
+                logMethodStatus("ItemStack.setTag [旧版]", setTag);
 
-                // load 方法
+                // load 方法（旧版：load(NBTTagCompound)，1.20.5+ 已移除）
                 load_ItemStack = safeGetMethod(
                         nmsItemStackClass,
                         new String[]{"load", "c", "a"},
                         nbttagCompoundClass
                 );
-                logMethodStatus("ItemStack.load", load_ItemStack);
+                logMethodStatus("ItemStack.load [旧版]", load_ItemStack);
 
                 // getName 方法
                 getName_ItemStack = safeGetMethod(
@@ -563,10 +715,10 @@ public class NMSUtil {
                 );
                 logMethodStatus("ItemStack.getName", getName_ItemStack);
 
-                // getItem 方法
+                // getItem 方法（h = 1.21 Mojang映射）
                 getItem = safeGetMethod(
                         nmsItemStackClass,
-                        new String[]{"getItem", "d", "c", "o"}
+                        new String[]{"getItem", "d", "c", "o", "h"}
                 );
                 logMethodStatus("ItemStack.getItem", getItem);
             }
@@ -711,21 +863,22 @@ public class NMSUtil {
         LogUtil.debug(getLang("nms.module-init-start", "NBT"));
 
         try {
-            // MojangsonParser 类
+            // MojangsonParser / TagParser 类（兼容新旧映射名）
             mojangsonParser = safeGetClass(
                     getNMSPack() + ".MojangsonParser",
-                    "net.minecraft.nbt.MojangsonParser"
+                    "net.minecraft.nbt.MojangsonParser",
+                    "net.minecraft.nbt.TagParser"            // 1.20.5+ Mojang映射
             );
-            logClassStatus("MojangsonParser", mojangsonParser);
+            logClassStatus("MojangsonParser/TagParser", mojangsonParser);
 
             if (mojangsonParser != null) {
-                // parse 方法
+                // parse / parseTag 方法（兼容新旧方法名）
                 parse = safeGetMethod(
                         mojangsonParser,
-                        new String[]{"parse", "a"},
+                        new String[]{"parse", "parseTag", "a"},
                         String.class
                 );
-                logMethodStatus("MojangsonParser.parse", parse);
+                logMethodStatus("MojangsonParser.parse / TagParser.parseTag", parse);
             }
 
             LogUtil.debug(getLang("nms.module-init-complete", "NBT"));
@@ -835,12 +988,13 @@ public class NMSUtil {
         LogUtil.debug(getLang("nms.module-init-start", "TextComponent"));
 
         try {
-            // IChatBaseComponent 类
+            // IChatBaseComponent 类（兼容新旧映射名）
             iChatBaseComponentClass = safeGetClass(
                     getNMSPack() + ".IChatBaseComponent",
-                    "net.minecraft.network.chat.IChatBaseComponent"
+                    "net.minecraft.network.chat.IChatBaseComponent",
+                    "net.minecraft.network.chat.Component"   // 1.20.5+ Mojang映射
             );
-            logClassStatus("IChatBaseComponent", iChatBaseComponentClass);
+            logClassStatus("IChatBaseComponent/Component", iChatBaseComponentClass);
 
             if (iChatBaseComponentClass != null) {
                 // getString 方法
@@ -901,6 +1055,87 @@ public class NMSUtil {
             LogUtil.debug(getLang("nms.module-init-complete", "Enchantment"));
         } catch (Exception e) {
             LogUtil.error(getLang("nms.module-init-fail", "Enchantment", e.getMessage()));
+        }
+    }
+
+    /**
+     * 初始化 1.20.5+ 新版本相关反射
+     * <p>
+     * 1.20.5 引入了 DataComponents 系统，替代了旧版的 NBTTagCompound 标签体系。
+     * 物品序列化/反序列化方法签名发生了破坏性变更：
+     * <ul>
+     *   <li>save(NBTTagCompound) → save(HolderLookup.Provider) → Tag</li>
+     *   <li>load(NBTTagCompound) → ItemStack.parse(HolderLookup.Provider, Tag) → Optional</li>
+     *   <li>setTag(NBTTagCompound) → 已移除（DataComponents取代）</li>
+     * </ul>
+     * 本方法尝试查找新版方法，找到则说明运行在 1.20.5+ 上，找不到则说明是旧版。
+     * 通过运行时方法探测而非硬编码版本号判断，兼容性更强。
+     * </p>
+     */
+    private static void initNewVersionRelated() {
+        LogUtil.debug(getLang("nms.module-init-start", "NewVersion(1.20.5+)"));
+
+        try {
+            // ---- Tag 基类接口 ----
+            // 旧版Spigot映射: NBTBase，新版Mojang映射: Tag
+            tagClass = safeGetClass(
+                    "net.minecraft.nbt.Tag",
+                    getNMSPack() + ".NBTBase",
+                    "net.minecraft.nbt.NBTBase"
+            );
+            logClassStatus("Tag/NBTBase", tagClass);
+
+            // ---- HolderLookup.Provider 类 ----
+            // 1.20.5+ 新增的注册表上下文接口，用于物品序列化等操作
+            holderLookupProviderClass = safeGetClass(
+                    "net.minecraft.core.HolderLookup$Provider"
+            );
+            logClassStatus("HolderLookup.Provider", holderLookupProviderClass);
+
+            // ---- MinecraftServer.registryAccess() 方法 ----
+            // 返回 RegistryAccess（实现了 HolderLookup.Provider），用于获取注册表上下文
+            if (minecraftServer != null) {
+                registryAccess = safeGetMethod(
+                        minecraftServer,
+                        new String[]{"registryAccess", "bc", "aA", "aB"}
+                );
+                logMethodStatus("MinecraftServer.registryAccess", registryAccess);
+            }
+
+            // ---- 新版 ItemStack.save(HolderLookup.Provider) → Tag ----
+            // 替代旧版 save(NBTTagCompound)，将物品序列化为包含完整数据的 Tag
+            if (nmsItemStackClass != null && holderLookupProviderClass != null) {
+                save_ItemStack_v2 = safeGetMethod(
+                        nmsItemStackClass,
+                        new String[]{"save", "a"},
+                        holderLookupProviderClass
+                );
+                logMethodStatus("ItemStack.save(Provider) [1.20.5+]", save_ItemStack_v2);
+            }
+
+            // ---- 新版 ItemStack.parse(HolderLookup.Provider, Tag) → Optional<ItemStack> ----
+            // 这是静态方法，替代旧版的实例方法 load(NBTTagCompound)
+            if (nmsItemStackClass != null && holderLookupProviderClass != null && tagClass != null) {
+                parse_ItemStack_static = safeGetMethod(
+                        nmsItemStackClass,
+                        new String[]{"parse", "a"},
+                        holderLookupProviderClass, tagClass
+                );
+                logMethodStatus("ItemStack.parse(Provider, Tag) [1.20.5+ 静态]", parse_ItemStack_static);
+            }
+
+            // 输出新版本适配状态总结
+            if (save_ItemStack_v2 != null && parse_ItemStack_static != null) {
+                LogUtil.info("[NMS] 1.20.5+ 新版物品API已就绪 (DataComponents)");
+            } else if (save_ItemStack != null) {
+                LogUtil.info("[NMS] 使用旧版物品API (NBTTagCompound)");
+            } else {
+                LogUtil.warning("[NMS] 警告：新旧版物品API均未找到，物品NBT功能不可用！");
+            }
+
+            LogUtil.debug(getLang("nms.module-init-complete", "NewVersion(1.20.5+)"));
+        } catch (Exception e) {
+            LogUtil.error(getLang("nms.module-init-fail", "NewVersion(1.20.5+)", e.getMessage()));
         }
     }
 
@@ -1067,11 +1302,19 @@ public class NMSUtil {
 
     /**
      * 获取 OBC（org.bukkit.craftbukkit）包路径
+     * <p>
+     * Spigot / 旧版 Paper: org.bukkit.craftbukkit.v1_xx_Rx<br>
+     * Paper 1.20.5+: org.bukkit.craftbukkit（无版本后缀）
+     * </p>
      *
      * @return OBC 包的完整路径
      */
     public static String getOBCPack() {
-        return "org.bukkit.craftbukkit." + version;
+        if (obcVersioned) {
+            return "org.bukkit.craftbukkit." + version;
+        } else {
+            return "org.bukkit.craftbukkit";
+        }
     }
 
     /**
@@ -1108,6 +1351,58 @@ public class NMSUtil {
      */
     public static boolean isMojangMapped() {
         return isVersionAtLeast(17);
+    }
+
+    /**
+     * 判断是否使用 1.20.5+ 新版物品API（DataComponents系统）
+     * <p>
+     * 通过运行时检测新版 save 方法是否存在来判断，
+     * 比硬编码版本号更可靠（能正确处理 1.20.5/1.20.6 等中间版本）。
+     * </p>
+     *
+     * @return 是则返回 true
+     */
+    public static boolean isNewItemAPI() {
+        return save_ItemStack_v2 != null;
+    }
+
+    /**
+     * 获取注册表查找上下文（1.20.5+）
+     * <p>
+     * 通过 MinecraftServer.registryAccess() 获取 HolderLookup.Provider，
+     * 用于物品的序列化/反序列化操作。
+     * </p>
+     *
+     * @return HolderLookup.Provider 实例，获取失败返回 null
+     */
+    public static Object getRegistryLookup() {
+        try {
+            if (registryAccess == null) {
+                return null;
+            }
+
+            Object server = null;
+
+            // 方案1：使用 MinecraftServer.getServer() 静态方法
+            if (getServer != null) {
+                server = getServer.invoke(null);
+            }
+
+            // 方案2：通过 CraftServer.getServer() 获取
+            if (server == null) {
+                Object craftServer = Bukkit.getServer();
+                Method getServerMethod = craftServer.getClass().getMethod("getServer");
+                getServerMethod.setAccessible(true);
+                server = getServerMethod.invoke(craftServer);
+            }
+
+            if (server != null) {
+                return registryAccess.invoke(server);
+            }
+        } catch (Exception e) {
+            LogUtil.error("[NMS] 获取注册表上下文失败", e);
+        }
+        return null;
     }
 
     /**

@@ -1,5 +1,5 @@
 # YukiNoaAPI English Language File
-# Version: 3.1.0
+# Version: 3.2.0
 
 # ==================== Common Messages ====================
 common:
@@ -128,8 +128,8 @@ hologram:
   reload-success: "§b✔ §7Hologram system reloaded successfully"
   reload-fail: "§c✘ §7Hologram system reload failed"
 
-  created: "§b✔ §7Hologram created successfully"
-  created-with-lines: "§b✔ §7Hologram created successfully"
+  created: "§b✔ §7Hologram §f{0} §7created successfully"
+  created-with-lines: "§b✔ §7Hologram §f{0} §7created successfully §8(§f{1} §7line(s)§8)"
   already-exists: "§c✘ §7Hologram already exists: §f{0}"
   deleted: "§b✔ §7Deleted hologram §f{0}"
   cleared: "§b✔ §7Cleared all lines from §f{0}"
@@ -146,10 +146,17 @@ hologram:
   list-title: "§8▸═════ §bHologram List §8═════▸"
   list-empty: "§7  No holograms"
   list-entry: "§8  • §f{0} §8| §7{1} line(s) §8| {2}"
+  list-section-command: "§e  [Command Created] §7({0})"
+  list-section-plugin: "§d  [Plugin Created] §7({0})"
+  list-section-unknown: "§8  [Unknown Source] §7({0})"
+  list-filter-empty: "§7  No holograms of type §f{0}"
+  list-total: "§8  --- §7Total §f{0} §8| §eCommand §f{1} §8| §dPlugin §f{2} §8| §8Unknown §f{3}"
 
   info-title: "§8▸═════ §b{0} §7Info §8═════▸"
   info-location: "§8  ▸ §7Location§8: §f{0} §8(§f{1}§8, §f{2}§8, §f{3}§8)"
   info-lines: "§8  ▸ §7Lines§8: §f{0}"
+  info-source: "§8  ▸ §7Source§8: §f{0}"
+  info-valid: "§8  ▸ §7Status§8: {0}"
   info-content: "§8  ▸ §7Content§8:"
   info-line: "§8    §7[§f{0}§7] §r{1}"
 
@@ -161,7 +168,7 @@ hologram:
   help-removeline: "§b  /ynhd removeline <id> <index> §8- §7Remove specific line"
   help-insertline: "§b  /ynhd insertline <id> <index> <text> §8- §7Insert a line"
   help-clear: "§b  /ynhd clear <id> §8- §7Clear all lines"
-  help-list: "§b  /ynhd list §8- §7List all holograms"
+  help-list: "§b  /ynhd list [command|plugin|all] §8- §7List holograms (filter by source)"
   help-info: "§b  /ynhd info <id> §8- §7View hologram info"
   help-teleport: "§b  /ynhd teleport <id> §8- §7Teleport to hologram"
   help-reload: "§b  /ynhd reload §8- §7Reload hologram data"
@@ -181,6 +188,11 @@ hologram:
   cleanup-all: "Cleaned up {0} orphaned hologram armor stands"
   cleanup-none: "No orphaned armor stands found"
   cleanup-chunk: "Cleaned up {0} orphaned armor stands on chunk load (chunk: {1}, {2})"
+
+  # Refresh related
+  refresh-task-started: "Hologram refresh task started (interval: 10 minutes)"
+  refresh-single: "Refreshed hologram: {0}"
+  refresh-complete: "Refresh complete, fixed {0} hologram(s)"
 
   # Error messages
   teleport-deleted: "Attempted to teleport deleted hologram: {0}"

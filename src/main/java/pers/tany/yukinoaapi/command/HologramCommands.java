@@ -1,3 +1,5 @@
+// HologramCommands.java
+// src/main/java/pers/tany/yukinoaapi/command/HologramCommands.java
 package pers.tany.yukinoaapi.command;
 
 import org.bukkit.command.Command;
@@ -13,6 +15,8 @@ import pers.tany.yukinoaapi.hologram.IHologram;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,6 +39,13 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
         Player player = (Player) sender;
 
+        // 检查全息图系统是否可用（1.7-1.11 未安装HD时不可用）
+        if (!HologramManager.getInstance().isEnabled()) {
+            player.sendMessage(lang.getMessage("hologram.disabled-no-hd"));
+            return true;
+        }
+
+        // 无参数时直接显示帮助
         if (args.length == 0) {
             sendHelp(player, lang);
             return true;
@@ -65,7 +76,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
                 handleClear(player, args, lang);
                 break;
             case "list":
-                handleList(player, lang);
+                handleList(player, args, lang);
                 break;
             case "info":
                 handleInfo(player, args, lang);
@@ -78,6 +89,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
                 handleReload(player, lang);
                 break;
             default:
+                // 无效子命令也显示帮助
                 sendHelp(player, lang);
                 break;
         }
@@ -90,6 +102,11 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
      * 用法：/hologram create <id> [行1 | 行2 | 行3 ...]
      *
      * 多行创建时，每5 tick添加一行，避免一次性创建导致的显示bug
+     * 来源标记为 "command"
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
     private void handleCreate(Player player, String[] args, LanguageManager lang) {
         if (args.length < 2) {
@@ -105,12 +122,19 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
             return;
         }
 
-        // 使用玩家眼睛高度作为全息图起始位置
+        // 使用玩家眼睛高度作为全息图起始位置，来源标记为 "command"
         IHologram hologram = HologramManager.getInstance().createHologram(
                 id,
                 player.getEyeLocation(),
-                null // 先不添加文本
+                null,
+                "command"
         );
+
+        // createHologram 在系统不可用时可能返回 null
+        if (hologram == null) {
+            player.sendMessage(lang.getMessage("hologram.disabled-no-hd"));
+            return;
+        }
 
         // 解析多行文本（如果提供）
         if (args.length > 2) {
@@ -132,7 +156,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
             // 如果没有有效行，创建空全息图
             if (validLines.isEmpty()) {
                 hologram.show();
-                player.sendMessage(lang.getMessage("hologram.created"));
+                player.sendMessage(lang.getMessage("hologram.created", id));
                 return;
             }
 
@@ -154,8 +178,9 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
                         // 保存数据
                         HologramManager.getInstance().saveHolograms();
 
-                        // 发送完成消息
-                        player.sendMessage(lang.getMessage("hologram.created-with-lines"));
+                        // 发送完成消息（传入ID和行数）
+                        player.sendMessage(lang.getMessage("hologram.created-with-lines",
+                                id, String.valueOf(validLines.size())));
 
                         cancel();
                         return;
@@ -165,17 +190,21 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
                     hologram.appendLine(validLines.get(currentIndex));
                     currentIndex++;
                 }
-            }.runTaskTimer(Main.plugin, 0L, 5L); // 立即开始，每5 tick执行一次
+            }.runTaskTimer(Main.plugin, 0L, 5L);
 
         } else {
             // 没有提供初始文本，创建空全息图
             hologram.show();
-            player.sendMessage(lang.getMessage("hologram.created"));
+            player.sendMessage(lang.getMessage("hologram.created", id));
         }
     }
 
     /**
      * 处理删除命令
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
     private void handleDelete(Player player, String[] args, LanguageManager lang) {
         if (args.length < 2) {
@@ -197,6 +226,10 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
     /**
      * 处理添加行命令
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
     private void handleAddLine(Player player, String[] args, LanguageManager lang) {
         if (args.length < 3) {
@@ -222,6 +255,10 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
     /**
      * 处理设置行命令
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
     private void handleSetLine(Player player, String[] args, LanguageManager lang) {
         if (args.length < 4) {
@@ -252,6 +289,10 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
     /**
      * 处理删除行命令
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
     private void handleRemoveLine(Player player, String[] args, LanguageManager lang) {
         if (args.length < 3) {
@@ -280,6 +321,10 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
     /**
      * 处理插入行命令
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
     private void handleInsertLine(Player player, String[] args, LanguageManager lang) {
         if (args.length < 4) {
@@ -310,6 +355,10 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
     /**
      * 处理清空命令
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
     private void handleClear(Player player, String[] args, LanguageManager lang) {
         if (args.length < 2) {
@@ -332,28 +381,117 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * 处理列表命令
+     * 处理列表命令（分类显示：命令创建 / 插件创建 / 未知来源）
+     * 用法：/ynhd list [command|plugin|all]
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
-    private void handleList(Player player, LanguageManager lang) {
+    private void handleList(Player player, String[] args, LanguageManager lang) {
+        // 解析过滤参数
+        String filter = "all";
+        if (args.length >= 2) {
+            filter = args[1].toLowerCase();
+        }
+
         player.sendMessage(lang.getMessage("hologram.list-title"));
 
-        if (HologramManager.getInstance().getAllHolograms().isEmpty()) {
+        Collection<IHologram> allHolograms = HologramManager.getInstance().getAllHolograms();
+
+        if (allHolograms.isEmpty()) {
             player.sendMessage(lang.getMessage("hologram.list-empty"));
             return;
         }
 
-        for (IHologram hologram : HologramManager.getInstance().getAllHolograms()) {
-            String status = hologram.isShown() ? "§a✔" : "§c✘";
-            player.sendMessage(lang.getMessage("hologram.list-entry",
-                    hologram.getId(),
-                    String.valueOf(hologram.size()),
-                    status
-            ));
+        // 按来源分类
+        List<IHologram> commandHolograms = new ArrayList<>();
+        List<IHologram> pluginHolograms = new ArrayList<>();
+        List<IHologram> unknownHolograms = new ArrayList<>();
+
+        for (IHologram hologram : allHolograms) {
+            String source = hologram.getSource();
+            if ("command".equals(source)) {
+                commandHolograms.add(hologram);
+            } else if ("plugin".equals(source)) {
+                pluginHolograms.add(hologram);
+            } else {
+                unknownHolograms.add(hologram);
+            }
         }
+
+        boolean showCommand = "all".equals(filter) || "command".equals(filter);
+        boolean showPlugin = "all".equals(filter) || "plugin".equals(filter);
+        boolean showUnknown = "all".equals(filter) || "unknown".equals(filter);
+
+        // 显示命令创建的全息图
+        if (showCommand && !commandHolograms.isEmpty()) {
+            player.sendMessage(lang.getMessage("hologram.list-section-command",
+                    String.valueOf(commandHolograms.size())));
+            for (IHologram hologram : commandHolograms) {
+                sendListEntry(player, hologram, lang);
+            }
+        }
+
+        // 显示插件创建的全息图
+        if (showPlugin && !pluginHolograms.isEmpty()) {
+            player.sendMessage(lang.getMessage("hologram.list-section-plugin",
+                    String.valueOf(pluginHolograms.size())));
+            for (IHologram hologram : pluginHolograms) {
+                sendListEntry(player, hologram, lang);
+            }
+        }
+
+        // 显示未知来源的全息图（旧数据兼容）
+        if (showUnknown && !unknownHolograms.isEmpty()) {
+            player.sendMessage(lang.getMessage("hologram.list-section-unknown",
+                    String.valueOf(unknownHolograms.size())));
+            for (IHologram hologram : unknownHolograms) {
+                sendListEntry(player, hologram, lang);
+            }
+        }
+
+        // 如果过滤后没有结果
+        boolean hasResults = (showCommand && !commandHolograms.isEmpty())
+                || (showPlugin && !pluginHolograms.isEmpty())
+                || (showUnknown && !unknownHolograms.isEmpty());
+
+        if (!hasResults) {
+            player.sendMessage(lang.getMessage("hologram.list-filter-empty", filter));
+        }
+
+        // 显示统计信息
+        player.sendMessage(lang.getMessage("hologram.list-total",
+                String.valueOf(allHolograms.size()),
+                String.valueOf(commandHolograms.size()),
+                String.valueOf(pluginHolograms.size()),
+                String.valueOf(unknownHolograms.size())
+        ));
+    }
+
+    /**
+     * 发送单条全息图列表条目
+     *
+     * @param player   玩家
+     * @param hologram 全息图
+     * @param lang     语言管理器
+     */
+    private void sendListEntry(Player player, IHologram hologram, LanguageManager lang) {
+        String status = hologram.isShown() ? "\u00a7a\u2714" : "\u00a7c\u2718";
+        String valid = hologram.isValid() ? "" : " \u00a7c[\u5b9e\u4f53\u4e22\u5931]";
+        player.sendMessage(lang.getMessage("hologram.list-entry",
+                hologram.getId(),
+                String.valueOf(hologram.size()),
+                status
+        ) + valid);
     }
 
     /**
      * 处理信息命令
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
     private void handleInfo(Player player, String[] args, LanguageManager lang) {
         if (args.length < 2) {
@@ -378,6 +516,13 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
         ));
         player.sendMessage(lang.getMessage("hologram.info-lines", String.valueOf(hologram.size())));
 
+        // 显示来源信息
+        player.sendMessage(lang.getMessage("hologram.info-source", hologram.getSource()));
+
+        // 显示实体有效性
+        player.sendMessage(lang.getMessage("hologram.info-valid",
+                hologram.isValid() ? "\u00a7a\u6709\u6548" : "\u00a7c\u5b9e\u4f53\u4e22\u5931"));
+
         if (hologram.size() > 0) {
             player.sendMessage(lang.getMessage("hologram.info-content"));
             List<String> lines = hologram.getLines();
@@ -389,6 +534,10 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
     /**
      * 处理传送命令
+     *
+     * @param player 玩家
+     * @param args   参数
+     * @param lang   语言管理器
      */
     private void handleTeleport(Player player, String[] args, LanguageManager lang) {
         if (args.length < 2) {
@@ -410,6 +559,9 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
     /**
      * 处理重载命令
+     *
+     * @param player 玩家
+     * @param lang   语言管理器
      */
     private void handleReload(Player player, LanguageManager lang) {
         try {
@@ -422,6 +574,9 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
     /**
      * 发送帮助信息
+     *
+     * @param player 玩家
+     * @param lang   语言管理器
      */
     private void sendHelp(Player player, LanguageManager lang) {
         player.sendMessage(lang.getMessage("hologram.help-title"));
@@ -442,6 +597,11 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
 
+        // 系统不可用时不提供补全
+        if (!HologramManager.getInstance().isEnabled()) {
+            return completions;
+        }
+
         if (args.length == 1) {
             List<String> subs = Arrays.asList(
                     "create", "delete", "addline", "setline", "removeline",
@@ -450,11 +610,24 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
-        } else if (args.length == 2 && !args[0].equalsIgnoreCase("create") && !args[0].equalsIgnoreCase("list")) {
-            return HologramManager.getInstance().getAllHolograms().stream()
-                    .map(IHologram::getId)
-                    .filter(id -> id.toLowerCase().startsWith(args[1].toLowerCase()))
-                    .collect(Collectors.toList());
+        } else if (args.length == 2) {
+            String sub = args[0].toLowerCase();
+
+            // list 命令的第二个参数：过滤类型
+            if ("list".equals(sub)) {
+                List<String> filters = Arrays.asList("all", "command", "plugin", "unknown");
+                return filters.stream()
+                        .filter(f -> f.startsWith(args[1].toLowerCase()))
+                        .collect(Collectors.toList());
+            }
+
+            // 其他需要全息图ID的子命令
+            if (!"create".equals(sub)) {
+                return HologramManager.getInstance().getAllHolograms().stream()
+                        .map(IHologram::getId)
+                        .filter(id -> id.toLowerCase().startsWith(args[1].toLowerCase()))
+                        .collect(Collectors.toList());
+            }
         }
 
         return completions;

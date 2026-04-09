@@ -1,3 +1,5 @@
+// HologramDataManager.java
+// src/main/java/pers/tany/yukinoaapi/hologram/HologramDataManager.java
 package pers.tany.yukinoaapi.hologram;
 
 import org.bukkit.Bukkit;
@@ -18,6 +20,12 @@ import java.util.Map;
  * 全息图数据管理器
  * 负责加载、保存全息图数据
  *
+ * 性能修复（v3.2.1）：
+ *   saveAll() 原实现循环调用 saveHologram()，每个 saveHologram 内部都 config.save(dataFile)，
+ *   200 个全息图 = 200 次文件写入 + YAML 序列化，全部阻塞主线程。
+ *   改为内联写 ConfigurationSection，末尾统一 config.save() 一次。
+ *   单个保存 saveHologram() 保持不变（仍立即写盘），供命令等单次操作使用。
+ *
  * @author Roinflam
  * @since 3.1.0
  */
@@ -34,6 +42,8 @@ public class HologramDataManager {
 
     /**
      * 构造函数
+     *
+     * @param plugin 插件实例
      */
     public HologramDataManager(Main plugin) {
         this.plugin = plugin;
@@ -67,13 +77,15 @@ public class HologramDataManager {
     }
 
     /**
-     * 保存全息图数据
+     * 保存单个全息图数据（立即写盘）
+     * 适用于命令创建等单次操作场景
      *
      * @param id       全息图ID
      * @param location 位置
      * @param lines    文本行列表
+     * @param source   来源标识（"command" / "plugin" / "unknown"）
      */
-    public void saveHologram(String id, Location location, List<String> lines) {
+    public void saveHologram(String id, Location location, List<String> lines, String source) {
         try {
             ConfigurationSection section = config.createSection(id);
             section.set("world", location.getWorld().getName());
@@ -81,12 +93,25 @@ public class HologramDataManager {
             section.set("y", location.getY());
             section.set("z", location.getZ());
             section.set("lines", lines);
+            // 保存来源字段
+            section.set("source", source != null ? source : "unknown");
 
             config.save(dataFile);
             LogUtil.debug("保存全息图: " + id);
         } catch (Exception e) {
             LogUtil.error("保存全息图数据失败: " + id, e);
         }
+    }
+
+    /**
+     * 保存单个全息图数据（向后兼容，无source参数）
+     *
+     * @param id       全息图ID
+     * @param location 位置
+     * @param lines    文本行列表
+     */
+    public void saveHologram(String id, Location location, List<String> lines) {
+        saveHologram(id, location, lines, "unknown");
     }
 
     /**
@@ -133,15 +158,22 @@ public class HologramDataManager {
 
             List<String> lines = section.getStringList("lines");
 
-            data.put(id, new HologramData(id, location, lines));
-            LogUtil.debug("读取全息图数据: " + id + " (" + lines.size() + " 行)");
+            // 读取来源字段，旧数据默认为 "unknown"
+            String source = section.getString("source", "unknown");
+
+            data.put(id, new HologramData(id, location, lines, source));
+            LogUtil.debug("读取全息图数据: " + id + " (" + lines.size() + " 行, 来源: " + source + ")");
         }
 
         return data;
     }
 
     /**
-     * 保存所有全息图
+     * 保存所有全息图（批量，仅在末尾写盘一次）
+     *
+     * 性能修复：原实现循环调用 saveHologram()，每次都触发 config.save(dataFile)，
+     * N 个全息图 = N 次文件写入。改为内联写 ConfigurationSection，末尾统一写盘一次。
+     * 200 个全息图从 200 次磁盘 I/O 降为 1 次。
      *
      * @param holograms 全息图映射
      */
@@ -152,13 +184,26 @@ public class HologramDataManager {
                 config.set(key, null);
             }
 
-            // 保存所有全息图
+            // 写入所有全息图到内存中的 config 对象（不触发磁盘 I/O）
             for (Map.Entry<String, IHologram> entry : holograms.entrySet()) {
                 IHologram hologram = entry.getValue();
                 if (hologram.isDeleted()) continue;
 
-                saveHologram(entry.getKey(), hologram.getLocation(), hologram.getLines());
+                String id = entry.getKey();
+                Location location = hologram.getLocation();
+                if (location == null || location.getWorld() == null) continue;
+
+                ConfigurationSection section = config.createSection(id);
+                section.set("world", location.getWorld().getName());
+                section.set("x", location.getX());
+                section.set("y", location.getY());
+                section.set("z", location.getZ());
+                section.set("lines", hologram.getLines());
+                section.set("source", hologram.getSource() != null ? hologram.getSource() : "unknown");
             }
+
+            // 统一写盘一次
+            config.save(dataFile);
 
             LogUtil.debug("批量保存全息图完成: " + holograms.size() + " 个");
         } catch (Exception e) {
@@ -177,26 +222,48 @@ public class HologramDataManager {
      * 全息图数据类
      */
     public static class HologramData {
+
+        /** 全息图ID */
         private final String id;
+
+        /** 位置 */
         private final Location location;
+
+        /** 文本行列表 */
         private final List<String> lines;
 
-        public HologramData(String id, Location location, List<String> lines) {
+        /** 来源标识 */
+        private final String source;
+
+        /**
+         * 构造函数（带source）
+         *
+         * @param id       全息图ID
+         * @param location 位置
+         * @param lines    文本行
+         * @param source   来源
+         */
+        public HologramData(String id, Location location, List<String> lines, String source) {
             this.id = id;
             this.location = location;
             this.lines = new ArrayList<>(lines);
+            this.source = source != null ? source : "unknown";
         }
 
-        public String getId() {
-            return id;
+        /**
+         * 构造函数（向后兼容，无source）
+         *
+         * @param id       全息图ID
+         * @param location 位置
+         * @param lines    文本行
+         */
+        public HologramData(String id, Location location, List<String> lines) {
+            this(id, location, lines, "unknown");
         }
 
-        public Location getLocation() {
-            return location.clone();
-        }
-
-        public List<String> getLines() {
-            return new ArrayList<>(lines);
-        }
+        public String getId() { return id; }
+        public Location getLocation() { return location.clone(); }
+        public List<String> getLines() { return new ArrayList<>(lines); }
+        public String getSource() { return source; }
     }
 }

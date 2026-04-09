@@ -1,5 +1,5 @@
 # YukiNoaAPI 简体中文语言文件
-# 版本: 3.1.0
+# 版本: 3.2.0
 
 # ==================== 通用消息 ====================
 common:
@@ -128,8 +128,8 @@ hologram:
   reload-success: "§b✔ §7全息图系统重载成功"
   reload-fail: "§c✘ §7全息图系统重载失败"
 
-  created: "§b✔ §7全息图创建成功"
-  created-with-lines: "§b✔ §7全息图创建成功"
+  created: "§b✔ §7全息图 §f{0} §7创建成功"
+  created-with-lines: "§b✔ §7全息图 §f{0} §7创建成功 §8(§f{1} §7行§8)"
   already-exists: "§c✘ §7全息图已存在: §f{0}"
   deleted: "§b✔ §7已删除全息图 §f{0}"
   cleared: "§b✔ §7已清空 §f{0} §7的所有行"
@@ -146,10 +146,17 @@ hologram:
   list-title: "§8▸═════ §b全息图列表 §8═════▸"
   list-empty: "§7  暂无全息图"
   list-entry: "§8  • §f{0} §8| §7{1}行 §8| {2}"
+  list-section-command: "§e  [命令创建] §7({0}个)"
+  list-section-plugin: "§d  [插件创建] §7({0}个)"
+  list-section-unknown: "§8  [未知来源] §7({0}个)"
+  list-filter-empty: "§7  没有 §f{0} §7类型的全息图"
+  list-total: "§8  ─── §7总计 §f{0} §7个 §8| §e命令§f{1} §8| §d插件§f{2} §8| §8未知§f{3}"
 
   info-title: "§8▸═════ §b{0} §7详情 §8═════▸"
   info-location: "§8  ▸ §7位置§8: §f{0} §8(§f{1}§8, §f{2}§8, §f{3}§8)"
   info-lines: "§8  ▸ §7行数§8: §f{0}"
+  info-source: "§8  ▸ §7来源§8: §f{0}"
+  info-valid: "§8  ▸ §7状态§8: {0}"
   info-content: "§8  ▸ §7内容§8:"
   info-line: "§8    §7[§f{0}§7] §r{1}"
 
@@ -161,7 +168,7 @@ hologram:
   help-removeline: "§b  /ynhd removeline <id> <index> §8- §7删除指定行"
   help-insertline: "§b  /ynhd insertline <id> <index> <text> §8- §7插入一行"
   help-clear: "§b  /ynhd clear <id> §8- §7清空所有行"
-  help-list: "§b  /ynhd list §8- §7列出所有全息图"
+  help-list: "§b  /ynhd list [command|plugin|all] §8- §7列出全息图（可按来源过滤）"
   help-info: "§b  /ynhd info <id> §8- §7查看全息图详情"
   help-teleport: "§b  /ynhd teleport <id> §8- §7传送到全息图"
   help-reload: "§b  /ynhd reload §8- §7重载全息图数据"
@@ -181,6 +188,11 @@ hologram:
   cleanup-all: "清理了 {0} 个孤儿全息图盔甲架"
   cleanup-none: "未发现需要清理的孤儿盔甲架"
   cleanup-chunk: "区块加载时清理了 {0} 个孤儿盔甲架 (区块: {1}, {2})"
+
+  # 定时刷新相关
+  refresh-task-started: "全息图定时刷新任务已启动（间隔10分钟）"
+  refresh-single: "刷新全息图: {0}"
+  refresh-complete: "定时刷新完成，修复了 {0} 个全息图"
 
   # 错误提示
   teleport-deleted: "尝试传送已删除的全息图: {0}"

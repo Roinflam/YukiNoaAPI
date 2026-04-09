@@ -53,6 +53,9 @@ public class NativeHologram implements IHologram {
     /** 是否已删除 */
     private boolean deleted;
 
+    /** 全息图来源（"command" / "plugin" / "unknown"）*/
+    private String source;
+
     /** 行间距（格）*/
     private static final double LINE_HEIGHT = 0.25;
 
@@ -73,6 +76,7 @@ public class NativeHologram implements IHologram {
         this.rainbowProcessors = new HashMap<>();
         this.shown = false;
         this.deleted = false;
+        this.source = "unknown";
     }
 
     /**
@@ -340,6 +344,63 @@ public class NativeHologram implements IHologram {
     @Override
     public boolean isDeleted() {
         return deleted;
+    }
+
+    @Override
+    public String getSource() {
+        return source;
+    }
+
+    @Override
+    public void setSource(String source) {
+        this.source = source != null ? source : "unknown";
+    }
+
+    /**
+     * 检查全息图实体是否仍然有效
+     * 遍历所有盔甲架，若有任何一个死亡或为null则返回false
+     *
+     * @return 所有实体存活返回true
+     */
+    @Override
+    public boolean isValid() {
+        // 未显示或已删除的全息图不参与有效性检查
+        if (!shown || deleted) return true;
+
+        // 无行时视为有效
+        if (lines.isEmpty()) return true;
+
+        // 盔甲架数量与行数不匹配，说明有问题
+        if (armorStands.size() != lines.size()) return false;
+
+        // 检查每个盔甲架是否存活
+        for (ArmorStand stand : armorStands) {
+            if (stand == null || stand.isDead() || !stand.isValid()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 刷新全息图：隐藏后重新显示
+     * 用于修复被外部移除的盔甲架实体
+     */
+    @Override
+    public void refresh() {
+        if (deleted) return;
+
+        // 记录当前显示状态
+        boolean wasShown = shown;
+
+        // 强制隐藏（清理残余实体）
+        hide();
+
+        // 如果之前是显示状态，重新显示
+        if (wasShown) {
+            show();
+        }
     }
 
     /**
