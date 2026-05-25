@@ -9,7 +9,6 @@ import pers.tany.yukinoaapi.interfacepart.builder.IItemBuilder;
 import pers.tany.yukinoaapi.interfacepart.item.IItem;
 import pers.tany.yukinoaapi.interfacepart.other.IList;
 import pers.tany.yukinoaapi.interfacepart.other.IString;
-import pers.tany.yukinoaapi.util.NMSUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -27,6 +26,10 @@ import java.util.Map;
  *     <li>1.7.x - 1.12.x：使用 durability 设置附加值</li>
  *     <li>1.13+：durability 已废弃，仅用于工具耐久</li>
  * </ul>
+ *
+ * <p>parseMaterial 已优化为不依赖 NMSUtil 的版本判断，
+ * 直接通过尝试 Material.valueOf 与 LEGACY_ 前缀双路径解析，
+ * 兼容新版 Paper（1.21+）的版本字符串变化。</p>
  *
  * @author tany
  * @since 1.0.0
@@ -124,22 +127,25 @@ public class ItemBuilder implements IItemBuilder {
 
     /**
      * 解析物品类型名称
-     * 1.13+ 优先使用新名称，失败则尝试 LEGACY_ 前缀
+     * 优先尝试直接解析，失败则尝试 LEGACY_ 前缀（兼容 1.13+ 中的旧物品名）
+     * 不再依赖 NMSUtil 的版本字符串判断，避免在新版 Paper 上误判。
      *
      * @param type 类型名称
      * @return Material 对象
-     * @throws IllegalArgumentException 如果类型名称无效
+     * @throws IllegalArgumentException 如果两种命名方式均无法解析
      */
     private static Material parseMaterial(String type) {
-        // 先尝试直接解析
+        // 先尝试直接解析（1.13+ 新名称 / 1.12 及以下原始名称）
         try {
             return Material.valueOf(type);
         } catch (IllegalArgumentException e) {
-            // 1.13+ 尝试 LEGACY_ 前缀
-            if (NMSUtil.isVersionAtLeast(13)) {
+            // 尝试 LEGACY_ 前缀（部分 1.13-1.20 版本兼容旧名称）
+            try {
                 return Material.valueOf("LEGACY_" + type);
+            } catch (IllegalArgumentException ex) {
+                // 两种方式都失败则抛出原始异常，便于定位问题
+                throw e;
             }
-            throw e;
         }
     }
 
@@ -285,8 +291,8 @@ public class ItemBuilder implements IItemBuilder {
     /**
      * 添加附魔到物品
      *
-     * @param enchantment         附魔类型
-     * @param level               附魔等级
+     * @param enchantment            附魔类型
+     * @param level                  附魔等级
      * @param ignoreLevelRestriction 是否忽略等级限制
      * @return 当前建造器实例
      */

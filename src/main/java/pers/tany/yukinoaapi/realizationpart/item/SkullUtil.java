@@ -17,7 +17,6 @@ import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.interfacepart.builder.IItemBuilder;
 import pers.tany.yukinoaapi.realizationpart.builder.ItemBuilder;
 import pers.tany.yukinoaapi.util.LogUtil;
-import pers.tany.yukinoaapi.util.NMSUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,6 +42,11 @@ import java.util.concurrent.ConcurrentHashMap;
  *     <li>1.12.2+：使用 setOwningPlayer(OfflinePlayer)</li>
  *     <li>1.13+：使用 PLAYER_HEAD</li>
  * </ul>
+ *
+ * <p>版本检测方式（已优化）：</p>
+ * <p>本类不再依赖 NMSUtil 的版本字符串判断，改为在类加载时通过
+ * Material 枚举存在性 / SkullMeta 方法存在性进行运行时检测，
+ * 避免在新版 Paper（如 1.21+）上因服务端版本字符串格式变更导致的判断错误。</p>
  *
  * <p>关于卡顿说明：</p>
  * <ul>
@@ -86,13 +90,37 @@ public class SkullUtil implements Listener {
 
     /**
      * 是否为高版本（1.13+，使用 PLAYER_HEAD）
+     * 通过运行时枚举存在性检测，不依赖 NMSUtil 版本字符串解析
      */
-    private static final boolean IS_HIGH_VERSION = NMSUtil.isVersionAtLeast(13);
+    private static final boolean IS_HIGH_VERSION;
 
     /**
      * 是否支持 setOwningPlayer 方法（1.12.2+）
+     * 通过运行时反射检测方法存在性，不依赖 NMSUtil 版本字符串解析
      */
-    private static final boolean SUPPORT_OWNING_PLAYER = NMSUtil.isVersionAtLeast(12);
+    private static final boolean SUPPORT_OWNING_PLAYER;
+
+    static {
+        // 检测 PLAYER_HEAD 枚举是否存在（1.13+ 才有）
+        boolean highVersion = false;
+        try {
+            Material.valueOf("PLAYER_HEAD");
+            highVersion = true;
+        } catch (IllegalArgumentException ignored) {
+            // 1.12 及以下没有 PLAYER_HEAD 枚举
+        }
+        IS_HIGH_VERSION = highVersion;
+
+        // 检测 SkullMeta#setOwningPlayer 方法是否存在（1.12.2+ 才有）
+        boolean supportOwning = false;
+        try {
+            SkullMeta.class.getMethod("setOwningPlayer", OfflinePlayer.class);
+            supportOwning = true;
+        } catch (NoSuchMethodException ignored) {
+            // 1.12.1 及以下不支持 setOwningPlayer
+        }
+        SUPPORT_OWNING_PLAYER = supportOwning;
+    }
 
     /**
      * 私有构造函数

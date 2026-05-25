@@ -390,6 +390,7 @@ public class NMSUtil {
         obcVersioned = detectObcVersioned();
         LogUtil.info(getLang("nms.detected-version", version));
         LogUtil.debug("[NMS] OBC包路径: " + getOBCPack() + " (版本后缀: " + obcVersioned + ")");
+        LogUtil.debug("[NMS] 解析得到主版本号: " + majorVersion);
 
         try {
             initializeReflection();
@@ -445,20 +446,40 @@ public class NMSUtil {
     /**
      * 从 Bukkit API 版本字符串解析并构造 NMS 版本号
      * <p>
-     * Bukkit.getBukkitVersion() 返回格式如 "1.21.4-R0.1-SNAPSHOT"，
+     * Bukkit.getBukkitVersion() 返回格式如 "1.21.4-R0.1-SNAPSHOT" 或 "1.20-R0.1-SNAPSHOT"，
      * 从中提取主版本号和修订号构造为 "v1_21_R1" 格式。
      * 适用于 Paper 1.20.5+（OBC包路径无版本后缀）和 Mohist 等服务端。
      * </p>
      *
+     * <p>已优化：优先使用 Paper 的 Server.getMinecraftVersion() 获取实际 MC 版本，
+     * 避免在 Paper 新版本号体系（如 26.x）下因 getBukkitVersion 返回值变化导致解析错误。</p>
+     *
      * @return 构造的版本字符串（如 v1_21_R1），解析失败返回 v1_21_R1
      */
     private static String detectVersionFromBukkitAPI() {
+        // 优先：Paper 1.20.5+ 提供的稳定 API
         try {
-            // 格式: "1.21.4-R0.1-SNAPSHOT" 或 "1.20-R0.1-SNAPSHOT"
+            Method method = Bukkit.getServer().getClass().getMethod("getMinecraftVersion");
+            Object result = method.invoke(Bukkit.getServer());
+            if (result instanceof String) {
+                String mcVersion = (String) result; // 如 "1.21.4"
+                int major = extractMajorFromMcVersion(mcVersion);
+                if (major > 0) {
+                    String constructed = "v1_" + major + "_R1";
+                    LogUtil.info("[NMS] 从 Server.getMinecraftVersion 构造版本号: " + constructed
+                            + " (源: " + mcVersion + ")");
+                    return constructed;
+                }
+            }
+        } catch (Exception ignored) {
+            // 旧版 Spigot/Paper 没有该方法，继续兜底
+        }
+
+        // 次选：从 Bukkit.getBukkitVersion() 解析
+        try {
             String bukkitVersion = Bukkit.getBukkitVersion();
             LogUtil.debug("[NMS] Bukkit版本字符串: " + bukkitVersion);
 
-            // 分割出版本部分和修订部分
             String[] dashParts = bukkitVersion.split("-");
             if (dashParts.length < 2) {
                 LogUtil.warning("[NMS] 无法解析Bukkit版本: " + bukkitVersion);
@@ -466,20 +487,17 @@ public class NMSUtil {
             }
 
             // 解析主版本号（如 "1.21.4" → major=21）
-            String mcVersion = dashParts[0]; // "1.21.4" 或 "1.20"
-            String[] versionParts = mcVersion.split("\\.");
-            if (versionParts.length < 2) {
-                LogUtil.warning("[NMS] 无法解析MC版本号: " + mcVersion);
+            String mcVersion = dashParts[0];
+            int major = extractMajorFromMcVersion(mcVersion);
+            if (major <= 0) {
+                LogUtil.warning("[NMS] 无法从 Bukkit 版本解析有效 MC 主版本号: " + mcVersion);
                 return "v1_21_R1";
             }
-
-            String major = versionParts[1]; // "21"
 
             // 解析修订号（如 "R0.1" → revision=1）
             String revisionPart = dashParts[1]; // "R0.1"
             String revision = "1"; // 默认修订号
             if (revisionPart.startsWith("R")) {
-                // 取 R 后面的第一个数字作为修订号
                 String revNum = revisionPart.substring(1).split("\\.")[0];
                 if (!revNum.isEmpty()) {
                     int rev = Integer.parseInt(revNum);
@@ -495,6 +513,29 @@ public class NMSUtil {
             LogUtil.error("[NMS] 从Bukkit API检测版本失败，使用默认值 v1_21_R1", e);
             return "v1_21_R1";
         }
+    }
+
+    /**
+     * 从 MC 版本字符串中提取主版本号
+     * <p>仅当字符串以 "1." 开头时才认为是有效的 MC 版本号，
+     * 避免在 Paper 新版本号体系（如 "26.1.2"）下被误读为 MC 主版本。</p>
+     *
+     * @param mcVersion MC 版本字符串（如 "1.21.4" / "1.20"）
+     * @return 主版本号（如 21），无法解析或非 MC 格式返回 0
+     */
+    private static int extractMajorFromMcVersion(String mcVersion) {
+        if (mcVersion == null || mcVersion.isEmpty()) {
+            return 0;
+        }
+        String[] parts = mcVersion.split("\\.");
+        // 必须是 "1.X..." 格式才信任，避免误读非 MC 版本号
+        if (parts.length >= 2 && "1".equals(parts[0])) {
+            try {
+                return Integer.parseInt(parts[1]);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return 0;
     }
 
     /**
@@ -531,13 +572,45 @@ public class NMSUtil {
 
     /**
      * 解析主版本号
+     * <p>
+     * 优先方案 1：使用 Paper 的 Server.getMinecraftVersion()，1.20.5+ 必定可用，最可靠。<br>
+     * 优先方案 2：从 Bukkit.getBukkitVersion() 解析，需以 "1." 开头才信任。<br>
+     * 兜底方案：从 version 字符串解析（如 v1_12_R1 -> 12），用于纯 Spigot 旧版本。
+     * </p>
      *
      * @param versionStr 版本字符串（如 v1_12_R1）
      * @return 主版本号（如 12），解析失败返回 0
      */
     private static int parseMajorVersion(String versionStr) {
+        // 优先方案 1：Paper Server.getMinecraftVersion()（1.20.5+ 稳定 API）
+        // 该方法直接返回 MC 版本（如 "1.21.4"），不受 OBC 包路径变化、Paper 自身版本号变化影响
         try {
-            // v1_12_R1 -> 12
+            Method method = Bukkit.getServer().getClass().getMethod("getMinecraftVersion");
+            Object result = method.invoke(Bukkit.getServer());
+            if (result instanceof String) {
+                int major = extractMajorFromMcVersion((String) result);
+                if (major > 0) {
+                    return major;
+                }
+            }
+        } catch (Exception ignored) {
+            // 旧版 Spigot/Paper 不支持该方法，继续尝试下一方案
+        }
+
+        // 优先方案 2：从 Bukkit.getBukkitVersion() 解析（兼容大多数 Spigot/Paper 版本）
+        try {
+            String bukkitVersion = Bukkit.getBukkitVersion();
+            String mcPart = bukkitVersion.split("-")[0];
+            int major = extractMajorFromMcVersion(mcPart);
+            if (major > 0) {
+                return major;
+            }
+        } catch (Exception ignored) {
+        }
+
+        // 兜底方案：从 version 字符串解析（如 v1_12_R1 -> 12）
+        // 适用于纯 Spigot 旧版本，无法走前两条路径时
+        try {
             String[] parts = versionStr.split("_");
             if (parts.length >= 2) {
                 return Integer.parseInt(parts[1]);
