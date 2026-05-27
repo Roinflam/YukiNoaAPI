@@ -1,15 +1,17 @@
 package pers.tany.yukinoaapi.interfacepart.entity;
 
 import de.tr7zw.nbtapi.NBTEntity;
-import de.tr7zw.nbtapi.NBTList;
-import de.tr7zw.nbtapi.NBTListCompound;
+import de.tr7zw.nbtapi.iface.ReadWriteNBT;
+import de.tr7zw.nbtapi.iface.ReadWriteNBTCompoundList;
 import org.bukkit.entity.LivingEntity;
-
-import javax.annotation.Nonnull;
-
 
 /**
  * 生物属性操作相关
+ * <p>
+ * 适配新版 NBT-API：{@code getCompoundList} 返回 {@link ReadWriteNBTCompoundList}
+ * （元素为 {@link ReadWriteNBT}），替代旧版已废弃的 {@code NBTList<NBTListCompound>}。
+ * 列表元素的 getString/getDouble/setDouble 方法签名与旧版一致，循环体逻辑不变。
+ * </p>
  */
 public interface ILivingEntityAttributes {
 
@@ -21,8 +23,8 @@ public interface ILivingEntityAttributes {
      */
     static double getMaxHealth(LivingEntity livingEntity) {
         NBTEntity nbtEntity = new NBTEntity(livingEntity);
-        NBTList<NBTListCompound> list = nbtEntity.getCompoundList("Attributes");
-        for (NBTListCompound nbtListCompound : list) {
+        ReadWriteNBTCompoundList list = nbtEntity.getCompoundList("Attributes");
+        for (ReadWriteNBT nbtListCompound : list) {
             if (nbtListCompound.getString("Name").contains("generic.maxHealth") || nbtListCompound.getString("Name").contains("generic.max_health")) {
                 return nbtListCompound.getDouble("Base");
             }
@@ -49,8 +51,8 @@ public interface ILivingEntityAttributes {
      */
     static void setMaxHealth(LivingEntity livingEntity, double maxHealth, boolean restore) {
         NBTEntity nbtEntity = new NBTEntity(livingEntity);
-        NBTList<NBTListCompound> list = nbtEntity.getCompoundList("Attributes");
-        for (NBTListCompound nbtListCompound : list) {
+        ReadWriteNBTCompoundList list = nbtEntity.getCompoundList("Attributes");
+        for (ReadWriteNBT nbtListCompound : list) {
             if (nbtListCompound.getString("Name").contains("generic.maxHealth") || nbtListCompound.getString("Name").contains("generic.max_health")) {
                 nbtListCompound.setDouble("Base", maxHealth);
                 break;
@@ -69,8 +71,8 @@ public interface ILivingEntityAttributes {
      */
     static double getMovementSpeed(LivingEntity livingEntity) {
         NBTEntity nbtEntity = new NBTEntity(livingEntity);
-        NBTList<NBTListCompound> list = nbtEntity.getCompoundList("Attributes");
-        for (NBTListCompound nbtListCompound : list) {
+        ReadWriteNBTCompoundList list = nbtEntity.getCompoundList("Attributes");
+        for (ReadWriteNBT nbtListCompound : list) {
             if (nbtListCompound.getString("Name").contains("generic.movementSpeed") || nbtListCompound.getString("Name").contains("generic.movement_speed")) {
                 return nbtListCompound.getDouble("Base");
             }
@@ -86,8 +88,8 @@ public interface ILivingEntityAttributes {
      */
     static void setMovementSpeed(LivingEntity livingEntity, double movementSpeed) {
         NBTEntity nbtEntity = new NBTEntity(livingEntity);
-        NBTList<NBTListCompound> list = nbtEntity.getCompoundList("Attributes");
-        for (NBTListCompound nbtListCompound : list) {
+        ReadWriteNBTCompoundList list = nbtEntity.getCompoundList("Attributes");
+        for (ReadWriteNBT nbtListCompound : list) {
             if (nbtListCompound.getString("Name").contains("generic.movementSpeed") || nbtListCompound.getString("Name").contains("generic.movement_speed")) {
                 nbtListCompound.setDouble("Base", movementSpeed);
                 break;

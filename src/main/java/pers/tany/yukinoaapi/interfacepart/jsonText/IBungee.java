@@ -4,7 +4,10 @@ import net.md_5.bungee.api.chat.*;
 import net.md_5.bungee.api.chat.HoverEvent.Action;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import pers.tany.yukinoaapi.interfacepart.item.IItem;
 import pers.tany.yukinoaapi.interfacepart.other.IString;
+import pers.tany.yukinoaapi.util.LogUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -13,9 +16,60 @@ import javax.annotation.Nullable;
  * Bungee消息接口
  * 提供各种高级消息发送功能（悬停、点击、物品展示等）
  *
+ * <p>
+ * <b>SHOW_ITEM 跨版本说明（关键）：</b><br>
+ * 1.20.5+ 原版 {@code show_item} 悬停组件格式发生破坏性变更，必须携带物品 {@code id} 字段，
+ * 旧版 BungeeCord {@code new ComponentBuilder(itemNBT)} 拼出的组件缺少 id，
+ * 在新版服务端会抛出 {@code JsonParseException: No key id}。
+ * </p>
+ * <p>
+ * 因此本接口对所有涉及 SHOW_ITEM 的方法做了双分支：
+ * <ul>
+ *   <li><b>新版（运行时存在 Adventure API）：</b>使用 Paper 原生 Adventure
+ *       {@code HoverEvent.showItem} 构造合法的物品悬停组件，彻底规避缺 id 崩溃。</li>
+ *   <li><b>旧版（无 Adventure，如 1.7-1.16 Spigot）：</b>保留原有 BungeeCord
+ *       {@code spigot().sendMessage} 路径，逻辑不变。</li>
+ * </ul>
+ * 分流判据为运行时探测 {@code net.kyori.adventure.text.Component} 类是否存在，
+ * 与本库 SkullUtil/WoolUtil 的运行时探测风格一致，不依赖版本号解析。
+ * </p>
+ *
  * @author Tany天炎
  */
 public interface IBungee {
+
+    // ========================================
+    // Adventure 运行时探测（用于 SHOW_ITEM 分流）
+    // ========================================
+
+    /**
+     * 当前服务端是否支持 Paper 原生 Adventure API
+     * <p>
+     * Paper 1.16.5+ 内置 Adventure。通过类存在性运行时探测，
+     * 同时校验 Bukkit Player 是否提供 {@code sendMessage(Component)} 方法。
+     * </p>
+     */
+    boolean ADVENTURE_SUPPORTED = detectAdventureSupport();
+
+    /**
+     * 探测 Adventure 支持情况
+     * <p>
+     * 需同时满足：Adventure 核心类存在 + Bukkit Player 提供 sendMessage(Component) 重载。
+     * 任一不满足则回退到 BungeeCord 旧路径。
+     * </p>
+     *
+     * @return 支持返回 true
+     */
+    static boolean detectAdventureSupport() {
+        try {
+            Class<?> componentClass = Class.forName("net.kyori.adventure.text.Component");
+            // 校验 Bukkit Player 是否有原生 sendMessage(Component) 重载（Paper 1.16.5+）
+            Player.class.getMethod("sendMessage", componentClass);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
 
     // ========================================
     // 基础消息发送方法
@@ -38,12 +92,23 @@ public interface IBungee {
 
     /**
      * 发送带物品NBT悬停的消息
+     * <p>
+     * 新版（Adventure）走 {@link AdventureItemHover#sendItemHover}，
+     * 旧版走 BungeeCord SHOW_ITEM 路径。
+     * </p>
      *
      * @param player  接收玩家（null表示广播）
      * @param message 显示的消息
-     * @param itemNBT 物品NBT数据
+     * @param itemNBT 物品NBT数据（SNBT 字符串）
      */
     static void sendItemNBTMessage(@Nullable Player player, String message, String itemNBT) {
+        // 新版：用 Adventure 构造合法物品悬停
+        if (ADVENTURE_SUPPORTED) {
+            AdventureItemHover.sendItemHover(player, message, itemNBT, null, false);
+            return;
+        }
+
+        // 旧版：保留原 BungeeCord 路径
         TextComponent send = new TextComponent(IString.color(message));
         send.setHoverEvent(new HoverEvent(Action.SHOW_ITEM,
                 (new ComponentBuilder(IString.color(itemNBT))).create()));
@@ -79,15 +144,26 @@ public interface IBungee {
 
     /**
      * 发送带命令执行和物品NBT的消息
+     * <p>
+     * 新版（Adventure）走 {@link AdventureItemHover#sendItemHover}（带点击命令），
+     * 旧版走 BungeeCord SHOW_ITEM + ClickEvent 路径。
+     * </p>
      *
      * @param player     接收玩家（null表示广播）
      * @param message    显示的消息
-     * @param itemNBT    物品NBT数据
+     * @param itemNBT    物品NBT数据（SNBT 字符串）
      * @param command    要执行的命令
      * @param useCommand true=直接执行，false=填充到聊天框
      */
     static void sendCommandItemMessage(@Nullable Player player, String message, String itemNBT,
                                        String command, @Nonnull Boolean useCommand) {
+        // 新版：用 Adventure 构造合法物品悬停 + 点击命令
+        if (ADVENTURE_SUPPORTED) {
+            AdventureItemHover.sendItemHover(player, message, itemNBT, command, useCommand);
+            return;
+        }
+
+        // 旧版：保留原 BungeeCord 路径
         TextComponent send = new TextComponent(IString.color(message));
 
         ClickEvent.Action action = useCommand ?
@@ -175,12 +251,18 @@ public interface IBungee {
 
     /**
      * 发送部分文本带物品NBT悬停的消息
+     * <p>
+     * <b>注意：</b>该方法在新版（Adventure）下，因 BungeeCord 的部分替换组件体系
+     * 无法安全携带物品 id，会退化为「悬停展示 SNBT 文本」而非物品图标，避免崩溃。
+     * 如需新版完整物品悬停，请使用 {@link #sendItemNBTMessage} 或 {@link #sendCommandItemMessage}。
+     * 旧版逻辑保持不变。
+     * </p>
      *
      * @param player        接收玩家（null表示广播）
      * @param message       完整消息
      * @param part          需要替换的部分（占位符）
      * @param changeMessage 替换后显示的文本
-     * @param itemNBT       物品NBT数据
+     * @param itemNBT       物品NBT数据（SNBT 字符串）
      */
     static void sendPartItemNBTMessage(@Nullable Player player, String message, String part,
                                        @Nonnull String changeMessage, String itemNBT) {
@@ -189,6 +271,16 @@ public interface IBungee {
             return;
         }
 
+        // 新版：BungeeCord 部分替换无法安全携带物品 id，退化为悬停 SNBT 文本，避免崩溃
+        if (ADVENTURE_SUPPORTED) {
+            TextComponent safe = buildPartMessage(message, part, changeMessage,
+                    (parts) -> parts.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
+                            (new ComponentBuilder(IString.color(itemNBT))).create())));
+            sendComponent(player, safe);
+            return;
+        }
+
+        // 旧版：保留原 SHOW_ITEM 路径
         TextComponent all = buildPartMessage(message, part, changeMessage,
                 (parts) -> parts.setHoverEvent(new HoverEvent(Action.SHOW_ITEM,
                         (new ComponentBuilder(IString.color(itemNBT))).create())));
@@ -233,12 +325,17 @@ public interface IBungee {
 
     /**
      * 发送部分文本带物品NBT和命令的消息
+     * <p>
+     * <b>注意：</b>该方法在新版（Adventure）下，因 BungeeCord 的部分替换组件体系
+     * 无法安全携带物品 id，会退化为「悬停展示 SNBT 文本 + 点击命令」而非物品图标，避免崩溃。
+     * 旧版逻辑保持不变。
+     * </p>
      *
      * @param player        接收玩家（null表示广播）
      * @param message       完整消息
      * @param part          需要替换的部分（占位符）
      * @param changeMessage 替换后显示的文本
-     * @param itemNBT       物品NBT数据
+     * @param itemNBT       物品NBT数据（SNBT 字符串）
      * @param command       要执行的命令
      * @param useCommand    true=直接执行，false=填充到聊天框
      */
@@ -253,6 +350,18 @@ public interface IBungee {
         ClickEvent.Action action = useCommand ?
                 ClickEvent.Action.RUN_COMMAND : ClickEvent.Action.SUGGEST_COMMAND;
 
+        // 新版：退化为悬停 SNBT 文本 + 点击命令，避免崩溃
+        if (ADVENTURE_SUPPORTED) {
+            TextComponent safe = buildPartMessage(message, part, changeMessage, (parts) -> {
+                parts.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
+                        (new ComponentBuilder(IString.color(itemNBT))).create()));
+                parts.setClickEvent(new ClickEvent(action, command));
+            });
+            sendComponent(player, safe);
+            return;
+        }
+
+        // 旧版：保留原 SHOW_ITEM 路径
         TextComponent all = buildPartMessage(message, part, changeMessage, (parts) -> {
             parts.setHoverEvent(new HoverEvent(Action.SHOW_ITEM,
                     (new ComponentBuilder(IString.color(itemNBT))).create()));
@@ -397,5 +506,135 @@ public interface IBungee {
          * @param component 要装饰的组件
          */
         void decorate(TextComponent component);
+    }
+
+    // ========================================
+    // 物品悬停辅助类（文本悬停方案）
+    // ========================================
+
+    /**
+     * 物品悬停构造与发送辅助类（SHOW_TEXT 文本悬停）
+     * <p>
+     * 由于 1.20.5+ 原版 {@code show_item} 悬停的 components 编码格式破坏性变更，
+     * 反射 / Adventure 手动构造极易导致客户端渲染丢失（光板物品）或崩溃，
+     * 故统一改用 {@code SHOW_TEXT} 文本悬停：读取物品的显示名与 lore，
+     * 拼接为带颜色的多行文本作为悬停内容。效果为纯文字（无物品图标），
+     * 但跨所有版本稳定、不崩溃，且完整展示名称与 lore（含价格等信息）。
+     * </p>
+     */
+    final class AdventureItemHover {
+
+        /** 工具类，禁止实例化 */
+        private AdventureItemHover() {
+        }
+
+        /**
+         * 构造物品的文本悬停消息并发送
+         * <p>
+         * 流程：SNBT → {@code IItem.getItemStack} 还原为 Bukkit ItemStack
+         * → 读取 ItemMeta 的显示名与 lore（Bukkit 直接返回带 {@code §} 颜色的文本）
+         * → 拼接为多行悬停文本 → 通过 BungeeCord {@code SHOW_TEXT} 发送（带可选点击命令）。
+         * 任意环节异常时降级为「悬停展示原始字符串」，保证不崩溃。
+         * </p>
+         *
+         * @param player     接收玩家（null表示广播）
+         * @param message    主显示文本
+         * @param itemNBT    物品 SNBT 字符串
+         * @param command    点击命令（可为 null，表示无点击事件）
+         * @param useCommand true=直接执行命令，false=填充到聊天框
+         */
+        static void sendItemHover(@Nullable Player player, String message, String itemNBT,
+                                  @Nullable String command, boolean useCommand) {
+            try {
+                // ---- 1. 还原 Bukkit ItemStack（NBT-API 反序列化，前面已验证可靠） ----
+                ItemStack item = IItem.getItemStack(itemNBT);
+                if (item == null) {
+                    // 还原失败，降级为展示原始字符串
+                    sendTextHoverFallback(player, message, itemNBT, command, useCommand);
+                    return;
+                }
+
+                // ---- 2. 读取显示名与 lore，拼接为悬停文本 ----
+                String hoverText = buildHoverText(item);
+
+                // ---- 3. 构造主组件并设置 SHOW_TEXT 悬停（1.21 下不会崩溃） ----
+                TextComponent send = new TextComponent(IString.color(message));
+                send.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
+                        new ComponentBuilder(hoverText).create()));
+
+                // ---- 4. 可选点击事件 ----
+                if (command != null && !command.isEmpty()) {
+                    ClickEvent.Action action = useCommand ?
+                            ClickEvent.Action.RUN_COMMAND : ClickEvent.Action.SUGGEST_COMMAND;
+                    send.setClickEvent(new ClickEvent(action, command));
+                }
+
+                // ---- 5. 发送 ----
+                sendComponent(player, send);
+
+            } catch (Throwable t) {
+                LogUtil.error("[IBungee] 物品文本悬停构造失败，降级为原始字符串悬停", t instanceof Exception ? (Exception) t : new Exception(t));
+                sendTextHoverFallback(player, message, itemNBT, command, useCommand);
+            }
+        }
+
+        /**
+         * 由物品读取显示名与 lore，拼接为多行悬停文本
+         * <p>
+         * 第一行为显示名（无自定义名时使用物品类型名），其后逐行追加 lore。
+         * Bukkit 的 {@code getDisplayName}/{@code getLore} 返回的字符串已带 {@code §} 颜色代码，
+         * 可直接用于悬停文本，无需解析富文本 JSON。
+         * </p>
+         *
+         * @param item 物品（非 null）
+         * @return 多行悬停文本
+         */
+        private static String buildHoverText(@Nonnull ItemStack item) {
+            StringBuilder sb = new StringBuilder();
+
+            // 显示名：优先自定义名，否则用物品类型名
+            String displayName = null;
+            if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                displayName = item.getItemMeta().getDisplayName();
+            }
+            if (displayName == null || displayName.isEmpty()) {
+                displayName = item.getType().name();
+            }
+            sb.append(displayName);
+
+            // lore：逐行追加（每行前加换行符）
+            if (item.hasItemMeta() && item.getItemMeta().hasLore()) {
+                java.util.List<String> lore = item.getItemMeta().getLore();
+                if (lore != null) {
+                    for (String line : lore) {
+                        sb.append('\n').append(line == null ? "" : line);
+                    }
+                }
+            }
+
+            return sb.toString();
+        }
+
+        /**
+         * 降级方案：用 BungeeCord 发送「悬停展示原始字符串」的消息（保证不崩溃）
+         *
+         * @param player     接收玩家（null表示广播）
+         * @param message    主显示文本
+         * @param itemNBT    物品 SNBT 字符串（作为悬停文本兜底）
+         * @param command    点击命令（可为 null）
+         * @param useCommand true=直接执行，false=填充到聊天框
+         */
+        private static void sendTextHoverFallback(@Nullable Player player, String message, String itemNBT,
+                                                  @Nullable String command, boolean useCommand) {
+            TextComponent send = new TextComponent(IString.color(message));
+            send.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
+                    (new ComponentBuilder(IString.color(itemNBT))).create()));
+            if (command != null && !command.isEmpty()) {
+                ClickEvent.Action action = useCommand ?
+                        ClickEvent.Action.RUN_COMMAND : ClickEvent.Action.SUGGEST_COMMAND;
+                send.setClickEvent(new ClickEvent(action, command));
+            }
+            sendComponent(player, send);
+        }
     }
 }
