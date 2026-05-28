@@ -271,11 +271,12 @@ public interface IBungee {
             return;
         }
 
-        // 新版：BungeeCord 部分替换无法安全携带物品 id，退化为悬停 SNBT 文本，避免崩溃
+        // 新版：BungeeCord 部分替换无法安全携带物品 id，退化为悬停「名字+lore」文本，避免崩溃
         if (ADVENTURE_SUPPORTED) {
+            String hoverText = AdventureItemHover.itemNbtToHoverText(itemNBT);
             TextComponent safe = buildPartMessage(message, part, changeMessage,
                     (parts) -> parts.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
-                            (new ComponentBuilder(IString.color(itemNBT))).create())));
+                            (new ComponentBuilder(hoverText)).create())));
             sendComponent(player, safe);
             return;
         }
@@ -350,11 +351,12 @@ public interface IBungee {
         ClickEvent.Action action = useCommand ?
                 ClickEvent.Action.RUN_COMMAND : ClickEvent.Action.SUGGEST_COMMAND;
 
-        // 新版：退化为悬停 SNBT 文本 + 点击命令，避免崩溃
+        // 新版：退化为悬停「名字+lore」文本 + 点击命令，避免崩溃
         if (ADVENTURE_SUPPORTED) {
+            String hoverText = AdventureItemHover.itemNbtToHoverText(itemNBT);
             TextComponent safe = buildPartMessage(message, part, changeMessage, (parts) -> {
                 parts.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
-                        (new ComponentBuilder(IString.color(itemNBT))).create()));
+                        (new ComponentBuilder(hoverText)).create()));
                 parts.setClickEvent(new ClickEvent(action, command));
             });
             sendComponent(player, safe);
@@ -531,9 +533,8 @@ public interface IBungee {
         /**
          * 构造物品的文本悬停消息并发送
          * <p>
-         * 流程：SNBT → {@code IItem.getItemStack} 还原为 Bukkit ItemStack
-         * → 读取 ItemMeta 的显示名与 lore（Bukkit 直接返回带 {@code §} 颜色的文本）
-         * → 拼接为多行悬停文本 → 通过 BungeeCord {@code SHOW_TEXT} 发送（带可选点击命令）。
+         * 流程：调用 {@link #itemNbtToHoverText} 将 SNBT 转为「名字 + lore」多行文本
+         * → 通过 BungeeCord {@code SHOW_TEXT} 发送（带可选点击命令）。
          * 任意环节异常时降级为「悬停展示原始字符串」，保证不崩溃。
          * </p>
          *
@@ -546,35 +547,52 @@ public interface IBungee {
         static void sendItemHover(@Nullable Player player, String message, String itemNBT,
                                   @Nullable String command, boolean useCommand) {
             try {
-                // ---- 1. 还原 Bukkit ItemStack（NBT-API 反序列化，前面已验证可靠） ----
-                ItemStack item = IItem.getItemStack(itemNBT);
-                if (item == null) {
-                    // 还原失败，降级为展示原始字符串
-                    sendTextHoverFallback(player, message, itemNBT, command, useCommand);
-                    return;
-                }
+                // ---- 1. SNBT → 名字+lore 文本（统一走 itemNbtToHoverText，失败时内部自动回退原始字符串） ----
+                String hoverText = itemNbtToHoverText(itemNBT);
 
-                // ---- 2. 读取显示名与 lore，拼接为悬停文本 ----
-                String hoverText = buildHoverText(item);
-
-                // ---- 3. 构造主组件并设置 SHOW_TEXT 悬停（1.21 下不会崩溃） ----
+                // ---- 2. 构造主组件并设置 SHOW_TEXT 悬停（1.21 下不会崩溃） ----
                 TextComponent send = new TextComponent(IString.color(message));
                 send.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
                         new ComponentBuilder(hoverText).create()));
 
-                // ---- 4. 可选点击事件 ----
+                // ---- 3. 可选点击事件 ----
                 if (command != null && !command.isEmpty()) {
                     ClickEvent.Action action = useCommand ?
                             ClickEvent.Action.RUN_COMMAND : ClickEvent.Action.SUGGEST_COMMAND;
                     send.setClickEvent(new ClickEvent(action, command));
                 }
 
-                // ---- 5. 发送 ----
+                // ---- 4. 发送 ----
                 sendComponent(player, send);
 
             } catch (Throwable t) {
                 LogUtil.error("[IBungee] 物品文本悬停构造失败，降级为原始字符串悬停", t instanceof Exception ? (Exception) t : new Exception(t));
                 sendTextHoverFallback(player, message, itemNBT, command, useCommand);
+            }
+        }
+
+        /**
+         * 将物品 SNBT 字符串转换为「名字 + lore」多行悬停文本
+         * <p>
+         * 流程：SNBT → {@code IItem.getItemStack} 还原 ItemStack → 读取显示名与 lore 拼接。
+         * 还原失败或无元数据时，回退为带颜色的原始 SNBT 字符串（保证调用方始终有可用文本）。
+         * 供 {@link #sendItemHover} 及 {@code IBungee} 的 sendPart* 系列方法共用，
+         * 使新版（Adventure / 1.20.5+）下的物品悬停统一显示为可读的名称与 lore，而非原始 NBT。
+         * </p>
+         *
+         * @param itemNBT 物品 SNBT 字符串
+         * @return 名字 + lore 多行文本；失败时回退为染色后的原始 SNBT
+         */
+        static String itemNbtToHoverText(String itemNBT) {
+            try {
+                ItemStack item = IItem.getItemStack(itemNBT);
+                if (item == null) {
+                    return IString.color(itemNBT);
+                }
+                return buildHoverText(item);
+            } catch (Throwable t) {
+                // 解析失败不致命，回退原始字符串
+                return IString.color(itemNBT);
             }
         }
 
