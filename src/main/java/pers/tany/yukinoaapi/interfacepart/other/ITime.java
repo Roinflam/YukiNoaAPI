@@ -10,13 +10,23 @@ import java.util.Date;
 /**
  * 时间相关
  */
-public interface ITime {
+public final class ITime {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private ITime() {
+        throw new UnsupportedOperationException("ITime 是工具类,不允许实例化");
+    }
+
     /**
      * 获取这个月的天数
      *
      * @return 月的天数
      */
-    static int getMonthDay() {
+    public static int getMonthDay() {
         String timeGroup = new SimpleDateFormat("yyyy:MM").format(new Date());
         return getMonthDay(Integer.parseInt(timeGroup.split(":")[1]), Integer.parseInt(timeGroup.split(":")[0]));
     }
@@ -27,7 +37,7 @@ public interface ITime {
      * @param nowMonth 月
      * @return 月的天数
      */
-    static int getMonthDay(int nowMonth) {
+    public static int getMonthDay(int nowMonth) {
         String timeGroup = new SimpleDateFormat("yyyy:MM").format(new Date());
         return getMonthDay(nowMonth, Integer.parseInt(timeGroup.split(":")[0]));
     }
@@ -39,7 +49,7 @@ public interface ITime {
      * @param nowYear  年
      * @return 月的天数
      */
-    static int getMonthDay(int nowMonth, int nowYear) {
+    public static int getMonthDay(int nowMonth, int nowYear) {
         if (nowMonth == 1 || nowMonth == 3 || nowMonth == 5 || nowMonth == 7 || nowMonth == 8 || nowMonth == 10 || nowMonth == 12) {
             return 31;
         } else if (nowMonth == 2) {
@@ -55,7 +65,7 @@ public interface ITime {
      * @return 年:月:日:时:分
      */
     
-    static String getNowString() {
+    public static String getNowString() {
         String timeGroup = new SimpleDateFormat("yyyy:MM:dd:HH:mm").format(new Date());
         int nowYear = Integer.parseInt(timeGroup.split(":")[0]);
         int nowMonth = Integer.parseInt(timeGroup.split(":")[1]);
@@ -71,7 +81,7 @@ public interface ITime {
      * @return ...年...月...日...时...分
      */
     
-    static String getNowTimeString() {
+    public static String getNowTimeString() {
         String timeGroup = new SimpleDateFormat("yyyy:MM:dd:HH:mm").format(new Date());
         int nowYear = Integer.parseInt(timeGroup.split(":")[0]);
         int nowMonth = Integer.parseInt(timeGroup.split(":")[1]);
@@ -88,7 +98,7 @@ public interface ITime {
      * @return 年:月:日:时:分
      */
     
-    static String getTime(int m) {
+    public static String getTime(int m) {
         return getTime(m, 0, 0);
     }
 
@@ -100,7 +110,7 @@ public interface ITime {
      * @return 年:月:日:时:分
      */
     
-    static String getTime(int m, int h) {
+    public static String getTime(int m, int h) {
         return getTime(m, h, 0);
     }
 
@@ -113,7 +123,7 @@ public interface ITime {
      * @return 年:月:日:时:分
      */
     
-    static String getTime(int m, int h, int d) {
+    public static String getTime(int m, int h, int d) {
         String timeGroup = new SimpleDateFormat("yyyy:MM:dd:HH:mm").format(new Date());
         int nowYear = Integer.parseInt(timeGroup.split(":")[0]);
         int nowMonth = Integer.parseInt(timeGroup.split(":")[1]);
@@ -177,7 +187,7 @@ public interface ITime {
      * @return 日:时:分
      */
     
-    static String getDay(int m) {
+    public static String getDay(int m) {
         return getDay(m, 0, 0);
     }
 
@@ -189,7 +199,7 @@ public interface ITime {
      * @return 日:时:分
      */
     
-    static String getDay(int m, int h) {
+    public static String getDay(int m, int h) {
         return getDay(m, h, 0);
     }
 
@@ -202,7 +212,7 @@ public interface ITime {
      * @return 日:时:分
      */
     
-    static String getDay(int m, int h, int d) {
+    public static String getDay(int m, int h, int d) {
         int minute = m;
         int hour = h;
         int day = d;
@@ -226,7 +236,7 @@ public interface ITime {
      * @return 时间字符串
      */
     
-    static String serializationTime(long second) {
+    public static String serializationTime(long second) {
         return serializationTime(second, 0, 0, 0);
     }
 
@@ -239,7 +249,7 @@ public interface ITime {
      * @return 时间字符串
      */
     
-    static String serializationTime(long second, long minute) {
+    public static String serializationTime(long second, long minute) {
         return serializationTime(second, minute, 0, 0);
     }
 
@@ -253,7 +263,7 @@ public interface ITime {
      * @return 时间字符串
      */
     
-    static String serializationTime(long second, long minute, long hour) {
+    public static String serializationTime(long second, long minute, long hour) {
         return serializationTime(second, minute, hour, 0);
     }
 
@@ -268,7 +278,7 @@ public interface ITime {
      * @return 时间字符串
      */
     
-    static String serializationTime(long second, long minute, long hour, long day) {
+    public static String serializationTime(long second, long minute, long hour, long day) {
         return LocalDateTime.now().plusSeconds(second).plusMinutes(minute).plusHours(hour).plusDays(day).toString();
     }
 
@@ -280,9 +290,11 @@ public interface ITime {
      * @param timeString 时间字符串
      * @return 是否到了这个时间
      */
-    static boolean deserializationTime(String timeString) {
+    public static boolean deserializationTime(String timeString) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime next = LocalDateTime.parse(timeString);
         return Duration.between(now, next).getSeconds() >= 0;
     }
 }
+
+

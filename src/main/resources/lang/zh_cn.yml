@@ -7,6 +7,7 @@ common:
   on: "开启"
   off: "关闭"
   player-only: "§c✘ §7仅限玩家执行"
+  no-permission: "§c✘ §7你没有权限使用该命令"
   reload-success: "§b✔ §7配置重载完成"
   reload-fail: "§c✘ §7配置重载失败"
 

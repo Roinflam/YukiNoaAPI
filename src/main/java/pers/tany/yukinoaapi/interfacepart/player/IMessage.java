@@ -26,7 +26,17 @@ import java.lang.reflect.Method;
  * @author tany
  * @since 1.0.0
  */
-public interface IMessage {
+public final class IMessage {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IMessage() {
+        throw new UnsupportedOperationException("IMessage 是工具类,不允许实例化");
+    }
+
 
     /**
      * 向玩家发送一条 ActionBar 消息
@@ -45,7 +55,7 @@ public interface IMessage {
      * IMessage.sendActionBar(player, "&c&l警告：区域即将关闭！", 10);
      * }</pre>
      */
-    static void sendActionBar(Player player, String message, int time) {
+    public static void sendActionBar(Player player, String message, int time) {
         // 参数校验
         if (player == null || !player.isOnline()) {
             return;
@@ -111,7 +121,7 @@ public interface IMessage {
      * @param player  目标玩家
      * @param message 要发送的消息，支持 & 颜色代码
      */
-    static void sendActionBarOnce(Player player, String message) {
+    public static void sendActionBarOnce(Player player, String message) {
         if (player == null || !player.isOnline()) {
             return;
         }
@@ -145,7 +155,7 @@ public interface IMessage {
      * @param player  目标玩家
      * @param message 已处理颜色的消息
      */
-    static void sendActionBarSpigot(Player player, String message) {
+    public static void sendActionBarSpigot(Player player, String message) {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
     }
 
@@ -157,7 +167,7 @@ public interface IMessage {
      * @param message 已处理颜色的消息
      * @throws Exception 反射调用失败时抛出
      */
-    static void sendActionBarNMS(Player player, String message) throws Exception {
+    public static void sendActionBarNMS(Player player, String message) throws Exception {
         Field playerConnection = NMSUtil.playerConnection;
         Class<?> packetPlayOutChat = NMSUtil.packetPlayOutChat;
         Method send = NMSUtil.send;
@@ -181,3 +191,4 @@ public interface IMessage {
         send.invoke(connection, packet);
     }
 }
+

@@ -13,30 +13,40 @@ import java.util.concurrent.ConcurrentHashMap;
  * 兼容Java 8-21+版本
  * 使用缓存机制优化 ScriptEngine 性能
  */
-public interface IFormula {
+public final class IFormula {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IFormula() {
+        throw new UnsupportedOperationException("IFormula 是工具类,不允许实例化");
+    }
+
 
     /**
      * ScriptEngine 缓存
      * 创建 ScriptEngine 非常耗时，必须缓存复用
      * 使用 ThreadLocal 保证线程安全
      */
-    ThreadLocal<ScriptEngine> ENGINE_CACHE = new ThreadLocal<>();
+    public static final ThreadLocal<ScriptEngine> ENGINE_CACHE = new ThreadLocal<>();
 
     /**
      * 表达式结果缓存
      * 缓存常用表达式的计算结果
      */
-    ConcurrentHashMap<String, Double> RESULT_CACHE = new ConcurrentHashMap<>(64);
+    public static final ConcurrentHashMap<String, Double> RESULT_CACHE = new ConcurrentHashMap<>(64);
 
     /**
      * 布尔表达式结果缓存
      */
-    ConcurrentHashMap<String, Boolean> BOOLEAN_CACHE = new ConcurrentHashMap<>(64);
+    public static final ConcurrentHashMap<String, Boolean> BOOLEAN_CACHE = new ConcurrentHashMap<>(64);
 
     /**
      * 缓存最大容量
      */
-    int MAX_CACHE_SIZE = 256;
+    public static final int MAX_CACHE_SIZE = 256;
 
     /**
      * 根据字符串的公式进行运算
@@ -44,7 +54,7 @@ public interface IFormula {
      * @param formula 运算公式（如："1+2*3"）
      * @return 计算结果，失败返回0
      */
-    static double numericalFormula(String formula) {
+    public static double numericalFormula(String formula) {
         if (formula == null || formula.isEmpty()) {
             return 0;
         }
@@ -81,7 +91,7 @@ public interface IFormula {
      * @param formula 公式
      * @param result  结果
      */
-    static void cacheResult(String formula, double result) {
+    public static void cacheResult(String formula, double result) {
         if (RESULT_CACHE.size() < MAX_CACHE_SIZE) {
             RESULT_CACHE.put(formula, result);
         }
@@ -93,7 +103,7 @@ public interface IFormula {
      * @param formula 判断公式（如："1>0"、"5==5"）
      * @return 判断结果，失败返回false
      */
-    static boolean judgmentFormula(String formula) {
+    public static boolean judgmentFormula(String formula) {
         if (formula == null || formula.isEmpty()) {
             return false;
         }
@@ -130,7 +140,7 @@ public interface IFormula {
      * @param formula 公式
      * @param result  结果
      */
-    static void cacheBooleanResult(String formula, boolean result) {
+    public static void cacheBooleanResult(String formula, boolean result) {
         if (BOOLEAN_CACHE.size() < MAX_CACHE_SIZE) {
             BOOLEAN_CACHE.put(formula, result);
         }
@@ -142,7 +152,7 @@ public interface IFormula {
      * @param formula 公式
      * @return 计算结果，失败返回null
      */
-    static Double evaluateWithScriptEngine(String formula) {
+    public static Double evaluateWithScriptEngine(String formula) {
         ScriptEngine engine = getOrCreateEngine();
         if (engine == null) {
             return null;
@@ -166,7 +176,7 @@ public interface IFormula {
      * @param formula 公式
      * @return 计算结果，失败返回null
      */
-    static Boolean evaluateBooleanWithScriptEngine(String formula) {
+    public static Boolean evaluateBooleanWithScriptEngine(String formula) {
         ScriptEngine engine = getOrCreateEngine();
         if (engine == null) {
             return null;
@@ -189,7 +199,7 @@ public interface IFormula {
      *
      * @return 脚本引擎，不可用返回null
      */
-    static ScriptEngine getOrCreateEngine() {
+    public static ScriptEngine getOrCreateEngine() {
         ScriptEngine engine = ENGINE_CACHE.get();
         if (engine != null) {
             return engine;
@@ -208,7 +218,7 @@ public interface IFormula {
      *
      * @return 脚本引擎，不可用返回null
      */
-    static ScriptEngine getScriptEngine() {
+    public static ScriptEngine getScriptEngine() {
         ScriptEngineManager manager = new ScriptEngineManager();
 
         String[] engineNames = {"graal.js", "nashorn", "JavaScript", "js"};
@@ -228,7 +238,7 @@ public interface IFormula {
      * @param expression 表达式
      * @return 计算结果
      */
-    static double evaluateExpression(String expression) {
+    public static double evaluateExpression(String expression) {
         String cleaned = expression.replace(" ", "");
         return parseExpression(cleaned, new int[]{0});
     }
@@ -240,7 +250,7 @@ public interface IFormula {
      * @param pos  当前位置
      * @return 计算结果
      */
-    static double parseExpression(String expr, int[] pos) {
+    public static double parseExpression(String expr, int[] pos) {
         double result = parseTerm(expr, pos);
         int len = expr.length();
 
@@ -263,7 +273,7 @@ public interface IFormula {
      * @param pos  当前位置
      * @return 计算结果
      */
-    static double parseTerm(String expr, int[] pos) {
+    public static double parseTerm(String expr, int[] pos) {
         double result = parseFactor(expr, pos);
         int len = expr.length();
 
@@ -297,7 +307,7 @@ public interface IFormula {
      * @param pos  当前位置
      * @return 计算结果
      */
-    static double parseFactor(String expr, int[] pos) {
+    public static double parseFactor(String expr, int[] pos) {
         boolean negative = false;
         int len = expr.length();
 
@@ -336,7 +346,7 @@ public interface IFormula {
      * @param expression 表达式
      * @return 计算结果
      */
-    static boolean evaluateBooleanExpression(String expression) {
+    public static boolean evaluateBooleanExpression(String expression) {
         String cleaned = expression.replace(" ", "");
 
         int andIdx = cleaned.indexOf("&&");
@@ -378,9 +388,10 @@ public interface IFormula {
      * 清空所有缓存
      * 在内存紧张时可调用此方法
      */
-    static void clearCache() {
+    public static void clearCache() {
         RESULT_CACHE.clear();
         BOOLEAN_CACHE.clear();
         ENGINE_CACHE.remove();
     }
 }
+

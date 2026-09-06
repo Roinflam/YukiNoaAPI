@@ -1,5 +1,3 @@
-// HologramManager.java
-// src/main/java/pers/tany/yukinoaapi/hologram/HologramManager.java
 package pers.tany.yukinoaapi.hologram;
 
 import org.bukkit.Bukkit;
@@ -45,6 +43,30 @@ import java.util.concurrent.ConcurrentHashMap;
  *   避免在 ChunkLoadEvent 中同步调用 chunk.getEntities() 阻塞主线程
  *   （Mohist 环境下 CraftChunk.getEntities() 会等待区块实体数据就绪，导致 park）。
  *   新生成的区块（isNewChunk）直接跳过清理，不可能有孤儿盔甲架。
+ *
+ * 盔甲架重复堆叠修复（v3.2.4）：
+ *   v3.2.3 完全移除了区块加载时的孤儿清理，但其「启动清理覆盖崩溃残留」的推断有漏洞：
+ *   cleanupAllOrphanedStands() 只能清理「启动时已加载」的区块，覆盖不到「启动时未加载、
+ *   运行中才加载」的区块，导致这些区块每次重启都在旧孤儿之上叠加新盔甲架，越堆越多。
+ *
+ *   修复方案改为在 NativeHologram.show() 内按本全息图专属 id 标记精确清理孤儿，
+ *   并在 show() 中增加「区块未加载不生成」守卫（避免 spawnEntity 强制加载区块、
+ *   且避免在旧孤儿之上叠加生成）。本类 onChunkLoad 因此将 show() 延迟 1 tick 执行：
+ *   show() 内部会调用 chunk.getEntities() 清理孤儿，在 ChunkLoadEvent 回调内直接调用
+ *   会触发 Mohist 主线程 park 阻塞，延迟 1 tick 待区块实体就绪后执行即可两全。
+ *
+ * chunkIndex 移动防护（v3.2.5）：
+ *   IHologram.teleport() 只更新全息图自身持有的位置字段，不会同步更新本类
+ *   维护的 chunkIndex。若外部直接调用 teleport() 将一个已存在的全息图移动到
+ *   不同区块，chunkIndex 会与实际位置脱节：旧区块卸载时 onChunkUnload 仍按
+ *   过期索引误触发 hide()；新区块从未登记，若之后自然卸载不会被本插件
+ *   hide()，盔甲架会被 Minecraft 当作普通实体持久化进区块 NBT；该区块下次
+ *   加载时 onChunkLoad 因索引缺失直接跳过，不会清理孤儿，导致野生盔甲架
+ *   复活，且 isValid()/refresh() 只检查追踪列表内实体是否存活，无法发现
+ *   世界中多余的同 tag 实体，现有自愈机制对此无效。
+ *
+ *   新增 moveHologram(id, newLocation) 作为外部移动已存在全息图位置的唯一
+ *   正确入口，内部在 teleport 前后正确维护 chunkIndex（详见该方法注释）。
  *
  * @author Roinflam
  * @since 3.1.0
@@ -97,7 +119,7 @@ public class HologramManager implements Listener {
     /**
      * 区块索引：chunkKey → 该区块内的全息图 ID 集合
      * chunkKey 格式："worldName:chunkX:chunkZ"
-     * create/delete/load 时维护，chunk 事件通过此索引 O(1) 查到候选集
+     * create/delete/load/move 时维护，chunk 事件通过此索引 O(1) 查到候选集
      */
     private final Map<String, Set<String>> chunkIndex = new HashMap<>();
 
@@ -189,7 +211,7 @@ public class HologramManager implements Listener {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // 创建 / 获取 / 删除
+    // 创建 / 获取 / 删除 / 移动
     // ══════════════════════════════════════════════════════════════════════
 
     /**
@@ -305,6 +327,52 @@ public class HologramManager implements Listener {
     }
 
     /**
+     * 移动全息图到新位置（跨区块安全）
+     *
+     * 背景：{@link IHologram#teleport(Location)} 只会更新全息图自身持有的
+     * location 字段，不会同步更新本管理器的区块索引（chunkIndex）。若移动
+     * 前后跨越了不同区块，chunkIndex 仍然指向旧区块，会导致：
+     *   1. 旧区块卸载时，onChunkUnload 通过过期索引误触发该全息图的 hide()；
+     *   2. 新区块从未被登记，若新区块之后自然卸载，本插件不会主动 hide()，
+     *      盔甲架实体会被 Minecraft 当作普通实体持久化进区块 NBT；
+     *   3. 该区块下次加载时，onChunkLoad 因索引缺失直接跳过，不会调用
+     *      show() / removeOwnOrphanStands() 清理，导致野生盔甲架复活；
+     *   4. isValid() 只检查追踪列表中的实体是否存活，不会扫描世界中多余的
+     *      同 tag 实体，定时刷新任务无法发现并清理这种情况。
+     *
+     * 本方法在调用 teleport() 前后正确维护 chunkIndex（先移除旧索引，
+     * 执行传送，再注册新索引），是外部移动一个已存在全息图位置的唯一
+     * 正确入口。请勿直接调用 IHologram.teleport() 来移动一个已显示的全息图。
+     *
+     * @param id          全息图唯一标识
+     * @param newLocation 目标位置
+     * @return 移动成功返回 true；全息图不存在或已删除返回 false
+     */
+    public boolean moveHologram(String id, Location newLocation) {
+        IHologram hologram = holograms.get(id);
+        if (hologram == null || hologram.isDeleted()) {
+            return false;
+        }
+
+        // 记录旧位置，用于从旧区块索引中移除（须在 teleport 之前获取）
+        Location oldLocation = hologram.getLocation();
+
+        // 先从旧区块索引移除，避免旧区块卸载时误触发 hide()
+        removeFromChunkIndex(id, oldLocation);
+
+        // 执行实际的位置移动
+        hologram.teleport(newLocation);
+
+        // 注册到新区块索引，确保新区块加载/卸载事件能正确识别本全息图
+        addToChunkIndex(id, newLocation);
+
+        // 标记脏数据，由定时任务统一写盘
+        markDirty();
+
+        return true;
+    }
+
+    /**
      * 获取所有全息图
      *
      * @return 所有全息图的集合
@@ -398,6 +466,10 @@ public class HologramManager implements Listener {
 
     /**
      * 加载所有全息图
+     *
+     * 说明：本方法对所有全息图调用 show()，但 NativeHologram.show() 已增加
+     * 「区块未加载不生成」守卫，因此未加载区块的全息图不会在此处被强制加载生成，
+     * 而是等待区块加载事件（onChunkLoad）就绪后再显示并清理孤儿。
      */
     private void loadHolograms() {
         if (!enabled || dataManager == null) return;
@@ -453,7 +525,7 @@ public class HologramManager implements Listener {
                     hologram.appendLine(line);
                 }
 
-                // 显示全息图
+                // 显示全息图（区块未加载时 show() 内部会跳过生成，待区块加载后再显示）
                 hologram.show();
 
                 // 添加到管理器（不触发 markDirty，加载完成后统一 flushSave）
@@ -608,50 +680,40 @@ public class HologramManager implements Listener {
      * 区块加载事件
      * 仅原生模式（1.12+）处理
      *
-     * 性能优化（v3.2.3）：
-     *   1. 新生成的区块（isNewChunk）直接跳过清理，不可能有孤儿盔甲架
-     *   2. cleanupOrphanedStandsInChunk 延迟 1 tick 执行，避免在 ChunkLoadEvent 中
-     *      同步调用 chunk.getEntities() 导致主线程 park 等待区块实体数据就绪
-     *      （Mohist 环境下 CraftChunk.getEntities() 会触发同步加载，严重阻塞主线程）
-     *
-     * @param event 区块加载事件
-     */
-    /**
-     * 区块加载事件
-     * 仅原生模式（1.12+）处理
-     *
-     * 性能优化（v3.2.3）：
-     *   移除了运行时的 cleanupOrphanedStandsInChunk 调用。
-     *   原实现每次区块加载都调用 chunk.getEntities() 扫描孤儿盔甲架，
-     *   在 Mohist 环境下 CraftChunk.getEntities() 会同步等待区块实体数据就绪，
-     *   导致主线程 park 阻塞，严重影响 TPS（profiler 显示占 Unsafe.park 的 21%）。
-     *
-     *   孤儿盔甲架的清理策略改为：
-     *   1. 服务器启动时由 cleanupAllOrphanedStands() 一次性清理所有已加载区块
-     *   2. 运行时由 refreshTask（每 10 分钟）检测并修复失效的全息图实体
-     *   3. 正常运行中 show/hide 生命周期管理正确，不会产生孤儿
-     *   4. 仅在异常崩溃后重启时可能残留孤儿，由启动清理覆盖
+     * 盔甲架重复堆叠修复（v3.2.4）：
+     *   将 show() 延迟 1 tick 执行。NativeHologram.show() 内部会调用
+     *   chunk.getEntities() 清理本全息图遗留的孤儿盔甲架；若在 ChunkLoadEvent 回调内
+     *   直接调用 getEntities()，在 Mohist 环境下 CraftChunk.getEntities() 会等待区块
+     *   实体数据就绪，导致主线程 park 阻塞。延迟 1 tick 待区块实体就绪后再执行 show()，
+     *   既能完成孤儿清理（杜绝重启堆叠），又不阻塞主线程。
      *
      * @param event 区块加载事件
      */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onChunkLoad(ChunkLoadEvent event) {
-        if (!useHD && enabled && loaded) {
-            // 通过区块索引 O(1) 查找该区块内的全息图，无全息图的区块直接跳过
-            String chunkKey = buildChunkKey(
-                    event.getWorld().getName(),
-                    event.getChunk().getX(),
-                    event.getChunk().getZ());
-            Set<String> ids = chunkIndex.get(chunkKey);
-            if (ids == null || ids.isEmpty()) return;
+        if (useHD || !enabled || !loaded) return;
 
-            for (String id : ids) {
+        // 通过区块索引 O(1) 查找该区块内的全息图，无全息图的区块直接跳过
+        String chunkKey = buildChunkKey(
+                event.getWorld().getName(),
+                event.getChunk().getX(),
+                event.getChunk().getZ());
+        Set<String> ids = chunkIndex.get(chunkKey);
+        if (ids == null || ids.isEmpty()) return;
+
+        // 快照一份 id 列表，避免延迟执行期间 chunkIndex 被并发修改导致迭代异常
+        final List<String> idSnapshot = new ArrayList<>(ids);
+
+        // 延迟 1 tick 执行 show()：避开 ChunkLoadEvent 回调内调用 chunk.getEntities()
+        // 在 Mohist 下触发的主线程 park 阻塞（show() 内部会调用 getEntities() 清理孤儿）
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (String id : idSnapshot) {
                 IHologram hologram = holograms.get(id);
                 if (hologram != null && !hologram.isShown() && !hologram.isDeleted()) {
                     hologram.show();
                 }
             }
-        }
+        }, 1L);
     }
 
     /**

@@ -1,5 +1,3 @@
-// 文件：NativeHologram.java
-// 路径：src/main/java/pers/tany/yukinoaapi/hologram/impl/NativeHologram.java
 package pers.tany.yukinoaapi.hologram.impl;
 
 import org.bukkit.Bukkit;
@@ -305,6 +303,27 @@ public class NativeHologram implements IHologram {
             return;
         }
 
+        // 【关键修复】区块未加载时不生成盔甲架，避免强制加载区块。
+        // 原因：world.spawnEntity() 在未加载区块会强制加载该区块并生成实体，
+        //   这会导致两类问题：
+        //   1. 启动时 loadHolograms() 对所有全息图调用 show()，会一次性强制加载
+        //      全部全息图所在区块，造成启动卡顿且这些区块被长期占用。
+        //   2. 此时启动清理 cleanupAllOrphanedStands() 早已执行完（且当时这些区块
+        //      尚未加载，清不到），新盔甲架会直接叠加在上一次会话残留的旧孤儿之上，
+        //      重启多次后越堆越多。
+        // 处理：未加载时直接返回，shown 保持 false，待区块加载事件（onChunkLoad）
+        //   在区块就绪后重新调用 show() 完成显示与孤儿清理。
+        int chunkX = location.getBlockX() >> 4;
+        int chunkZ = location.getBlockZ() >> 4;
+        if (!location.getWorld().isChunkLoaded(chunkX, chunkZ)) {
+            return;
+        }
+
+        // 【关键修复】生成前先清理本全息图遗留在区块内的旧盔甲架（携带本全息图 id 标记），
+        // 确保「show() 执行后，本全息图在区块内有且仅有当前这一组盔甲架」这一不变式，
+        // 从根源杜绝服务器重启 / 重复显示导致的盔甲架堆叠。
+        removeOwnOrphanStands();
+
         for (int i = 0; i < lines.size(); i++) {
             spawnArmorStand(i, lines.get(i));
         }
@@ -438,6 +457,50 @@ public class NativeHologram implements IHologram {
                 );
                 stand.teleport(newLoc);
             }
+        }
+    }
+
+    /**
+     * 清理本全息图遗留在所在区块内的旧盔甲架（携带本全息图专属 id 标记 "Hologram_&lt;id&gt;"）
+     *
+     * 必要性说明（修复盔甲架重复堆叠的核心）：
+     *   盔甲架以世界实体形式持久化保存在区块数据中。服务器重启 / 崩溃 / 区块卸载时机异常
+     *   等情况下，上一次会话生成的盔甲架可能残留在世界里，但已不再被任何全息图对象引用，
+     *   成为孤儿。仅依赖启动时的 cleanupAllOrphanedStands() 无法覆盖「启动时未加载、
+     *   运行中才加载」的区块，导致这些区块每次重启都在旧孤儿之上叠加新盔甲架，越堆越多。
+     *
+     *   本方法在每次 show() 生成盔甲架前调用，按本全息图专属 id 标记精确清理，保证
+     *   「show() 执行后，本全息图在区块内有且仅有当前这一组盔甲架」这一不变式。
+     *
+     * 性能与安全：
+     *   仅扫描本全息图所在的单个区块，且区块已加载时才执行（调用方 show() 已先行确认
+     *   区块已加载），不会强制加载区块。
+     *   注意：在 ChunkLoadEvent 回调内调用 show() 时，必须延迟 1 tick，避免在事件回调内
+     *   直接调用 chunk.getEntities() 触发 Mohist 主线程 park 阻塞（HologramManager
+     *   的 onChunkLoad 已做此延迟处理）。
+     */
+    private void removeOwnOrphanStands() {
+        World world = location.getWorld();
+        if (world == null) return;
+
+        int chunkX = location.getBlockX() >> 4;
+        int chunkZ = location.getBlockZ() >> 4;
+        if (!world.isChunkLoaded(chunkX, chunkZ)) return;
+
+        // 本全息图专属标记：与 spawnArmorStand 中 addScoreboardTag("Hologram_" + id) 对应
+        String selfTag = "Hologram_" + id;
+
+        for (org.bukkit.entity.Entity entity : world.getChunkAt(chunkX, chunkZ).getEntities()) {
+            if (!(entity instanceof ArmorStand)) continue;
+            if (!entity.getScoreboardTags().contains(selfTag)) continue;
+
+            // 强制移除：先取消无敌状态，确保能被移除
+            try {
+                ((ArmorStand) entity).setInvulnerable(false);
+            } catch (NoSuchMethodError ignored) {
+                // 低版本没有这个方法
+            }
+            entity.remove();
         }
     }
 

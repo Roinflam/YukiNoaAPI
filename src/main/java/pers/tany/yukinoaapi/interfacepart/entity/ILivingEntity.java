@@ -15,7 +15,17 @@ import java.util.Set;
 /**
  * 生物操作相关
  */
-public interface ILivingEntity {
+public final class ILivingEntity {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private ILivingEntity() {
+        throw new UnsupportedOperationException("ILivingEntity 是工具类,不允许实例化");
+    }
+
     /**
      * 安全地设置实体的血量
      * 如果小于0，则为0
@@ -24,7 +34,7 @@ public interface ILivingEntity {
      * @param livingEntity 被设置的实体
      * @param health       被设置的血量
      */
-    static void setEntityHealth(LivingEntity livingEntity, double health) {
+    public static void setEntityHealth(LivingEntity livingEntity, double health) {
         if (livingEntity.isValid()) {
             if (health > livingEntity.getMaxHealth()) {
                 health = livingEntity.getMaxHealth();
@@ -43,7 +53,7 @@ public interface ILivingEntity {
      * @return 视野内的生物
      */
     
-    static List<LivingEntity> getEntityLookingAt(LivingEntity livingEntity) {
+    public static List<LivingEntity> getEntityLookingAt(LivingEntity livingEntity) {
         Set<Chunk> chunkSet = new HashSet<>();
         BlockIterator blockIterator = new BlockIterator(livingEntity.getEyeLocation(), 0, Bukkit.getServer().getViewDistance() * 16);
         while (blockIterator.hasNext()) {
@@ -68,7 +78,7 @@ public interface ILivingEntity {
      * @return 视野内的生物
      */
     
-    static List<LivingEntity> getEntityLookingAt(LivingEntity livingEntity, int length) {
+    public static List<LivingEntity> getEntityLookingAt(LivingEntity livingEntity, int length) {
         Set<Chunk> chunkSet = new HashSet<>();
         BlockIterator iterator = new BlockIterator(livingEntity.getEyeLocation(), 0, length);
         while (iterator.hasNext()) {
@@ -85,3 +95,5 @@ public interface ILivingEntity {
         return entityList;
     }
 }
+
+

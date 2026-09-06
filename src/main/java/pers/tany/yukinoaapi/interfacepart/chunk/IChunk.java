@@ -9,7 +9,17 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
-public interface IChunk {
+public final class IChunk {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IChunk() {
+        throw new UnsupportedOperationException("IChunk 是工具类,不允许实例化");
+    }
+
 
     /**
      * 根据坐标，获取周围区块的数组
@@ -19,7 +29,7 @@ public interface IChunk {
      * @return 区块列表
      */
     
-    static List<Chunk> getChunks(Location location, int range) {
+    public static List<Chunk> getChunks(Location location, int range) {
         List<Chunk> chunks = new ArrayList<>();
         for (int x = -range; x <= range; x++) {
             for (int z = -range; z <= range; z++) {
@@ -40,7 +50,7 @@ public interface IChunk {
      * @param range    周围范围(0为1x1,1为3x3,2为5x5)
      * @return 区块组里是否有玩家
      */
-    static boolean chunksHasPlayer(Location location, int range) {
+    public static boolean chunksHasPlayer(Location location, int range) {
         List<Integer> xList = new ArrayList<>();
         List<Integer> zList = new ArrayList<>();
         for (int x = -range; x <= range; x++) {
@@ -65,3 +75,5 @@ public interface IChunk {
         return has[0];
     }
 }
+
+

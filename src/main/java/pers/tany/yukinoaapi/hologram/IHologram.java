@@ -1,5 +1,3 @@
-// 文件：IHologram.java
-// 路径：src/main/java/pers/tany/yukinoaapi/hologram/IHologram.java
 package pers.tany.yukinoaapi.hologram;
 
 import org.bukkit.Location;
@@ -31,6 +29,16 @@ public interface IHologram {
 
     /**
      * 设置位置并传送
+     *
+     * 注意：本方法仅设置全息图自身持有的位置字段，不会同步更新
+     * {@link HologramManager} 的区块索引（chunkIndex）。若新旧位置跨越
+     * 不同区块，会导致该全息图在区块加载/卸载事件中被错误索引或漏索引，
+     * 可能引发野生盔甲架残留，且现有的 isValid()/refresh() 定时自愈机制
+     * 无法发现这种情况（详见 HologramManager#moveHologram 方法注释）。
+     *
+     * 外部调用方（包括第三方插件）如需移动一个已存在的全息图，
+     * 请使用 {@link HologramManager#moveHologram(String, Location)}，
+     * 不要直接调用本方法。本方法仅供 HologramManager 内部及实现类自身使用。
      *
      * @param location 目标位置
      */

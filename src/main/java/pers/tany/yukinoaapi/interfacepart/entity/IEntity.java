@@ -18,7 +18,17 @@ import java.lang.reflect.Method;
  * @author tany
  * @since 1.0.0
  */
-public interface IEntity {
+public final class IEntity {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IEntity() {
+        throw new UnsupportedOperationException("IEntity 是工具类,不允许实例化");
+    }
+
 
     /**
      * 获取实体的显示名称
@@ -31,7 +41,7 @@ public interface IEntity {
      * @return 实体名称，失败返回实体类型名
      */
     @Nullable
-    static String getName(Entity entity) {
+    public static String getName(Entity entity) {
         if (entity == null) {
             return null;
         }
@@ -62,7 +72,7 @@ public interface IEntity {
      * @param entity 目标实体
      * @return 实体名称
      */
-    static String getNameByNMS(Entity entity) {
+    public static String getNameByNMS(Entity entity) {
         if (!NMSUtil.isInitialized()) {
             return entity.getType().toString();
         }
@@ -130,7 +140,7 @@ public interface IEntity {
      * @return 格式如 minecraft:zombie
      */
     @Nullable
-    static String getSaveName(Entity entity) {
+    public static String getSaveName(Entity entity) {
         if (entity == null) {
             return null;
         }
@@ -162,7 +172,7 @@ public interface IEntity {
      * @param entity 目标实体
      * @return 实体保存名称
      */
-    static String getSaveNameByNMS(Entity entity) {
+    public static String getSaveNameByNMS(Entity entity) {
         if (!NMSUtil.isInitialized()) {
             return entity.getType().toString();
         }
@@ -205,7 +215,7 @@ public interface IEntity {
      * @return NBT字符串，失败返回null
      */
     @Nullable
-    static String getEntityNBT(Entity entity) {
+    public static String getEntityNBT(Entity entity) {
         if (entity == null) {
             return null;
         }
@@ -234,3 +244,4 @@ public interface IEntity {
         }
     }
 }
+

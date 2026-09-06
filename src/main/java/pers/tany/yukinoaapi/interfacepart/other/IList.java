@@ -8,7 +8,17 @@ import java.util.List;
 /**
  * List操作相关
  */
-public interface IList {
+public final class IList {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IList() {
+        throw new UnsupportedOperationException("IList 是工具类,不允许实例化");
+    }
+
     /**
      * 把一个字符串列表里的字符串，替换为其他的
      *
@@ -18,7 +28,7 @@ public interface IList {
      * @return 新的列表
      */
     
-    static List<String> listReplace(Iterable<String> list, String wasReplaced, String replace) {
+    public static List<String> listReplace(Iterable<String> list, String wasReplaced, String replace) {
         ArrayList<String> newList = new ArrayList<>();
         for (String s : list) {
             newList.add(s.replace(wasReplaced, replace));
@@ -34,7 +44,7 @@ public interface IList {
      * @return list
      */
     
-    static <T> List<T> upsetList(List<T> list) {
+    public static <T> List<T> upsetList(List<T> list) {
         for (int i = 0; i < list.size(); i++) {
             int random = IRandom.randomNumber(0, list.size() - 1);
             T t = list.get(random);
@@ -44,3 +54,5 @@ public interface IList {
         return list;
     }
 }
+
+

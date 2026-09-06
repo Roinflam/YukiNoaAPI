@@ -31,6 +31,12 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         LanguageManager lang = ((Main) Main.plugin).getLanguageManager();
 
+        // 权限校验：本命令组全部仅限OP使用（控制台的 isOp() 恒为 true，不受影响）
+        if (!sender.isOp()) {
+            sender.sendMessage(lang.getMessage("common.no-permission"));
+            return true;
+        }
+
         if (args.length == 0) {
             sendHelp(sender, lang);
             return true;
@@ -154,6 +160,11 @@ public class DebugCommands implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
+
+        // 非OP不提供任何补全，避免暴露子命令
+        if (!sender.isOp()) {
+            return completions;
+        }
 
         if (args.length == 1) {
             List<String> subCommands = Arrays.asList("debug", "classes", "reload", "help");

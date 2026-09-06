@@ -8,7 +8,17 @@ import java.util.stream.Stream;
 /**
  * 并行遍历容器
  */
-public interface IParallel {
+public final class IParallel {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IParallel() {
+        throw new UnsupportedOperationException("IParallel 是工具类,不允许实例化");
+    }
+
 
     /**
      * 返回平行流
@@ -17,7 +27,7 @@ public interface IParallel {
      * @param list 列表
      * @return 如果长度大于1，则为平行
      */
-    static <T> Stream<T> parallel(Collection<T> list) {
+    public static <T> Stream<T> parallel(Collection<T> list) {
         Stream<T> stream = list.stream();
         if (list.size() > 1) {
             return stream.parallel();
@@ -34,10 +44,12 @@ public interface IParallel {
      * @return 如果长度大于1，则为平行
      */
     
-    static <T> Stream<T> parallel(int length, Stream<T> stream) {
+    public static <T> Stream<T> parallel(int length, Stream<T> stream) {
         if (length > 1) {
             return stream.parallel();
         }
         return stream;
     }
 }
+
+

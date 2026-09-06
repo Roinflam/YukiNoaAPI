@@ -12,14 +12,24 @@ import javax.annotation.Nonnull;
 /**
  * 容器物品相关
  */
-public interface IInventory {
+public final class IInventory {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IInventory() {
+        throw new UnsupportedOperationException("IInventory 是工具类,不允许实例化");
+    }
+
     /**
      * 同步打开物品栏
      *
      * @param inventory 涉及物品栏
      * @param player    涉及玩家
      */
-    static void openInventory(Inventory inventory, Player player) {
+    public static void openInventory(Inventory inventory, Player player) {
         new BukkitRunnable() {
 
             @Override
@@ -36,7 +46,7 @@ public interface IInventory {
      * @param inventoryHolder 涉及物品栏
      * @param player          涉及玩家
      */
-    static void openInventory(InventoryHolder inventoryHolder, Player player) {
+    public static void openInventory(InventoryHolder inventoryHolder, Player player) {
         new BukkitRunnable() {
 
             @Override
@@ -53,7 +63,7 @@ public interface IInventory {
      * @param inventoryView 涉及物品栏
      * @param player        涉及玩家
      */
-    static void openInventory(InventoryView inventoryView, Player player) {
+    public static void openInventory(InventoryView inventoryView, Player player) {
         new BukkitRunnable() {
 
             @Override
@@ -64,3 +74,5 @@ public interface IInventory {
         }.runTask(Main.plugin);
     }
 }
+
+

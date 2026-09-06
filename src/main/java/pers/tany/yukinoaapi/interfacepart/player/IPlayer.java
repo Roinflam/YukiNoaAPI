@@ -18,7 +18,17 @@ import java.util.UUID;
 /**
  * 玩家操作相关
  */
-public interface IPlayer {
+public final class IPlayer {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IPlayer() {
+        throw new UnsupportedOperationException("IPlayer 是工具类,不允许实例化");
+    }
+
 
     /**
      * 给予玩家经验值，如果为负数则扣除，可降级
@@ -26,7 +36,7 @@ public interface IPlayer {
      * @param player 涉及的玩家
      * @param exp    经验值
      */
-    static void giveExp(Player player, int exp) {
+    public static void giveExp(Player player, int exp) {
         int level = player.getLevel();
         int toNextLevel = getUpgradeExp(level);
         int floatExp = (int) (player.getExp() * toNextLevel) + exp;
@@ -51,7 +61,7 @@ public interface IPlayer {
      * @param level 等级
      * @return 升级所需的经验
      */
-    static int getUpgradeExp(int level) {
+    public static int getUpgradeExp(int level) {
         return level < 16 ? level * 2 + 7 : level < 30 ? level * 5 - 38 : level * 9 - 158;
     }
 
@@ -61,7 +71,7 @@ public interface IPlayer {
      * @param level 等级
      * @return 经验
      */
-    static int getTotalExp(int level) {
+    public static int getTotalExp(int level) {
         return (int) (level < 17 ? level * (level + 6) : level < 31 ? level * (level * 2.5 - 40.5) + 360 : level * (level * 4.5 - 162.5) + 2220);
     }
 
@@ -71,7 +81,7 @@ public interface IPlayer {
      * @param player    涉及的玩家
      * @param itemStack 物品
      */
-    static void giveItem(Player player, ItemStack itemStack) {
+    public static void giveItem(Player player, ItemStack itemStack) {
         if (!IItem.isEmpty(itemStack)) {
             for (ItemStack i : player.getInventory().addItem(itemStack).values()) {
                 player.getWorld().dropItemNaturally(player.getLocation(), itemStack);
@@ -85,7 +95,7 @@ public interface IPlayer {
      * @param player      涉及的玩家
      * @param itemBuilder 物品
      */
-    static void giveItem(Player player, IItemBuilder itemBuilder) {
+    public static void giveItem(Player player, IItemBuilder itemBuilder) {
         giveItem(player, itemBuilder.getItemStack());
     }
 
@@ -95,7 +105,7 @@ public interface IPlayer {
      * @param player       涉及的玩家
      * @param itemBuilders 物品
      */
-    static void giveItem(Player player, IItemBuilder... itemBuilders) {
+    public static void giveItem(Player player, IItemBuilder... itemBuilders) {
         for (IItemBuilder itemBuilder : itemBuilders) {
             giveItem(player, itemBuilder.getItemStack());
         }
@@ -107,7 +117,7 @@ public interface IPlayer {
      * @param player     涉及的玩家
      * @param itemStacks 物品
      */
-    static void giveItem(Player player, ItemStack... itemStacks) {
+    public static void giveItem(Player player, ItemStack... itemStacks) {
         for (ItemStack itemStack : itemStacks) {
             if (!IItem.isEmpty(itemStack)) {
                 giveItem(player, itemStack);
@@ -122,7 +132,7 @@ public interface IPlayer {
      * @param world  涉及的世界
      * @param chunk  涉及的区块
      */
-    static void telePortChunk(Player player, World world, Chunk chunk) {
+    public static void telePortChunk(Player player, World world, Chunk chunk) {
         Location location = player.getLocation();
         location.setWorld(world);
         double x = chunk.getX() * 16;
@@ -139,7 +149,7 @@ public interface IPlayer {
      * @return 离线玩家组
      */
     
-    static HashSet<OfflinePlayer> getOfflinePlayers() {
+    public static HashSet<OfflinePlayer> getOfflinePlayers() {
         HashSet<OfflinePlayer> offlinePlayers = new HashSet<>();
         for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
             try {
@@ -160,7 +170,7 @@ public interface IPlayer {
      * @param mark 玩家名称或UUID
      * @return 如果玩家存在，则返回true，否则false
      */
-    static boolean hasPlayer(String mark) {
+    public static boolean hasPlayer(String mark) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getName().equals(mark)) {
                 return true;
@@ -195,7 +205,7 @@ public interface IPlayer {
      * @param mark 玩家名称或UUID
      * @return 如果玩家在线，则返回true，否则false
      */
-    static boolean hasOnlinePlayer(String mark) {
+    public static boolean hasOnlinePlayer(String mark) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getName().equals(mark)) {
                 return true;
@@ -220,7 +230,7 @@ public interface IPlayer {
      * @param mark 玩家名称或UUID
      * @return 如果玩家离线，则返回true，否则false
      */
-    static boolean hasOfflinePlayer(String mark) {
+    public static boolean hasOfflinePlayer(String mark) {
         for (OfflinePlayer offlinePlayers : IPlayer.getOfflinePlayers()) {
             if (offlinePlayers.getName().equals(mark)) {
                 return true;
@@ -246,7 +256,7 @@ public interface IPlayer {
      * @param command 执行的命令
      * @return 是否执行成功
      */
-    static boolean useCommand(Player player, String command) {
+    public static boolean useCommand(Player player, String command) {
         return useCommand(player, command, false);
     }
 
@@ -258,7 +268,7 @@ public interface IPlayer {
      * @param op      是否以OP身份执行
      * @return 是否执行成功
      */
-    static boolean useCommand(Player player, String command, boolean op) {
+    public static boolean useCommand(Player player, String command, boolean op) {
         if (op) {
             boolean isOp = player.isOp();
             player.setOp(true);
@@ -276,7 +286,7 @@ public interface IPlayer {
      * @param player      执行命令的玩家
      * @param kickMessage 踢出的信息
      */
-    static void kickPlayer(Player player, String... kickMessage) {
+    public static void kickPlayer(Player player, String... kickMessage) {
         @Nullable String message = "";
         for (int i = 0; i < kickMessage.length; i++) {
             message += IString.color(kickMessage[i]);
@@ -293,7 +303,7 @@ public interface IPlayer {
      * @param player      执行命令的玩家
      * @param kickMessage 踢出的信息
      */
-    static void kickPlayer(Player player, List<String> kickMessage) {
+    public static void kickPlayer(Player player, List<String> kickMessage) {
         @Nullable String message = "";
         for (int i = 0; i < kickMessage.size(); i++) {
             message += IString.color(kickMessage.get(i));
@@ -310,7 +320,7 @@ public interface IPlayer {
      * @param evt         涉及事件
      * @param kickMessage 踢出的信息
      */
-    static void kickPlayer(AsyncPlayerPreLoginEvent evt, String... kickMessage) {
+    public static void kickPlayer(AsyncPlayerPreLoginEvent evt, String... kickMessage) {
         evt.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
         @Nullable String message = "";
         for (int i = 0; i < kickMessage.length; i++) {
@@ -328,7 +338,7 @@ public interface IPlayer {
      * @param evt         涉及事件
      * @param kickMessage 踢出的信息
      */
-    static void kickPlayer(AsyncPlayerPreLoginEvent evt, List<String> kickMessage) {
+    public static void kickPlayer(AsyncPlayerPreLoginEvent evt, List<String> kickMessage) {
         evt.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
         @Nullable String message = "";
         for (int i = 0; i < kickMessage.size(); i++) {
@@ -340,3 +350,5 @@ public interface IPlayer {
         evt.setKickMessage(message);
     }
 }
+
+

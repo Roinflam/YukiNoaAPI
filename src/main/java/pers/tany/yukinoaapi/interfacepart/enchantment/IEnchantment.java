@@ -10,7 +10,17 @@ import java.lang.reflect.Method;
 /**
  * 附魔操作相关
  */
-public interface IEnchantment {
+public final class IEnchantment {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IEnchantment() {
+        throw new UnsupportedOperationException("IEnchantment 是工具类,不允许实例化");
+    }
+
 
     /**
      * 获取附魔的名称
@@ -19,7 +29,7 @@ public interface IEnchantment {
      * @return 翻译后的名称，如果没有翻译则为Material枚举名
      */
     @Nullable
-    static String getName(Enchantment enchantment) {
+    public static String getName(Enchantment enchantment) {
         Method getName = NMSUtil.getName_Enchantment;
         String name;
         try {
@@ -53,7 +63,7 @@ public interface IEnchantment {
      * @return 附魔
      */
     @Nullable
-    static Enchantment getEnchantment(String name) {
+    public static Enchantment getEnchantment(String name) {
         for (Enchantment enchantment : Enchantment.values()) {
             if (getName(enchantment).equalsIgnoreCase(name)) {
                 return enchantment;
@@ -62,3 +72,5 @@ public interface IEnchantment {
         return null;
     }
 }
+
+

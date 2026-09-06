@@ -1,5 +1,3 @@
-// HologramCommands.java
-// src/main/java/pers/tany/yukinoaapi/command/HologramCommands.java
 package pers.tany.yukinoaapi.command;
 
 import org.bukkit.command.Command;
@@ -31,6 +29,12 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         LanguageManager lang = ((Main) Main.plugin).getLanguageManager();
+
+        // 权限校验：本命令组全部仅限OP使用
+        if (!sender.isOp()) {
+            sender.sendMessage(lang.getMessage("common.no-permission"));
+            return true;
+        }
 
         if (!(sender instanceof Player)) {
             sender.sendMessage(lang.getMessage("common.player-only"));
@@ -596,6 +600,11 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
+
+        // 非OP不提供任何补全，避免暴露子命令与全息图ID
+        if (!sender.isOp()) {
+            return completions;
+        }
 
         // 系统不可用时不提供补全
         if (!HologramManager.getInstance().isEnabled()) {

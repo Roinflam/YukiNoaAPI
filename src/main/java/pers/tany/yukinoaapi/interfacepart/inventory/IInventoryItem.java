@@ -14,14 +14,24 @@ import java.util.Arrays;
 /**
  * 容器物品相关
  */
-public interface IInventoryItem {
+public final class IInventoryItem {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IInventoryItem() {
+        throw new UnsupportedOperationException("IInventoryItem 是工具类,不允许实例化");
+    }
+
     /**
      * 返回物品栏剩余的空位格子数量
      *
      * @param inventory 射击的物品栏
      * @return 空位的数量
      */
-    static int backpackEmpty(Inventory inventory) {
+    public static int backpackEmpty(Inventory inventory) {
         int empty = 0;
         for (int index = 0; index < inventory.getSize(); index++) {
             if (IItem.isEmpty(inventory.getItem(index))) {
@@ -38,7 +48,7 @@ public interface IInventoryItem {
      * @param itemStack 物品
      * @return 物品的数量
      */
-    static int hasAmount(Inventory inventory, ItemStack itemStack) {
+    public static int hasAmount(Inventory inventory, ItemStack itemStack) {
         return hasAmount(inventory, itemStack, true);
     }
 
@@ -50,7 +60,7 @@ public interface IInventoryItem {
      * @param isSimilar 是否完全匹配，否则为匹配id
      * @return 物品的数量
      */
-    static int hasAmount(Inventory inventory, ItemStack itemStack, boolean isSimilar) {
+    public static int hasAmount(Inventory inventory, ItemStack itemStack, boolean isSimilar) {
         int amount = 0;
         if (isSimilar) {
             for (ItemStack i : new ArrayList<ItemStack>(Arrays.asList(inventory.getContents()))) {
@@ -76,7 +86,7 @@ public interface IInventoryItem {
      * @param number    数量
      * @return 如果有为true，否则为false
      */
-    static boolean hasAmount(Inventory inventory, ItemStack itemStack, int number) {
+    public static boolean hasAmount(Inventory inventory, ItemStack itemStack, int number) {
         return hasAmount(inventory, itemStack) >= number;
     }
 
@@ -89,7 +99,7 @@ public interface IInventoryItem {
      * @param isSimilar 是否完全匹配，否则为匹配id
      * @return 如果有为true，否则为false
      */
-    static boolean hasAmount(Inventory inventory, ItemStack itemStack, int number, boolean isSimilar) {
+    public static boolean hasAmount(Inventory inventory, ItemStack itemStack, int number, boolean isSimilar) {
         return hasAmount(inventory, itemStack, isSimilar) >= number;
     }
 
@@ -100,7 +110,7 @@ public interface IInventoryItem {
      * @param itemStack 物品
      * @return 是否移除成功
      */
-    static boolean removeItem(Inventory inventory, ItemStack itemStack) {
+    public static boolean removeItem(Inventory inventory, ItemStack itemStack) {
         int index = 0;
         while (index < inventory.getContents().length) {
             ItemStack i = inventory.getItem(index);
@@ -122,7 +132,7 @@ public interface IInventoryItem {
      * @param number    数量
      * @return 剩余的次数(物品会被移除)
      */
-    static int removeItem(Inventory inventory, ItemStack itemStack, int number) {
+    public static int removeItem(Inventory inventory, ItemStack itemStack, int number) {
         int index = 0;
         while (index < inventory.getContents().length) {
             if (number <= 0) {
@@ -145,7 +155,7 @@ public interface IInventoryItem {
      * @param itemStack 物品
      * @return 剩余的数量
      */
-    static int deductItem(Inventory inventory, ItemStack itemStack) {
+    public static int deductItem(Inventory inventory, ItemStack itemStack) {
         return deductItem(inventory, itemStack, itemStack.getAmount());
     }
 
@@ -157,7 +167,7 @@ public interface IInventoryItem {
      * @param amount    个数
      * @return 剩余的数量
      */
-    static int deductItem(Inventory inventory, String name, int amount) {
+    public static int deductItem(Inventory inventory, String name, int amount) {
         for (ItemStack i : new ArrayList<ItemStack>(Arrays.asList(inventory.getContents()))) {
             IItemBuilder itemBuilder = new ItemBuilder(i);
             if (!IItem.isEmpty(i) && itemBuilder.getName().equals(IString.color(name))) {
@@ -186,7 +196,7 @@ public interface IInventoryItem {
      * @param amount    数量
      * @return 剩余的数量
      */
-    static int deductItem(Inventory inventory, ItemStack itemStack, int amount) {
+    public static int deductItem(Inventory inventory, ItemStack itemStack, int amount) {
         for (ItemStack i : new ArrayList<ItemStack>(Arrays.asList(inventory.getContents()))) {
             if (itemStack.isSimilar(i)) {
                 if (i.getAmount() >= amount) {
@@ -206,3 +216,5 @@ public interface IInventoryItem {
         return amount;
     }
 }
+
+

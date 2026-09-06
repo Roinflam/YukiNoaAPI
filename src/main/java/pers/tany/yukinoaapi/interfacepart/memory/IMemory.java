@@ -1,13 +1,23 @@
 package pers.tany.yukinoaapi.interfacepart.memory;
 
-public interface IMemory {
+public final class IMemory {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private IMemory() {
+        throw new UnsupportedOperationException("IMemory 是工具类,不允许实例化");
+    }
+
 
     /**
      * 获取当前java虚拟机中空闲内存
      *
      * @return 空闲内存(mb)
      */
-    static long getFreeMemory() {
+    public static long getFreeMemory() {
         return Runtime.getRuntime().freeMemory() / 1048576;
     }
 
@@ -16,7 +26,7 @@ public interface IMemory {
      *
      * @return 已使用的内存(mb)
      */
-    static long getTotalMemory() {
+    public static long getTotalMemory() {
         return Runtime.getRuntime().totalMemory() / 1048576;
     }
 
@@ -25,7 +35,7 @@ public interface IMemory {
      *
      * @return 已使用的内存(mb)
      */
-    static long getUnusedMemory() {
+    public static long getUnusedMemory() {
         return (Runtime.getRuntime().maxMemory() - Runtime.getRuntime().totalMemory()) / 1048576;
     }
 
@@ -34,7 +44,7 @@ public interface IMemory {
      *
      * @return 最大内存(mb)
      */
-    static long getMaxMemory() {
+    public static long getMaxMemory() {
         return Runtime.getRuntime().maxMemory();
     }
 
@@ -43,9 +53,11 @@ public interface IMemory {
      *
      * @return 回收的内存(mb)
      */
-    static long gc() {
+    public static long gc() {
         long before = Runtime.getRuntime().freeMemory();
         System.gc();
         return (Runtime.getRuntime().freeMemory() - before) / 1048576;
     }
 }
+
+

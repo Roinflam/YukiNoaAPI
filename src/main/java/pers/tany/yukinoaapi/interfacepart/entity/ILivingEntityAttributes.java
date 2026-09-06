@@ -13,7 +13,17 @@ import org.bukkit.entity.LivingEntity;
  * 列表元素的 getString/getDouble/setDouble 方法签名与旧版一致，循环体逻辑不变。
  * </p>
  */
-public interface ILivingEntityAttributes {
+public final class ILivingEntityAttributes {
+
+    /**
+     * 工具类,禁止实例化
+     *
+     * @throws UnsupportedOperationException 总是抛出
+     */
+    private ILivingEntityAttributes() {
+        throw new UnsupportedOperationException("ILivingEntityAttributes 是工具类,不允许实例化");
+    }
+
 
     /**
      * 获取这个生物的最大生命值
@@ -21,7 +31,7 @@ public interface ILivingEntityAttributes {
      * @param livingEntity 涉及的生物
      * @return 最大生命值
      */
-    static double getMaxHealth(LivingEntity livingEntity) {
+    public static double getMaxHealth(LivingEntity livingEntity) {
         NBTEntity nbtEntity = new NBTEntity(livingEntity);
         ReadWriteNBTCompoundList list = nbtEntity.getCompoundList("Attributes");
         for (ReadWriteNBT nbtListCompound : list) {
@@ -38,7 +48,7 @@ public interface ILivingEntityAttributes {
      * @param livingEntity 涉及的生物
      * @param maxHealth    最大生命值
      */
-    static void setMaxHealth(LivingEntity livingEntity, double maxHealth) {
+    public static void setMaxHealth(LivingEntity livingEntity, double maxHealth) {
         setMaxHealth(livingEntity, maxHealth, true);
     }
 
@@ -49,7 +59,7 @@ public interface ILivingEntityAttributes {
      * @param maxHealth    最大生命值
      * @param restore      是否恢复值满血
      */
-    static void setMaxHealth(LivingEntity livingEntity, double maxHealth, boolean restore) {
+    public static void setMaxHealth(LivingEntity livingEntity, double maxHealth, boolean restore) {
         NBTEntity nbtEntity = new NBTEntity(livingEntity);
         ReadWriteNBTCompoundList list = nbtEntity.getCompoundList("Attributes");
         for (ReadWriteNBT nbtListCompound : list) {
@@ -69,7 +79,7 @@ public interface ILivingEntityAttributes {
      * @param livingEntity 涉及的生物
      * @return 移动速度
      */
-    static double getMovementSpeed(LivingEntity livingEntity) {
+    public static double getMovementSpeed(LivingEntity livingEntity) {
         NBTEntity nbtEntity = new NBTEntity(livingEntity);
         ReadWriteNBTCompoundList list = nbtEntity.getCompoundList("Attributes");
         for (ReadWriteNBT nbtListCompound : list) {
@@ -86,7 +96,7 @@ public interface ILivingEntityAttributes {
      * @param livingEntity  涉及的生物
      * @param movementSpeed 移动速度
      */
-    static void setMovementSpeed(LivingEntity livingEntity, double movementSpeed) {
+    public static void setMovementSpeed(LivingEntity livingEntity, double movementSpeed) {
         NBTEntity nbtEntity = new NBTEntity(livingEntity);
         ReadWriteNBTCompoundList list = nbtEntity.getCompoundList("Attributes");
         for (ReadWriteNBT nbtListCompound : list) {
@@ -97,3 +107,5 @@ public interface ILivingEntityAttributes {
         }
     }
 }
+
+
