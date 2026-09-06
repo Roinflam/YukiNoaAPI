@@ -45,17 +45,7 @@ import javax.annotation.Nullable;
  *
  * @author Tany天炎
  */
-public final class IBungee {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IBungee() {
-        throw new UnsupportedOperationException("IBungee 是工具类,不允许实例化");
-    }
-
+public interface IBungee {
 
     // ========================================
     // 物品悬停分流判据（1.20.5 破坏性分界）
@@ -78,7 +68,7 @@ public final class IBungee {
      * 只取决于物品序列化时代，避免自带 Adventure 的旧版服务端被误降级。
      * </p>
      */
-    public static final boolean ITEM_HOVER_TEXT_FALLBACK = IItem.useNbtApiForItem();
+    boolean ITEM_HOVER_TEXT_FALLBACK = IItem.useNbtApiForItem();
 
     // ========================================
     // 基础消息发送方法
@@ -91,7 +81,7 @@ public final class IBungee {
      * @param message     显示的消息
      * @param showMessage 悬停时显示的内容
      */
-    public static void sendShowMessage(@Nullable Player player, String message, String showMessage) {
+    static void sendShowMessage(@Nullable Player player, String message, String showMessage) {
         TextComponent send = new TextComponent(IString.color(message));
         send.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
                 (new ComponentBuilder(IString.color(showMessage))).create()));
@@ -110,7 +100,7 @@ public final class IBungee {
      * @param message 显示的消息
      * @param itemNBT 物品NBT数据（SNBT 字符串）
      */
-    public static void sendItemNBTMessage(@Nullable Player player, String message, String itemNBT) {
+    static void sendItemNBTMessage(@Nullable Player player, String message, String itemNBT) {
         // 新版（1.20.5+）：降级为文本悬停，规避 show_item 渲染丢失 / 崩溃
         if (ITEM_HOVER_TEXT_FALLBACK) {
             AdventureItemHover.sendItemHover(player, message, itemNBT, null, false);
@@ -138,7 +128,7 @@ public final class IBungee {
      * @param command     要执行的命令
      * @param useCommand  true=直接执行，false=填充到聊天框
      */
-    public static void sendCommandMessage(@Nullable Player player, String message, String showMessage,
+    static void sendCommandMessage(@Nullable Player player, String message, String showMessage,
                                    String command, @Nonnull Boolean useCommand) {
         TextComponent send = new TextComponent(IString.color(message));
 
@@ -164,7 +154,7 @@ public final class IBungee {
      * @param command    要执行的命令
      * @param useCommand true=直接执行，false=填充到聊天框
      */
-    public static void sendCommandItemMessage(@Nullable Player player, String message, String itemNBT,
+    static void sendCommandItemMessage(@Nullable Player player, String message, String itemNBT,
                                        String command, @Nonnull Boolean useCommand) {
         // 新版（1.20.5+）：降级为文本悬停 + 点击命令
         if (ITEM_HOVER_TEXT_FALLBACK) {
@@ -196,7 +186,7 @@ public final class IBungee {
      * @param showMessage 悬停时显示的内容
      * @param url         要打开的网址
      */
-    public static void sendUrlMessage(@Nullable Player player, String message, String showMessage, String url) {
+    static void sendUrlMessage(@Nullable Player player, String message, String showMessage, String url) {
         TextComponent send = new TextComponent(IString.color(message));
         send.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, url));
         send.setHoverEvent(new HoverEvent(Action.SHOW_TEXT,
@@ -215,7 +205,7 @@ public final class IBungee {
      * @param showMessage   悬停时显示的内容
      * @param url           要打开的网址
      */
-    public static void sendPartUrlMessage(@Nullable Player player, String message, String part,
+    static void sendPartUrlMessage(@Nullable Player player, String message, String part,
                                    @Nonnull String changeMessage, String showMessage, String url) {
         if (!message.contains(part)) {
             sendSimpleMessage(player, message);
@@ -244,7 +234,7 @@ public final class IBungee {
      * @param changeMessage 替换后显示的文本
      * @param showMessage   悬停时显示的内容
      */
-    public static void sendPartShowMessage(@Nullable Player player, String message, String part,
+    static void sendPartShowMessage(@Nullable Player player, String message, String part,
                                     @Nonnull String changeMessage, String showMessage) {
         if (!message.contains(part)) {
             sendSimpleMessage(player, message);
@@ -273,7 +263,7 @@ public final class IBungee {
      * @param changeMessage 替换后显示的文本
      * @param itemNBT       物品NBT数据（SNBT 字符串）
      */
-    public static void sendPartItemNBTMessage(@Nullable Player player, String message, String part,
+    static void sendPartItemNBTMessage(@Nullable Player player, String message, String part,
                                        @Nonnull String changeMessage, String itemNBT) {
         if (!message.contains(part)) {
             sendSimpleMessage(player, message);
@@ -313,7 +303,7 @@ public final class IBungee {
      * @param command       要执行的命令
      * @param useCommand    true=直接执行，false=填充到聊天框
      */
-    public static void sendPartShowCommandMessage(@Nullable Player player, String message, String part,
+    static void sendPartShowCommandMessage(@Nullable Player player, String message, String part,
                                            @Nonnull String changeMessage, String showMessage,
                                            String command, Boolean useCommand) {
         if (!message.contains(part)) {
@@ -349,7 +339,7 @@ public final class IBungee {
      * @param command       要执行的命令
      * @param useCommand    true=直接执行，false=填充到聊天框
      */
-    public static void sendPartShowCommandItemMessage(@Nullable Player player, String message, String part,
+    static void sendPartShowCommandItemMessage(@Nullable Player player, String message, String part,
                                                @Nonnull String changeMessage, String itemNBT,
                                                String command, Boolean useCommand) {
         if (!message.contains(part)) {
@@ -398,7 +388,7 @@ public final class IBungee {
      * @return 处理后的组件
      */
     @Nonnull
-    public static BaseComponent transformPartShowCommandMessage(String message, String part,
+    static BaseComponent transformPartShowCommandMessage(String message, String part,
                                                          @Nonnull String changeMessage,
                                                          String showMessage, String command,
                                                          Boolean useCommand) {
@@ -430,7 +420,7 @@ public final class IBungee {
      * @param decorator     装饰器（为替换部分添加悬停、点击等效果）
      * @return 构建好的文本组件
      */
-    public static TextComponent buildPartMessage(String message, String part,
+    static TextComponent buildPartMessage(String message, String part,
                                           String changeMessage,
                                           ComponentDecorator decorator) {
         // 防御性检查：part 不能为空或 null
@@ -477,7 +467,7 @@ public final class IBungee {
      * @param player  接收玩家（null表示广播）
      * @param message 消息内容
      */
-    public static void sendSimpleMessage(@Nullable Player player, String message) {
+    static void sendSimpleMessage(@Nullable Player player, String message) {
         if (player == null) {
             Bukkit.broadcastMessage(IString.color(message));
         } else {
@@ -491,7 +481,7 @@ public final class IBungee {
      * @param player    接收玩家（null表示广播）
      * @param component 要发送的组件
      */
-    public static void sendComponent(@Nullable Player player, BaseComponent component) {
+    static void sendComponent(@Nullable Player player, BaseComponent component) {
         if (player == null) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.spigot().sendMessage(component);
@@ -510,7 +500,7 @@ public final class IBungee {
      * 用于为文本组件添加悬停、点击等效果
      */
     @FunctionalInterface
-    public interface ComponentDecorator {
+    interface ComponentDecorator {
         /**
          * 装饰文本组件
          *
@@ -537,7 +527,7 @@ public final class IBungee {
      * 1.20.4 及以下不会进入此类，物品悬停走 SHOW_ITEM 显示真实图标。
      * </p>
      */
-    public static final class AdventureItemHover {
+    final class AdventureItemHover {
 
         /** 工具类，禁止实例化 */
         private AdventureItemHover() {
@@ -669,4 +659,3 @@ public final class IBungee {
         }
     }
 }
-

@@ -4,17 +4,7 @@ package pers.tany.yukinoaapi.interfacepart.encrypt;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public final class IEncrypt {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IEncrypt() {
-        throw new UnsupportedOperationException("IEncrypt 是工具类,不允许实例化");
-    }
-
+public interface IEncrypt {
 
     /**
      * 转二进制为十六进制
@@ -23,7 +13,7 @@ public final class IEncrypt {
      * @return 十六进制
      */
     
-    public static String parseByte2HexStr(byte[] buf) {
+    static String parseByte2HexStr(byte[] buf) {
         StringBuffer sb = new StringBuffer();
         for (byte b : buf) {
             String hex = Integer.toHexString(b & 0xFF);
@@ -41,7 +31,7 @@ public final class IEncrypt {
      * @param hexStr 十六进制
      * @return 二进制
      */
-    public static byte[] parseHexStr2Byte(String hexStr) {
+    static byte[] parseHexStr2Byte(String hexStr) {
         if (hexStr.length() < 1) {
             return null;
         } else {
@@ -63,7 +53,7 @@ public final class IEncrypt {
      * @return 加密后的结果
      */
     
-    public static String encrypt(String res, String key) {
+    static String encrypt(String res, String key) {
         byte[] bs = res.getBytes();
         for (int i = 0; i < bs.length; i++) {
             bs[i] = (byte) ((bs[i]) ^ key.hashCode());
@@ -79,7 +69,7 @@ public final class IEncrypt {
      * @return 解密后的结果
      */
     
-    public static String decrypt(String res, String key) {
+    static String decrypt(String res, String key) {
         @Nullable byte[] bs = parseHexStr2Byte(res);
         for (int i = 0; i < bs.length; i++) {
             bs[i] = (byte) ((bs[i]) ^ key.hashCode());
@@ -87,5 +77,4 @@ public final class IEncrypt {
         return new String(bs);
     }
 }
-
 

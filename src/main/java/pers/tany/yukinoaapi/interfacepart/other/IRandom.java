@@ -1,3 +1,5 @@
+// 文件：IRandom.java
+// 路径：src/pers/tany/yukinoaapi/interfacepart/other/IRandom.java
 package pers.tany.yukinoaapi.interfacepart.other;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -6,17 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * 随机数与概率工具接口
  * 提供随机字符串生成、随机数生成、概率判断等功能
  */
-public final class IRandom {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IRandom() {
-        throw new UnsupportedOperationException("IRandom 是工具类,不允许实例化");
-    }
-
+public interface IRandom {
 
     /**
      * 创建指定长度的随机字符串
@@ -25,7 +17,7 @@ public final class IRandom {
      * @param length 字符串的长度
      * @return 随机字符串
      */
-    public static String createRandomString(int length) {
+    static String createRandomString(int length) {
         if (length <= 0) {
             return "";
         }
@@ -60,7 +52,7 @@ public final class IRandom {
      * @param max 最大数值
      * @return 随机数
      */
-    public static int randomNumber(int min, int max) {
+    static int randomNumber(int min, int max) {
         if (min > max) {
             int temp = min;
             min = max;
@@ -76,7 +68,7 @@ public final class IRandom {
      * @param max 最大数值
      * @return 随机数
      */
-    public static double randomDouble(double min, double max) {
+    static double randomDouble(double min, double max) {
         if (min > max) {
             double temp = min;
             min = max;
@@ -92,7 +84,7 @@ public final class IRandom {
      * @param probability 百分比几率（如：50表示50%）
      * @return 是否命中
      */
-    public static boolean percentageChance(int probability) {
+    static boolean percentageChance(int probability) {
         return percentageChance((double) probability, 8);
     }
 
@@ -103,7 +95,7 @@ public final class IRandom {
      * @param probability 百分比几率（如：50.5表示50.5%）
      * @return 是否命中
      */
-    public static boolean percentageChance(double probability) {
+    static boolean percentageChance(double probability) {
         return percentageChance(probability, 8);
     }
 
@@ -114,7 +106,7 @@ public final class IRandom {
      * @param probability 百分比几率字符串
      * @return 是否命中
      */
-    public static boolean percentageChance(String probability) {
+    static boolean percentageChance(String probability) {
         return percentageChance(IDouble.percentageNumber(probability, false));
     }
 
@@ -125,7 +117,7 @@ public final class IRandom {
      * @param precision   精度（1=百分比，2=千分比，3=万分比，以此类推）
      * @return 是否命中
      */
-    public static boolean percentageChance(double probability, int precision) {
+    static boolean percentageChance(double probability, int precision) {
         if (probability <= 0) {
             return false;
         }
@@ -149,7 +141,7 @@ public final class IRandom {
      * @return 随机元素，数组为空返回null
      */
     @SuppressWarnings("unchecked")
-    public static <T> T randomElement(T... array) {
+    static <T> T randomElement(T... array) {
         if (array == null || array.length == 0) {
             return null;
         }
@@ -163,11 +155,10 @@ public final class IRandom {
      * @param <T>  元素类型
      * @return 随机元素，列表为空返回null
      */
-    public static <T> T randomElement(java.util.List<T> list) {
+    static <T> T randomElement(java.util.List<T> list) {
         if (list == null || list.isEmpty()) {
             return null;
         }
         return list.get(ThreadLocalRandom.current().nextInt(list.size()));
     }
 }
-

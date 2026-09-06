@@ -34,17 +34,7 @@ import java.util.Optional;
  * 无需依赖小版本号解析，且不修改 NMSUtil。
  * </p>
  */
-public final class IItem {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IItem() {
-        throw new UnsupportedOperationException("IItem 是工具类,不允许实例化");
-    }
-
+public interface IItem {
 
     /**
      * 判断当前是否应使用 NBT-API 进行物品序列化（即处于 DataComponents / Codec 时代）
@@ -55,7 +45,7 @@ public final class IItem {
      *
      * @return true 表示走 NBT-API（新版），false 表示走传统 NMS 反射（旧版）
      */
-    public static boolean useNbtApiForItem() {
+    static boolean useNbtApiForItem() {
         return NMSUtil.save_ItemStack == null;
     }
 
@@ -65,7 +55,7 @@ public final class IItem {
      * @param player 涉及玩家
      * @return 如果空则为true，否则为false
      */
-    public static boolean isEmptyHand(Player player) {
+    static boolean isEmptyHand(Player player) {
         return isEmpty(player.getItemInHand());
     }
 
@@ -75,7 +65,7 @@ public final class IItem {
      * @param itemStack 涉及物品
      * @return 如果空则为true，否则为false
      */
-    public static boolean isEmpty(@Nullable ItemStack itemStack) {
+    static boolean isEmpty(@Nullable ItemStack itemStack) {
         return itemStack == null || itemStack.getType().equals(Material.AIR);
     }
 
@@ -87,7 +77,7 @@ public final class IItem {
      * @return 物品名称
      */
     @Nullable
-    public static String getName(ItemStack itemStack) {
+    static String getName(ItemStack itemStack) {
         if (itemStack.getItemMeta() != null && itemStack.getItemMeta().hasDisplayName()) {
             return itemStack.getItemMeta().getDisplayName();
         }
@@ -134,7 +124,7 @@ public final class IItem {
      * @return 物品的完整NBT字符串（SNBT格式），失败返回空字符串
      */
     @Nullable
-    public static String getItemNBT(ItemStack itemStack) {
+    static String getItemNBT(ItemStack itemStack) {
         // ============ 新版路径（1.20.5+）：委托 NBT-API ============
         if (useNbtApiForItem()) {
             try {
@@ -174,7 +164,7 @@ public final class IItem {
      * @return 反序列化后的物品，失败返回 null
      */
     @Nullable
-    public static ItemStack getItemStack(String tag) {
+    static ItemStack getItemStack(String tag) {
         // ============ 新版路径（1.20.5+）：委托 NBT-API ============
         if (useNbtApiForItem()) {
             try {
@@ -226,7 +216,7 @@ public final class IItem {
      * @return 设置NBT后的物品，失败返回 null
      */
     @Nullable
-    public static ItemStack getItemStack(ItemStack itemStack, String tag) {
+    static ItemStack getItemStack(ItemStack itemStack, String tag) {
         // ============ 新版路径（1.20.5+）：委托 NBT-API ============
         if (useNbtApiForItem()) {
             try {
@@ -264,5 +254,4 @@ public final class IItem {
         return null;
     }
 }
-
 

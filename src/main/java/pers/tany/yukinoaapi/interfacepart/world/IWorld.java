@@ -11,24 +11,14 @@ import javax.annotation.Nonnull;
 /**
  * 世界相关操作
  */
-public final class IWorld {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IWorld() {
-        throw new UnsupportedOperationException("IWorld 是工具类,不允许实例化");
-    }
-
+public interface IWorld {
     /**
      * 获取这个世界的玩家数量
      *
      * @param world 涉及的世界
      * @return 玩家的数量
      */
-    public static int playerNumber(World world) {
+    static int playerNumber(World world) {
         int i = 0;
         for (LivingEntity livingEntity : world.getLivingEntities()) {
             if (livingEntity instanceof Player) {
@@ -45,7 +35,7 @@ public final class IWorld {
      * @param mutiple 倍率换算
      * @return 玩家的数量)
      */
-    public static double playerNumber(World world, boolean mutiple) {
+    static double playerNumber(World world, boolean mutiple) {
         double i = 0;
         for (Entity entity : world.getEntities()) {
             if (entity instanceof Player) {
@@ -55,5 +45,4 @@ public final class IWorld {
         return i;
     }
 }
-
 

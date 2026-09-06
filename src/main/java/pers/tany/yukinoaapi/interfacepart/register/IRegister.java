@@ -9,17 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import javax.annotation.Nonnull;
 
 
-public final class IRegister {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IRegister() {
-        throw new UnsupportedOperationException("IRegister 是工具类,不允许实例化");
-    }
-
+public interface IRegister {
     /**
      * 注册指令
      *
@@ -27,7 +17,7 @@ public final class IRegister {
      * @param name            指令名称
      * @param commandExecutor 指令相关的类
      */
-    public static void registerCommands(JavaPlugin javaPlugin, String name, CommandExecutor commandExecutor) {
+    static void registerCommands(JavaPlugin javaPlugin, String name, CommandExecutor commandExecutor) {
         javaPlugin.getCommand(name).setExecutor(commandExecutor);
     }
 
@@ -37,9 +27,8 @@ public final class IRegister {
      * @param plugin   主类
      * @param listener 监听对象
      */
-    public static void registerEvents(Plugin plugin, Listener listener) {
+    static void registerEvents(Plugin plugin, Listener listener) {
         Bukkit.getPluginManager().registerEvents(listener, plugin);
     }
 }
-
 

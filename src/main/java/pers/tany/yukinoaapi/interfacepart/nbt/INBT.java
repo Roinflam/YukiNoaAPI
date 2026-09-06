@@ -15,17 +15,7 @@ import javax.annotation.Nullable;
 /**
  * NBT操作相关
  */
-public final class INBT {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private INBT() {
-        throw new UnsupportedOperationException("INBT 是工具类,不允许实例化");
-    }
-
+public interface INBT {
     /**
      * 获取这个键下的值
      * 如果键不存在、值不为字符串或者数字则为null
@@ -35,7 +25,7 @@ public final class INBT {
      * @return 值
      */
     @Nullable
-    public static Object getValue(NBTCompound nbtCompound, String key) {
+    static Object getValue(NBTCompound nbtCompound, String key) {
         @Nullable Object value = null;
         if (nbtCompound.hasKey(key)) {
             if (nbtCompound.getString(key) != null && !nbtCompound.getString(key).isEmpty()) {
@@ -53,7 +43,7 @@ public final class INBT {
      * @param itemStack 涉及的物品
      * @return string形式的nbt
      */
-    public static String getNBT(ItemStack itemStack) {
+    static String getNBT(ItemStack itemStack) {
         return new NBTItem(itemStack).toString();
     }
 
@@ -63,7 +53,7 @@ public final class INBT {
      * @param entity 涉及的实体
      * @return string形式的nbt
      */
-    public static String getNBT(Entity entity) {
+    static String getNBT(Entity entity) {
         return new NBTEntity(entity).toString();
     }
 
@@ -73,9 +63,8 @@ public final class INBT {
      * @param block 涉及的方块
      * @return string形式的nbt
      */
-    public static String getNBT(Block block) {
+    static String getNBT(Block block) {
         return new NBTTileEntity(block.getState()).toString();
     }
 }
-
 

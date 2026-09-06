@@ -9,23 +9,13 @@ import java.lang.reflect.Method;
 /**
  * 服务器状态相关
  */
-public final class IServerState {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IServerState() {
-        throw new UnsupportedOperationException("IServerState 是工具类,不允许实例化");
-    }
-
+public interface IServerState {
     /**
      * 获取服务器当前MSPT
      *
      * @return 服务器当前延迟
      */
-    public static double getMS() {
+    static double getMS() {
         try {
             Class<?> minecraftServer = NMSUtil.minecraftServer;
             Method getServer = NMSUtil.getServer;
@@ -55,7 +45,7 @@ public final class IServerState {
      *
      * @return 服务器当前的TPS
      */
-    public static double getTPS() {
+    static double getTPS() {
         try {
             Class<?> minecraftServer = NMSUtil.minecraftServer;
             Method getServer = NMSUtil.getServer;
@@ -80,5 +70,4 @@ public final class IServerState {
         }
     }
 }
-
 

@@ -18,17 +18,7 @@ import java.lang.reflect.Method;
  * @author tany
  * @since 1.0.0
  */
-public final class IBlock {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IBlock() {
-        throw new UnsupportedOperationException("IBlock 是工具类,不允许实例化");
-    }
-
+public interface IBlock {
 
     /**
      * 检查方块是否为空
@@ -36,7 +26,7 @@ public final class IBlock {
      * @param block 目标方块，可为 null
      * @return 如果方块为 null 或为空气则返回 true
      */
-    public static boolean isEmpty(@Nullable Block block) {
+    static boolean isEmpty(@Nullable Block block) {
         return block == null || block.getType() == Material.AIR;
     }
 
@@ -48,7 +38,7 @@ public final class IBlock {
      * @return NBT 字符串，如果方块没有方块实体或获取失败返回 null
      */
     @Nullable
-    public static String getBlockNBT(Block block) {
+    static String getBlockNBT(Block block) {
         if (block == null) {
             return null;
         }
@@ -96,7 +86,7 @@ public final class IBlock {
      * @param nbtString NBT 字符串
      * @return 设置成功返回 true
      */
-    public static boolean setBlockNBT(Block block, String nbtString) {
+    static boolean setBlockNBT(Block block, String nbtString) {
         if (block == null || nbtString == null || nbtString.isEmpty()) {
             return false;
         }
@@ -144,7 +134,7 @@ public final class IBlock {
      * @return 方块实体对象，不存在返回 null
      */
     @Nullable
-    public static Object getTileEntityAt(Object nmsWorld, Location location,
+    static Object getTileEntityAt(Object nmsWorld, Location location,
                                   Method getTileEntity, Class<?> blockPositionClass) {
         // 优先使用 BlockPosition（1.8+）
         if (blockPositionClass != null) {
@@ -169,4 +159,3 @@ public final class IBlock {
         }
     }
 }
-

@@ -10,17 +10,7 @@ import javax.annotation.Nonnull;
 /**
  * 矢量相关操作
  */
-public final class IVector {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IVector() {
-        throw new UnsupportedOperationException("IVector 是工具类,不允许实例化");
-    }
-
+public interface IVector {
 
     /**
      * 获取起始点对终点的矢量
@@ -32,7 +22,7 @@ public final class IVector {
      * @return 矢量方向
      */
     
-    public static Vector getVector(Location startingLocation, Location endLocation) {
+    static Vector getVector(Location startingLocation, Location endLocation) {
         double x = endLocation.getBlockX() - startingLocation.getBlockX();
         double y = endLocation.getY() - startingLocation.getY();
         double z = endLocation.getBlockZ() - startingLocation.getBlockZ();
@@ -50,7 +40,7 @@ public final class IVector {
      * @param livingEntity 起点
      * @param lookPos      终点
      */
-    public static void lookLocaltion(LivingEntity livingEntity, Location lookPos) {
+    static void lookLocaltion(LivingEntity livingEntity, Location lookPos) {
         Location entityPos = livingEntity.getLocation();
         int z = Math.abs(lookPos.getBlockZ() - entityPos.getBlockZ());
         int x = Math.abs(lookPos.getBlockX() - entityPos.getBlockX());
@@ -91,5 +81,4 @@ public final class IVector {
     }
 
 }
-
 

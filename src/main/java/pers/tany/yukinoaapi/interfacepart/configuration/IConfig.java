@@ -19,17 +19,7 @@ import pers.tany.yukinoaapi.Main;
  * 配置文件操作接口
  * 提供统一的配置文件管理功能
  */
-public final class IConfig {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IConfig() {
-        throw new UnsupportedOperationException("IConfig 是工具类,不允许实例化");
-    }
-
+public interface IConfig {
 
     /**
      * 获取有效的插件数据文件夹
@@ -37,7 +27,7 @@ public final class IConfig {
      * @param plugin 插件实例
      * @return 数据文件夹
      */
-    public static File getValidPluginDataFolder(@Nonnull Plugin plugin) {
+    static File getValidPluginDataFolder(@Nonnull Plugin plugin) {
         if ("YukiNoaAPI".equals(plugin.getName())) {
             return plugin.getDataFolder();
         } else {
@@ -71,7 +61,7 @@ public final class IConfig {
      * @param dirName 目录名称
      * @return 是否成功
      */
-    public static boolean createDir(@Nonnull Plugin plugin, String dirName) {
+    static boolean createDir(@Nonnull Plugin plugin, String dirName) {
         return createDir(plugin, dirName, true);
     }
 
@@ -84,7 +74,7 @@ public final class IConfig {
      * @param subdirectory 是否创建子目录
      * @return 是否成功
      */
-    public static boolean createDir(@Nonnull Plugin plugin, String dirName, boolean subdirectory) {
+    static boolean createDir(@Nonnull Plugin plugin, String dirName, boolean subdirectory) {
         try {
             File baseDir = getValidPluginDataFolder(plugin);
             // 跨平台修复：使用 File 构造函数
@@ -114,7 +104,7 @@ public final class IConfig {
      * @param cover 是否覆盖现有文件
      * @return 是否成功
      */
-    public static boolean createResource(@Nonnull Plugin plugin, String dirName, String fileName, boolean cover) {
+    static boolean createResource(@Nonnull Plugin plugin, String dirName, String fileName, boolean cover) {
         try {
             File baseDir = getValidPluginDataFolder(plugin);
             // 跨平台修复：使用 File 构造函数
@@ -164,7 +154,7 @@ public final class IConfig {
      * @return 配置对象，加载失败返回 null
      */
     @Nullable
-    public static YamlConfiguration loadConfig(@Nonnull Plugin plugin, String dirName, @Nonnull String fileName) {
+    static YamlConfiguration loadConfig(@Nonnull Plugin plugin, String dirName, @Nonnull String fileName) {
         try {
             File baseDir = getValidPluginDataFolder(plugin);
             // 跨平台修复：使用 File 构造函数
@@ -192,7 +182,7 @@ public final class IConfig {
      * @return 配置对象
      */
     @Nonnull
-    public static YamlConfiguration loadSystemConfig(Plugin plugin, String dirName, @Nonnull String fileName) {
+    static YamlConfiguration loadSystemConfig(Plugin plugin, String dirName, @Nonnull String fileName) {
         return YamlConfiguration.loadConfiguration(new File(dirName, fileName.endsWith(".yml") ? fileName : fileName + ".yml"));
     }
 
@@ -204,7 +194,7 @@ public final class IConfig {
      * @param dirName 目录名称
      * @param fileName 文件名称
      */
-    public static void saveSystemConfig(Plugin plugin, @Nonnull final FileConfiguration config, @Nonnull String dirName, @Nonnull String fileName) {
+    static void saveSystemConfig(Plugin plugin, @Nonnull final FileConfiguration config, @Nonnull String dirName, @Nonnull String fileName) {
         try {
             (new File(dirName)).mkdirs();
             final File file = new File(dirName, fileName.endsWith(".yml") ? fileName : fileName + ".yml");
@@ -240,7 +230,7 @@ public final class IConfig {
      * @param dirName 目录名称
      * @param fileName 文件名称
      */
-    public static void saveConfig(@Nonnull Plugin plugin, @Nonnull FileConfiguration config, String dirName, @Nonnull String fileName) {
+    static void saveConfig(@Nonnull Plugin plugin, @Nonnull FileConfiguration config, String dirName, @Nonnull String fileName) {
         try {
             File baseDir = getValidPluginDataFolder(plugin);
             // 跨平台修复：使用 File 构造函数
@@ -261,4 +251,3 @@ public final class IConfig {
         }
     }
 }
-

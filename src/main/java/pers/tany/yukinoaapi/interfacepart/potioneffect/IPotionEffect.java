@@ -9,17 +9,7 @@ import javax.annotation.Nonnull;
 /**
  * buff相关
  */
-public final class IPotionEffect {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IPotionEffect() {
-        throw new UnsupportedOperationException("IPotionEffect 是工具类,不允许实例化");
-    }
-
+public interface IPotionEffect {
 
     /**
      * 根据类型、等级、刻获取buff
@@ -30,10 +20,9 @@ public final class IPotionEffect {
      * @return buff对象
      */
     
-    public static PotionEffect getPotionEffect(PotionEffectType potionEffectType, int tick, int level) {
+    static PotionEffect getPotionEffect(PotionEffectType potionEffectType, int tick, int level) {
         return new PotionEffect(potionEffectType, tick, level);
     }
 
 }
-
 

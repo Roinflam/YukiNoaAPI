@@ -19,17 +19,7 @@ import java.util.List;
  * 提供坐标计算、范围判断、实体/方块获取等功能
  * 优化算法性能，减少不必要的对象创建
  */
-public final class ILocation {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private ILocation() {
-        throw new UnsupportedOperationException("ILocation 是工具类,不允许实例化");
-    }
-
+public interface ILocation {
 
     /**
      * 获取这两个坐标的距离(同世界)
@@ -39,7 +29,7 @@ public final class ILocation {
      * @param two 另一个坐标
      * @return 距离
      */
-    public static double getFar(Location one, Location two) {
+    static double getFar(Location one, Location two) {
         return getFar(one, two, true);
     }
 
@@ -52,7 +42,7 @@ public final class ILocation {
      * @param height 是否计算高度
      * @return 距离
      */
-    public static double getFar(Location one, Location two, boolean height) {
+    static double getFar(Location one, Location two, boolean height) {
         if (!one.getWorld().equals(two.getWorld())) {
             throw new IllegalArgumentException("必须为同一个世界");
         }
@@ -76,7 +66,7 @@ public final class ILocation {
      * @param two 另一个坐标
      * @return 距离的平方
      */
-    public static double getDistanceSquared(Location one, Location two) {
+    static double getDistanceSquared(Location one, Location two) {
         if (!one.getWorld().equals(two.getWorld())) {
             throw new IllegalArgumentException("必须为同一个世界");
         }
@@ -90,7 +80,7 @@ public final class ILocation {
      * @param two 另一个坐标
      * @return 距离
      */
-    public static int getFarGrid(Location one, Location two) {
+    static int getFarGrid(Location one, Location two) {
         return getFarGrid(one, two, true);
     }
 
@@ -102,7 +92,7 @@ public final class ILocation {
      * @param height 是否计算高度
      * @return 距离
      */
-    public static int getFarGrid(Location one, Location two, boolean height) {
+    static int getFarGrid(Location one, Location two, boolean height) {
         if (!one.getWorld().equals(two.getWorld())) {
             throw new IllegalArgumentException("必须为同一个世界");
         }
@@ -126,7 +116,7 @@ public final class ILocation {
      * @param location 坐标
      * @return 在则true，否则为false
      */
-    public static boolean isWithinRange(Location corner1, Location corner2, Location location) {
+    static boolean isWithinRange(Location corner1, Location corner2, Location location) {
         return isWithinRange(corner1, corner2, location, true);
     }
 
@@ -140,7 +130,7 @@ public final class ILocation {
      * @param height   是否计算高度（false为无视Y轴）
      * @return 在则true，否则为false
      */
-    public static boolean isWithinRange(Location corner1, Location corner2, Location location, boolean height) {
+    static boolean isWithinRange(Location corner1, Location corner2, Location location, boolean height) {
         if (!corner1.getWorld().equals(corner2.getWorld())) {
             throw new IllegalArgumentException("必须为同一个世界");
         }
@@ -186,7 +176,7 @@ public final class ILocation {
      * @return 这范围区域内的所有实体
      */
     @Nonnull
-    public static List<Entity> getLocationEntitys(Location corner1, Location corner2) {
+    static List<Entity> getLocationEntitys(Location corner1, Location corner2) {
         return getLocationEntitys(corner1, corner2, true);
     }
 
@@ -200,7 +190,7 @@ public final class ILocation {
      * @return 这范围区域内的所有实体
      */
     @Nonnull
-    public static List<Entity> getLocationEntitys(Location corner1, Location corner2, boolean height) {
+    static List<Entity> getLocationEntitys(Location corner1, Location corner2, boolean height) {
         if (!corner1.getWorld().equals(corner2.getWorld())) {
             throw new IllegalArgumentException("必须为同一个世界");
         }
@@ -233,7 +223,7 @@ public final class ILocation {
      * @return 这范围区域内的所有生物
      */
     @Nonnull
-    public static List<LivingEntity> getLocationLivingEntitys(Location corner1, Location corner2) {
+    static List<LivingEntity> getLocationLivingEntitys(Location corner1, Location corner2) {
         return getLocationLivingEntitys(corner1, corner2, true);
     }
 
@@ -246,7 +236,7 @@ public final class ILocation {
      * @return 这范围区域内的所有生物
      */
     @Nonnull
-    public static List<LivingEntity> getLocationLivingEntitys(Location corner1, Location corner2, boolean height) {
+    static List<LivingEntity> getLocationLivingEntitys(Location corner1, Location corner2, boolean height) {
         List<Entity> entities = getLocationEntitys(corner1, corner2, height);
         List<LivingEntity> livingEntities = new ArrayList<>(entities.size());
 
@@ -267,7 +257,7 @@ public final class ILocation {
      * @return 这范围区域内的所有方块
      */
     @Nonnull
-    public static List<Block> getLocationBlocks(Location corner1, Location corner2) {
+    static List<Block> getLocationBlocks(Location corner1, Location corner2) {
         return getLocationBlocks(corner1, corner2, true);
     }
 
@@ -281,7 +271,7 @@ public final class ILocation {
      * @return 这范围区域内的所有方块
      */
     @Nonnull
-    public static List<Block> getLocationBlocks(Location corner1, Location corner2, boolean height) {
+    static List<Block> getLocationBlocks(Location corner1, Location corner2, boolean height) {
         if (!corner1.getWorld().equals(corner2.getWorld())) {
             throw new IllegalArgumentException("必须为同一个世界");
         }
@@ -330,7 +320,7 @@ public final class ILocation {
      * @return location集合
      */
     @Nonnull
-    public static List<Location> getRanges(Location corner1, Location corner2) {
+    static List<Location> getRanges(Location corner1, Location corner2) {
         return getRanges(corner1, corner2, true);
     }
 
@@ -344,7 +334,7 @@ public final class ILocation {
      * @return location集合
      */
     @Nonnull
-    public static List<Location> getRanges(Location corner1, Location corner2, boolean height) {
+    static List<Location> getRanges(Location corner1, Location corner2, boolean height) {
         if (!corner1.getWorld().equals(corner2.getWorld())) {
             throw new IllegalArgumentException("必须为同一个世界");
         }
@@ -393,7 +383,7 @@ public final class ILocation {
      * @return 最近的玩家，如果没有人在这个世界则为null
      */
     @Nullable
-    public static Player getShortest(Location location) {
+    static Player getShortest(Location location) {
         return getShortest(location, true);
     }
 
@@ -406,7 +396,7 @@ public final class ILocation {
      * @return 最近的玩家，如果没有人在这个世界则为null
      */
     @Nullable
-    public static Player getShortest(Location location, boolean height) {
+    static Player getShortest(Location location, boolean height) {
         World world = location.getWorld();
         Player nearest = null;
         double minDistSq = Double.MAX_VALUE;
@@ -443,7 +433,7 @@ public final class ILocation {
      * @return 最远的玩家，如果没有人在这个世界则为null
      */
     @Nullable
-    public static Player getLongest(Location location) {
+    static Player getLongest(Location location) {
         return getLongest(location, true);
     }
 
@@ -456,7 +446,7 @@ public final class ILocation {
      * @return 最远的玩家，如果没有人在这个世界则为null
      */
     @Nullable
-    public static Player getLongest(Location location, boolean height) {
+    static Player getLongest(Location location, boolean height) {
         World world = location.getWorld();
         Player farthest = null;
         double maxDistSq = -1;
@@ -491,10 +481,9 @@ public final class ILocation {
      * @param entity   涉及的实体
      * @param location 看向的地点
      */
-    public static void seeLocation(Entity entity, Location location) {
+    static void seeLocation(Entity entity, Location location) {
         Location entityLoc = entity.getLocation();
         entityLoc.setDirection(IVector.getVector(entityLoc, location));
         entity.teleport(entityLoc);
     }
 }
-

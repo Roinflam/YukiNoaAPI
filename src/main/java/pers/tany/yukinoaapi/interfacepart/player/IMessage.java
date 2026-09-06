@@ -26,17 +26,7 @@ import java.lang.reflect.Method;
  * @author tany
  * @since 1.0.0
  */
-public final class IMessage {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IMessage() {
-        throw new UnsupportedOperationException("IMessage 是工具类,不允许实例化");
-    }
-
+public interface IMessage {
 
     /**
      * 向玩家发送一条 ActionBar 消息
@@ -55,7 +45,7 @@ public final class IMessage {
      * IMessage.sendActionBar(player, "&c&l警告：区域即将关闭！", 10);
      * }</pre>
      */
-    public static void sendActionBar(Player player, String message, int time) {
+    static void sendActionBar(Player player, String message, int time) {
         // 参数校验
         if (player == null || !player.isOnline()) {
             return;
@@ -121,7 +111,7 @@ public final class IMessage {
      * @param player  目标玩家
      * @param message 要发送的消息，支持 & 颜色代码
      */
-    public static void sendActionBarOnce(Player player, String message) {
+    static void sendActionBarOnce(Player player, String message) {
         if (player == null || !player.isOnline()) {
             return;
         }
@@ -155,7 +145,7 @@ public final class IMessage {
      * @param player  目标玩家
      * @param message 已处理颜色的消息
      */
-    public static void sendActionBarSpigot(Player player, String message) {
+    static void sendActionBarSpigot(Player player, String message) {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
     }
 
@@ -167,7 +157,7 @@ public final class IMessage {
      * @param message 已处理颜色的消息
      * @throws Exception 反射调用失败时抛出
      */
-    public static void sendActionBarNMS(Player player, String message) throws Exception {
+    static void sendActionBarNMS(Player player, String message) throws Exception {
         Field playerConnection = NMSUtil.playerConnection;
         Class<?> packetPlayOutChat = NMSUtil.packetPlayOutChat;
         Method send = NMSUtil.send;
@@ -191,4 +181,3 @@ public final class IMessage {
         send.invoke(connection, packet);
     }
 }
-

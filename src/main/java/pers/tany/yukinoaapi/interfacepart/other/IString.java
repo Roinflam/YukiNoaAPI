@@ -9,17 +9,7 @@ import javax.annotation.Nullable;
 /**
  * 字符串相关
  */
-public final class IString {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private IString() {
-        throw new UnsupportedOperationException("IString 是工具类,不允许实例化");
-    }
-
+public interface IString {
     /**
      * 字符串replace，但只替换一次(无视转义)
      *
@@ -29,7 +19,7 @@ public final class IString {
      * @return 替换后的结果
      */
     
-    public static String replaceFirst(String string, String oldString, String newString) {
+    static String replaceFirst(String string, String oldString, String newString) {
         string = string.replace("[", "%前括号%").replace("]", "%后括号%").replace("+", "%加号%").replace("-", "%减号%").replace("$", "%钱号%");
         oldString = oldString.replace("[", "%前括号%").replace("]", "%后括号%").replace("+", "%加号%").replace("-", "%减号%").replace("$", "%钱号%");
         newString = newString.replace("[", "%前括号%").replace("]", "%后括号%").replace("+", "%加号%").replace("-", "%减号%").replace("$", "%钱号%");
@@ -43,7 +33,7 @@ public final class IString {
      * @return 替换后的结果
      */
 
-    public static String color(@Nullable String message) {
+    static String color(@Nullable String message) {
         return message == null ? null : ChatColor.translateAlternateColorCodes('&', message);
     }
 
@@ -53,9 +43,8 @@ public final class IString {
      * @param message 需要去除的字符串
      * @return 去除后的结果
      */
-    public static String strip(@Nullable String message) {
+    static String strip(@Nullable String message) {
         return message == null ? null : ChatColor.stripColor(message);
     }
 }
-
 

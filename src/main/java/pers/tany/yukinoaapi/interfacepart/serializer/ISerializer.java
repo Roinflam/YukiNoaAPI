@@ -35,17 +35,7 @@ import java.lang.reflect.Method;
  * @author tany
  * @since 1.0.0
  */
-public final class ISerializer {
-
-    /**
-     * 工具类,禁止实例化
-     *
-     * @throws UnsupportedOperationException 总是抛出
-     */
-    private ISerializer() {
-        throw new UnsupportedOperationException("ISerializer 是工具类,不允许实例化");
-    }
-
+public interface ISerializer {
 
     /**
      * 序列化物品为字符串
@@ -54,7 +44,7 @@ public final class ISerializer {
      * @return 序列化后的结果
      */
     @Nullable
-    public static String serializerItemStack(ItemStack itemStack) {
+    static String serializerItemStack(ItemStack itemStack) {
         return serializerItemStack(itemStack, false);
     }
 
@@ -66,7 +56,7 @@ public final class ISerializer {
      * @return 序列化后的结果
      */
     @Nullable
-    public static String serializerItemStack(ItemStack itemStack, boolean alone) {
+    static String serializerItemStack(ItemStack itemStack, boolean alone) {
         if (Main.config.getBoolean("ProtocolLibItem")) {
             final StreamSerializer serializer = new StreamSerializer();
             ItemStack i = itemStack.clone();
@@ -95,7 +85,7 @@ public final class ISerializer {
      * @return 物品
      */
     @Nullable
-    public static ItemStack deserializeItemStack(String data) {
+    static ItemStack deserializeItemStack(String data) {
         if (Main.config.getBoolean("ProtocolLibItem")) {
             StreamSerializer serializer = new StreamSerializer();
             try {
@@ -146,7 +136,7 @@ public final class ISerializer {
      * @param inventory 涉及的物品栏
      * @return 序列化后的结果
      */
-    public static String serializerInventory(Inventory inventory) {
+    static String serializerInventory(Inventory inventory) {
         StringBuilder str = new StringBuilder(inventory.getSize() + "%SerializerSize%");
         for (int i = 0; i < inventory.getSize(); i++) {
             ItemStack itemStack = inventory.getItem(i);
@@ -163,7 +153,7 @@ public final class ISerializer {
      * @param data 物品栏序列化后的结果
      * @return 物品栏
      */
-    public static Inventory deserializerInventory(String data) {
+    static Inventory deserializerInventory(String data) {
         Inventory inventory = Bukkit.createInventory(null, Integer.parseInt(data.split("%SerializerSize%")[0]));
         for (String str : data.split("%SerializerSize%")[1].split("%SerializerInventory%")) {
             String[] s = str.split(":");
@@ -180,7 +170,7 @@ public final class ISerializer {
      * @param inventory 需要设置物品的物品栏
      * @param data      物品栏序列化后的结果
      */
-    public static void deserializerInventory(Inventory inventory, String data) {
+    static void deserializerInventory(Inventory inventory, String data) {
         inventory.clear();
         if (data.contains("%SerializerInventory%")) {
             for (String str : data.split("%SerializerSize%")[1].split("%SerializerInventory%")) {
@@ -198,7 +188,7 @@ public final class ISerializer {
      * @param entity 涉及的实体
      * @return 序列化后的结果
      */
-    public static String serializerEntity(Entity entity) {
+    static String serializerEntity(Entity entity) {
         return IEncrypt.encrypt(entity.getType().toString() + "%SerializerEntity%" + IEntity.getEntityNBT(entity), "serializer");
     }
 
@@ -210,7 +200,7 @@ public final class ISerializer {
      * @return 生成后的实体
      */
     @Nullable
-    public static LivingEntity deserializerEntity(Location location, String data) {
+    static LivingEntity deserializerEntity(Location location, String data) {
         try {
             Method getHandle = NMSUtil.getHandle_Entity;
             Method parse = NMSUtil.parse;
@@ -238,7 +228,7 @@ public final class ISerializer {
      * @param block 涉及的方块
      * @return 序列化后的结果
      */
-    public static String serializerBlock(Block block) {
+    static String serializerBlock(Block block) {
         @Nullable String nbt = IBlock.getBlockNBT(block);
         String blockData;
 
@@ -265,7 +255,7 @@ public final class ISerializer {
      * @return 生成后的方块
      */
     @Nullable
-    public static Block deserializerBlock(Location location, String data) {
+    static Block deserializerBlock(Location location, String data) {
         try {
             String[] str = IEncrypt.decrypt(data, "serializer").split("%SerializerBlock%");
             Block block = location.getBlock();
@@ -311,7 +301,7 @@ public final class ISerializer {
      * @param location  方块位置
      * @param nbtString NBT 字符串
      */
-    public static void loadBlockNBT(Location location, String nbtString) {
+    static void loadBlockNBT(Location location, String nbtString) {
         try {
             Class<?> blockPositionClass = NMSUtil.blockPositionClass;
             Method parse = NMSUtil.parse;
@@ -382,7 +372,7 @@ public final class ISerializer {
      * @param location 涉及的坐标
      * @return 序列化后的结果
      */
-    public static String serializerLocation(Location location) {
+    static String serializerLocation(Location location) {
         return IEncrypt.encrypt(location.getWorld().getName() + ":" + location.getX() + ":" + location.getY() + ":" + location.getZ() + ":" + location.getYaw() + ":" + location.getPitch(), "serializer");
     }
 
@@ -392,9 +382,8 @@ public final class ISerializer {
      * @param data 坐标序列化后的结果
      * @return 坐标
      */
-    public static Location deserializerLocation(String data) {
+    static Location deserializerLocation(String data) {
         String[] strs = IEncrypt.decrypt(data, "serializer").split(":");
         return new Location(Bukkit.getWorld(strs[0]), Double.parseDouble(strs[1]), Double.parseDouble(strs[2]), Double.parseDouble(strs[3]), Float.parseFloat(strs[4]), Float.parseFloat(strs[5]));
     }
 }
-
