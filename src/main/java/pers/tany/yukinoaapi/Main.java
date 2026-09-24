@@ -61,6 +61,9 @@ public class Main extends JavaPlugin {
      */
     @Override
     public void onDisable() {
+        // 等各插件排队中的异步配置保存写完（依赖本库的插件先于本库卸载，它们最后提交的快照都在队列里）
+        pers.tany.yukinoaapi.interfacepart.configuration.IConfig.flushAsyncSaves();
+
         // 关闭全息图管理器
         if (HologramManager.getInstance() != null) {
             HologramManager.getInstance().shutdown();

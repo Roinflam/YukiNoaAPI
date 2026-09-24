@@ -239,7 +239,22 @@ public interface IConfig {
             File file = new File(dir, fileName.endsWith(".yml") ? fileName : fileName + ".yml");
 
             try {
-                config.save(file);
+                // 与 saveConfigAsync 的后台写入互斥，并作废排队中的旧快照：
+                // 保证同步保存之后，文件不会被一份更早提交的异步快照覆盖回去（例如插件 onDisable 里的同步保存）
+                Object lock = AsyncConfigSaver.existingLock(file);
+                if (lock == null) {
+                    // 这个文件从没用过异步保存：与 3.3.0 完全相同，不建任何条目
+                    config.save(file);
+                } else {
+                    synchronized (lock) {
+                        long id = AsyncConfigSaver.supersede(file);
+                        try {
+                            config.save(file);
+                        } finally {
+                            AsyncConfigSaver.release(file, id);
+                        }
+                    }
+                }
                 if (Main.config.getBoolean("Logging.VerboseConfigLogs", false)) {
                     Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §a成功保存配置文件: " + file.getAbsolutePath());
                 }
@@ -249,5 +264,46 @@ public interface IConfig {
         } catch (Exception e) {
             Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c保存配置文件时发生未知错误: " + e.getMessage());
         }
+    }
+
+    /**
+     * 异步保存配置文件（3.4.0 新增）：在调用线程上拍快照，YAML 序列化与写盘在后台线程完成。
+     * <p>适合定时保存大数据文件：序列化是保存的主要耗时，在主线程做会造成卡顿。
+     * 写出的内容与 {@link #saveConfig} 读回等价（含注释、文件头）；先写临时文件再替换；
+     * 只接受 {@code YamlConfiguration} 本类，其他配置类型与认不出的值类型会自动退回同步保存；
+     * 同一文件连续提交只写最新一份；之后若对同一文件调用 {@link #saveConfig}，以同步那次为准。</p>
+     * <p>必须在拥有这个配置对象的线程上调用（通常是主线程），调用返回后可以继续修改 config。
+     * 插件 onDisable 里请继续用同步的 {@link #saveConfig}。</p>
+     * <p>兼容旧版本库：调用方可以用 {@code try { saveConfigAsync(...) } catch (NoSuchMethodError e) { saveConfig(...) }}
+     * 在旧版 YukiNoaAPI 上自动退回同步保存。</p>
+     *
+     * @param plugin 插件实例
+     * @param config 配置对象
+     * @param dirName 目录名称
+     * @param fileName 文件名称
+     */
+    static void saveConfigAsync(@Nonnull Plugin plugin, @Nonnull FileConfiguration config, String dirName, @Nonnull String fileName) {
+        // 快照固定是 YamlConfiguration：其他格式（JSON 等）或重写了序列化的子类，走原来的同步保存，保证格式不被改写
+        if (config.getClass() != YamlConfiguration.class) {
+            saveConfig(plugin, config, dirName, fileName);
+            return;
+        }
+        try {
+            File baseDir = getValidPluginDataFolder(plugin);
+            File dir = new File(baseDir, dirName);
+            dir.mkdirs();
+            File file = new File(dir, fileName.endsWith(".yml") ? fileName : fileName + ".yml");
+            AsyncConfigSaver.save(plugin, config, file, Main.config.getBoolean("Logging.VerboseConfigLogs", false));
+        } catch (Exception e) {
+            Bukkit.getConsoleSender().sendMessage("§7[§f" + plugin.getName() + "§7] §c异步保存配置文件时发生未知错误，改为同步保存: " + e.getMessage());
+            saveConfig(plugin, config, dirName, fileName);
+        }
+    }
+
+    /**
+     * 等待所有排队中的异步保存写完（最多 30 秒，3.4.0 新增）。插件 reload 前可调用；本库卸载时会自动调用。
+     */
+    static void flushAsyncSaves() {
+        AsyncConfigSaver.flush(30_000L);
     }
 }
