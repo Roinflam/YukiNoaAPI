@@ -1,6 +1,6 @@
 name: YukiNoaAPI
 main: pers.tany.yukinoaapi.Main
-version: '3.3.0'
+version: '3.4.0'
 author: Roinflam
 softdepend: [ NBTAPI,Vault,ProtocolLib ]
 description: 结城希亚的专属开发库

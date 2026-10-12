@@ -42,7 +42,9 @@ public interface IPlayer {
         }
         player.setLevel(level);
         player.setExp((float) floatExp / toNextLevel);
-        player.setTotalExperience(getTotalExp(level) + floatExp);
+        // 约 21864 级起总经验超出 int（getTotalExp 已饱和到 MAX_VALUE），int 相加会溢出成负数，
+        // 1.20 的 setTotalExperience 拒收负数直接抛异常；按 long 算再夹到 MAX_VALUE，与原版 giveExperiencePoints 一致
+        player.setTotalExperience((int) Math.min((long) getTotalExp(level) + floatExp, Integer.MAX_VALUE));
     }
 
     /**
