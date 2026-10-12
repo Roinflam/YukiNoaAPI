@@ -5,6 +5,7 @@ import de.tr7zw.nbtapi.iface.ReadWriteNBT;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import pers.tany.yukinoaapi.util.LogUtil;
 import pers.tany.yukinoaapi.util.NMSUtil;
 import pers.tany.yukinoaapi.realizationpart.builder.ItemBuilder;
@@ -78,21 +79,32 @@ public interface IItem {
      */
     @Nullable
     static String getName(ItemStack itemStack) {
-        if (itemStack.getItemMeta() != null && itemStack.getItemMeta().hasDisplayName()) {
-            return itemStack.getItemMeta().getDisplayName();
+        // getItemMeta() 每次都会新建一份 meta，取一次复用（内容相同）
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta != null && itemMeta.hasDisplayName()) {
+            return itemMeta.getDisplayName();
         }
         try {
             Method asNMSCopy = NMSUtil.asNMSCopy;
             Object nmsItem = asNMSCopy.invoke(null, itemStack);
-            String name;
-            try {
-                // 方案1: Item.getName(ItemStack) - 旧版本
-                Method getItem = NMSUtil.getItem;
-                Method getName_Item = NMSUtil.getName_Item;
-                Method getString = NMSUtil.getString_IChatBaseComponent;
-                Object item = getItem.invoke(nmsItem);
-                name = getString.invoke(getName_Item.invoke(item, nmsItem)).toString();
-            } catch (Exception e) {
+            String name = null;
+            boolean resolved = false;
+            // 方案1: Item.getName(ItemStack) - 旧版本
+            Method getItem = NMSUtil.getItem;
+            Method getName_Item = NMSUtil.getName_Item;
+            Method getString = NMSUtil.getString_IChatBaseComponent;
+            // 反射到的方法从类型上就接不起来时（如 1.20.1 的 "h" 撞到 getTooltipImage），
+            // 方案1 必然抛异常落到方案2，这里直接走方案2，省掉每次构造异常
+            if (ItemNameReflection.nameByItemUsable(getItem, getName_Item, getString)) {
+                try {
+                    Object item = getItem.invoke(nmsItem);
+                    name = getString.invoke(getName_Item.invoke(item, nmsItem)).toString();
+                    resolved = true;
+                } catch (Exception e) {
+                    // 落到方案2
+                }
+            }
+            if (!resolved) {
                 // 方案2: ItemStack.getName() / getHoverName()
                 Method getNameMethod = NMSUtil.getName_ItemStack;
                 Object result = getNameMethod.invoke(nmsItem);
@@ -103,7 +115,6 @@ public interface IItem {
                     name = (String) result;
                 } else {
                     // 高版本返回Component，需要调用getString()
-                    Method getString = NMSUtil.getString_IChatBaseComponent;
                     name = getString.invoke(result).toString();
                 }
             }
