@@ -423,7 +423,8 @@ public class HologramManager implements Listener {
                 if (!dirty) return;
 
                 dirty = false;
-                dataManager.saveAll(holograms);
+                // 序列化和写盘交给后台线程，主线程只拍快照；关服、重载时的 flushSave 仍是同步写盘
+                dataManager.saveAllAsync(holograms);
             }
         };
 
