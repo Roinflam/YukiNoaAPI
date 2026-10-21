@@ -10,5 +10,5 @@ gradle.ext {
     projectName = 'YukiNoaAPI'
 
     // 项目版本（会同步到 plugin.yml 和 config.yml）
-    projectVersion = '3.4.0'
+    projectVersion = '3.5.0'
 }

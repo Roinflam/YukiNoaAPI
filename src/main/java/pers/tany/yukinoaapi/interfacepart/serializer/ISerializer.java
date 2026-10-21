@@ -10,6 +10,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.util.NMSUtil;
 import pers.tany.yukinoaapi.interfacepart.block.IBlock;
@@ -80,6 +81,8 @@ public interface ISerializer {
 
     /**
      * 反序列化物品
+     * <p>物品已不存在时（所属模组被移除等）：旧格式返回 null，ProtocolLib 格式返回空气；
+     * 要区分「物品不存在」和其它读取失败，用 {@link #isMissingItem(String)}。</p>
      *
      * @param data 物品序列化后的结果
      * @return 物品
@@ -87,47 +90,98 @@ public interface ISerializer {
     @Nullable
     static ItemStack deserializeItemStack(String data) {
         if (Main.config.getBoolean("ProtocolLibItem")) {
+            // 切换过 ProtocolLibItem 时，库里可能还存着旧格式的数据。旧格式是十六进制串，
+            // Base64 的 MIME 解码器也照收不误、解出一堆乱码，所以要先认出来
+            if (ItemDataInspector.decodeEncrypted(data) != null) {
+                return deserializeEncryptedItemStack(data);
+            }
             StreamSerializer serializer = new StreamSerializer();
             try {
-                ItemStack itemStack = serializer.deserializeItemStack(data);
-                if (itemStack == null) {
-                    String[] s = IEncrypt.decrypt(data, "serializer").split("%SerializerItem%");
-                    Method asNMSCopy = NMSUtil.asNMSCopy;
-                    Method parse = NMSUtil.parse;
-                    Method load = NMSUtil.load_ItemStack;
-                    Method asBukkitCopy = NMSUtil.asBukkitCopy;
-
-                    Object nbttagCompound = parse.invoke(null, s[3]);
-                    Object nmsItem = asNMSCopy.invoke(null, new ItemBuilder(Material.valueOf(s[0]), Integer.parseInt(s[1]), Short.parseShort(s[2])).getItemStack());
-                    load.invoke(nmsItem, nbttagCompound);
-                    return (ItemStack) asBukkitCopy.invoke(null, nmsItem);
-                }
-                return itemStack;
+                return serializer.deserializeItemStack(data);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         } else {
             try {
-                String[] s = IEncrypt.decrypt(data, "serializer").split("%SerializerItem%");
-                Method asNMSCopy = NMSUtil.asNMSCopy;
-                Method parse = NMSUtil.parse;
-                Method load = NMSUtil.load_ItemStack;
-                Method asBukkitCopy = NMSUtil.asBukkitCopy;
-
-                Object nbttagCompound = parse.invoke(null, s[3]);
-                Object nmsItem = asNMSCopy.invoke(null, new ItemBuilder(Material.valueOf(s[0]), Integer.parseInt(s[1]), Short.parseShort(s[2])).getItemStack());
-                load.invoke(nmsItem, nbttagCompound);
-                ItemStack itemStack = (ItemStack) asBukkitCopy.invoke(null, nmsItem);
-                if (itemStack == null) {
-                    StreamSerializer serializer = new StreamSerializer();
-                    return serializer.deserializeItemStack(data);
+                if (ItemDataInspector.decodeEncrypted(data) == null) {
+                    // 关掉 ProtocolLibItem 之前存下的 ProtocolLib 格式
+                    return new StreamSerializer().deserializeItemStack(data);
                 }
-                return itemStack;
+                return deserializeEncryptedItemStack(data);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
         return null;
+    }
+
+    /**
+     * 按旧格式（加密的材质名 + NBT）反序列化
+     *
+     * @param data 物品序列化后的结果
+     * @return 物品；材质在当前服务端不存在或读取失败时为 null
+     * @since 3.5.0
+     */
+    @Nullable
+    static ItemStack deserializeEncryptedItemStack(String data) {
+        String[] s = ItemDataInspector.decodeEncrypted(data);
+        if (s == null) {
+            return null;
+        }
+        Material material = ItemDataInspector.resolveMaterial(s[0]);
+        if (material == null) {
+            ItemDataInspector.warnMissingType(s[0]);
+            return null;
+        }
+        try {
+            Method asNMSCopy = NMSUtil.asNMSCopy;
+            Method parse = NMSUtil.parse;
+            Method load = NMSUtil.load_ItemStack;
+            Method asBukkitCopy = NMSUtil.asBukkitCopy;
+
+            Object nbttagCompound = parse.invoke(null, s[3]);
+            Object nmsItem = asNMSCopy.invoke(null, new ItemBuilder(material, Integer.parseInt(s[1]), Short.parseShort(s[2])).getItemStack());
+            load.invoke(nmsItem, nbttagCompound);
+            return (ItemStack) asBukkitCopy.invoke(null, nmsItem);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * 判断序列化数据里的物品在当前服务端是否已经不存在（所属模组被移除、物品被删除等）
+     * <p>只在能确定时返回 true：旧格式的材质名查不到，或 ProtocolLib 格式的数据本来有物品、读出来却只剩空气。
+     * 反射失败、版本不兼容、数据损坏等其它原因读不出来的一律返回 false。
+     * 调用方只应在返回 true 时清理数据，免得服务端环境出问题时把数据整批删掉。</p>
+     *
+     * <pre>{@code
+     * ItemStack item = ISerializer.deserializeItemStack(data);
+     * if (IItem.isEmpty(item) && ISerializer.isMissingItem(data)) {
+     *     // 从存档里删掉这条数据
+     *     ISerializer.logRemovedItem(plugin, "奖池 " + poolName, data);
+     * }
+     * }</pre>
+     *
+     * @param data 物品序列化后的结果
+     * @return 物品已不存在为 true
+     * @since 3.5.0
+     */
+    static boolean isMissingItem(@Nullable String data) {
+        return ItemDataInspector.isMissingItem(data);
+    }
+
+    /**
+     * 记录一条因物品已不存在而被清理的数据：在控制台提示，并把原始数据追加到插件数据目录下的 removed-items.log，
+     * 之后把模组装回来还能照着恢复
+     *
+     * @param plugin 清理数据的插件
+     * @param where  数据原来在哪（给人看的说明，如「抽奖箱 xxx 的奖品」）
+     * @param data   被清理的物品序列化数据
+     * @since 3.5.0
+     */
+    static void logRemovedItem(Plugin plugin, String where, @Nullable String data) {
+        ItemDataInspector.logRemovedItem(plugin, where, data);
     }
 
     /**
