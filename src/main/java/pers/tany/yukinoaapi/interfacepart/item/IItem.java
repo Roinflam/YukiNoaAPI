@@ -1,7 +1,5 @@
 package pers.tany.yukinoaapi.interfacepart.item;
 
-import de.tr7zw.nbtapi.NBT;
-import de.tr7zw.nbtapi.iface.ReadWriteNBT;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -27,12 +25,16 @@ import java.util.Optional;
  *       走传统反射路径（{@link NMSUtil#save_ItemStack} 等），逻辑完全保留不变。</li>
  *   <li>1.20.5 及以上（DataComponents / Codec 时代）：原版已彻底移除 {@code save(NBTTagCompound)}，
  *       1.20.5 初期改为 {@code save(Provider)}，1.21.x 又进一步迁移到 Codec 体系（CODEC/MAP_CODEC 字段），
- *       NMS 反射既不稳定也难以追随版本。此时统一委托给强制依赖的 NBT-API 处理，
- *       由其内部自适配各版本序列化机制。</li>
+ *       NMS 反射既不稳定也难以追随版本。此时优先委托 NBT-API 处理，由其内部自适配各版本序列化机制；
+ *       服务端没装 NBT-API 时改用服务端自己的 save(Provider) / parse(Provider, Tag)（见 {@code ModernItemNbt}），
+ *       产出格式相同。</li>
  * </ul>
  * <b>分流判据：</b>{@code NMSUtil.save_ItemStack == null}。
  * 旧版该方法必定能反射到（不为 null），新版必定为 null，以此精确区分两个时代，
  * 无需依赖小版本号解析，且不修改 NMSUtil。
+ * </p>
+ * <p>
+ * 本接口不直接引用 NBT-API 的类：接口被加载时 JVM 会校验全部方法，引用到不存在的类会让整个接口不可用。
  * </p>
  */
 public interface IItem {
@@ -128,7 +130,7 @@ public interface IItem {
      * 获取物品的NBT（完整SNBT字符串）
      * <p>
      * 1.20.4及以下：使用 NMS ItemStack.save(NBTTagCompound) 方式（传统反射，逻辑保留不变）<br>
-     * 1.20.5及以上：委托 NBT-API 序列化为 SNBT 字符串（自适配 DataComponents / Codec）
+     * 1.20.5及以上：序列化为 SNBT 字符串（{id, count, components}），有 NBT-API 用它，没有用服务端内置接口
      * </p>
      *
      * @param itemStack 涉及物品
@@ -136,14 +138,12 @@ public interface IItem {
      */
     @Nullable
     static String getItemNBT(ItemStack itemStack) {
-        // ============ 新版路径（1.20.5+）：委托 NBT-API ============
+        // ============ 新版路径（1.20.5+）：NBT-API 或服务端内置接口 ============
         if (useNbtApiForItem()) {
             try {
-                // NBT-API 内部已适配各版本（含 1.21.x Codec），直接序列化为 SNBT
-                ReadWriteNBT nbt = NBT.itemStackToNBT(itemStack);
-                return nbt.toString();
+                return ModernItemNbt.toSnbt(itemStack);
             } catch (Exception e) {
-                LogUtil.error("[IItem] NBT-API 序列化物品失败", e);
+                LogUtil.error("[IItem] 序列化物品失败", e);
                 return "";
             }
         }
@@ -168,7 +168,7 @@ public interface IItem {
      * 根据完整NBT字符串创建物品
      * <p>
      * 1.20.4及以下：解析NBT → 加载到虚拟物品 → 转为Bukkit物品（传统反射，逻辑保留不变）<br>
-     * 1.20.5及以上：委托 NBT-API 从 SNBT 反序列化
+     * 1.20.5及以上：从 SNBT 反序列化，有 NBT-API 用它，没有用服务端内置接口
      * </p>
      *
      * @param tag 物品完整NBT字符串（SNBT格式）
@@ -176,19 +176,17 @@ public interface IItem {
      */
     @Nullable
     static ItemStack getItemStack(String tag) {
-        // ============ 新版路径（1.20.5+）：委托 NBT-API ============
+        // ============ 新版路径（1.20.5+）：NBT-API 或服务端内置接口 ============
         if (useNbtApiForItem()) {
             try {
-                // 从 SNBT 字符串解析为 NBT 容器，再还原为物品
-                ReadWriteNBT nbt = NBT.parseNBT(tag);
-                ItemStack item = NBT.itemStackFromNBT(nbt);
+                ItemStack item = ModernItemNbt.fromSnbt(tag);
                 if (item == null) {
-                    LogUtil.warning("[IItem] NBT-API 从NBT解析物品返回空，NBT可能格式不正确: "
+                    LogUtil.warning("[IItem] 从NBT解析物品返回空，NBT可能格式不正确: "
                             + tag.substring(0, Math.min(tag.length(), 100)));
                 }
                 return item;
             } catch (Exception e) {
-                LogUtil.error("[IItem] NBT-API 从NBT字符串创建物品失败", e);
+                LogUtil.error("[IItem] 从NBT字符串创建物品失败", e);
                 return null;
             }
         }
@@ -219,7 +217,7 @@ public interface IItem {
      * 设置物品的自定义NBT标签
      * <p>
      * 1.20.4及以下：解析tag → setTag(nmsItem, compound) → 转为Bukkit物品（传统反射，逻辑保留不变）<br>
-     * 1.20.5及以上：委托 NBT-API，将传入的 NBT 合并到物品上
+     * 1.20.5及以上：将传入的 NBT 合并到物品的自定义数据（minecraft:custom_data）上，有 NBT-API 用它，没有用服务端内置接口
      * </p>
      *
      * @param itemStack 涉及物品
@@ -228,21 +226,13 @@ public interface IItem {
      */
     @Nullable
     static ItemStack getItemStack(ItemStack itemStack, String tag) {
-        // ============ 新版路径（1.20.5+）：委托 NBT-API ============
+        // ============ 新版路径（1.20.5+）：NBT-API 或服务端内置接口 ============
         if (useNbtApiForItem()) {
             try {
-                // 克隆一份，避免修改入参原物品
-                ItemStack result = itemStack.clone();
-                // 解析用户传入的 NBT 字符串
-                ReadWriteNBT customNbt = NBT.parseNBT(tag);
-                // 将自定义 NBT 合并到物品现有 NBT 上
-                // 用语句块 lambda（无返回值）明确匹配 Consumer 重载，避免与 Function 重载产生歧义
-                NBT.modify(result, nbt -> {
-                    nbt.mergeCompound(customNbt);
-                });
-                return result;
+                // 合并进物品的自定义数据（minecraft:custom_data），不修改入参原物品
+                return ModernItemNbt.merge(itemStack, tag);
             } catch (Exception e) {
-                LogUtil.error("[IItem] NBT-API 设置物品NBT失败", e);
+                LogUtil.error("[IItem] 设置物品NBT失败", e);
                 return null;
             }
         }

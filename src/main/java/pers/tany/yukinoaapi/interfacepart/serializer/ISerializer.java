@@ -1,6 +1,5 @@
 package pers.tany.yukinoaapi.interfacepart.serializer;
 
-import com.comphenix.protocol.utility.StreamSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -58,12 +57,12 @@ public interface ISerializer {
      */
     @Nullable
     static String serializerItemStack(ItemStack itemStack, boolean alone) {
-        if (Main.config.getBoolean("ProtocolLibItem")) {
-            final StreamSerializer serializer = new StreamSerializer();
+        // 没装 ProtocolLib 时退回旧格式；旧格式之后装上 ProtocolLib 也照样能读
+        if (Main.config.getBoolean("ProtocolLibItem") && ProtocolLibItems.canWrite()) {
             ItemStack i = itemStack.clone();
             i.setAmount(alone ? 1 : i.getAmount());
             try {
-                return serializer.serializeItemStack(i);
+                return ProtocolLibItems.serialize(i);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -95,9 +94,11 @@ public interface ISerializer {
             if (ItemDataInspector.decodeEncrypted(data) != null) {
                 return deserializeEncryptedItemStack(data);
             }
-            StreamSerializer serializer = new StreamSerializer();
+            if (!ProtocolLibItems.canRead()) {
+                return null;
+            }
             try {
-                return serializer.deserializeItemStack(data);
+                return ProtocolLibItems.deserialize(data);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -105,7 +106,7 @@ public interface ISerializer {
             try {
                 if (ItemDataInspector.decodeEncrypted(data) == null) {
                     // 关掉 ProtocolLibItem 之前存下的 ProtocolLib 格式
-                    return new StreamSerializer().deserializeItemStack(data);
+                    return ProtocolLibItems.canRead() ? ProtocolLibItems.deserialize(data) : null;
                 }
                 return deserializeEncryptedItemStack(data);
             } catch (Exception e) {
@@ -132,6 +133,10 @@ public interface ISerializer {
         if (material == null) {
             ItemDataInspector.warnMissingType(s[0]);
             return null;
+        }
+        // 1.20.5+ 没有 load(NBTTagCompound)，存的 NBT 是完整物品 {id, count, components}，整体还原
+        if (NMSUtil.load_ItemStack == null && NMSUtil.isNewItemAPI()) {
+            return IItem.getItemStack(s[3]);
         }
         try {
             Method asNMSCopy = NMSUtil.asNMSCopy;

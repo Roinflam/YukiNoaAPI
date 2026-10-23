@@ -31,7 +31,9 @@ import javax.annotation.Nullable;
  *       tooltip（名称、lore、附魔、属性）</b>。逻辑与历史版本一致。</li>
  *   <li><b>新版（1.20.5+，{@link #ITEM_HOVER_TEXT_FALLBACK} = true）：</b>
  *       降级为 {@code SHOW_TEXT} 文本悬停（见 {@link AdventureItemHover}），
- *       读取物品名 + lore 拼成多行文字，无图标但跨版本稳定不崩。</li>
+ *       读取物品名 + lore 拼成多行文字，无图标但跨版本稳定不崩。
+ *       Paper 系服务端（Bukkit 物品实现了 Adventure 的 HoverEventSource）上改用 {@code asHoverEvent()}，
+ *       由服务端编码 show_item，显示真实物品提示框（见 {@code AdventureItemMessage}）。</li>
  * </ul>
  * </p>
  * <p>
@@ -549,6 +551,10 @@ public interface IBungee {
          */
         static void sendItemHover(@Nullable Player player, String message, String itemNBT,
                                   @Nullable String command, boolean useCommand) {
+            // Paper 系服务端：服务端自己编码 show_item，显示真实物品提示框
+            if (trySendAdventure(player, message, itemNBT, command, useCommand)) {
+                return;
+            }
             try {
                 // ---- 1. SNBT → 名字+lore 文本（统一走 itemNbtToHoverText，失败时内部自动回退原始字符串） ----
                 String hoverText = itemNbtToHoverText(itemNBT);
@@ -571,6 +577,43 @@ public interface IBungee {
             } catch (Throwable t) {
                 LogUtil.error("[IBungee] 物品文本悬停构造失败，降级为原始字符串悬停", t instanceof Exception ? (Exception) t : new Exception(t));
                 sendTextHoverFallback(player, message, itemNBT, command, useCommand);
+            }
+        }
+
+        /** 服务端是否带 Adventure（第一次发送时确定；发送出错后置为 false，之后一律走文本悬停） */
+        private static Boolean adventureAvailable;
+
+        /**
+         * 尝试用 Adventure 的 {@code asHoverEvent()} 发送真实物品悬停
+         *
+         * @return 已发送返回 true；服务端不支持或物品还原失败返回 false，由调用方走文本悬停
+         */
+        private static boolean trySendAdventure(@Nullable Player player, String message, String itemNBT,
+                                                @Nullable String command, boolean useCommand) {
+            if (adventureAvailable == null) {
+                try {
+                    Class.forName("net.kyori.adventure.audience.Audience");
+                    Class.forName("net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer");
+                    adventureAvailable = true;
+                } catch (Throwable t) {
+                    adventureAvailable = false;
+                }
+            }
+            if (!adventureAvailable) {
+                return false;
+            }
+            try {
+                ItemStack item = IItem.getItemStack(itemNBT);
+                if (item == null || !AdventureItemMessage.supports(item)) {
+                    return false;
+                }
+                AdventureItemMessage.send(player, IString.color(message), item, command, useCommand);
+                return true;
+            } catch (Throwable t) {
+                adventureAvailable = false;
+                LogUtil.error("[IBungee] Adventure 物品悬停发送失败，之后改用文本悬停",
+                        t instanceof Exception ? (Exception) t : new Exception(t));
+                return false;
             }
         }
 
