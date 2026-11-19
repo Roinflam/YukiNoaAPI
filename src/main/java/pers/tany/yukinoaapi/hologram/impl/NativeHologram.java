@@ -5,6 +5,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
@@ -20,12 +21,20 @@ import java.util.Map;
 
 /**
  * 原生全息图实现（1.12+）
- * 使用盔甲架显示文本
+ * 1.19.4 起用一个文字展示实体显示全部行，更早的版本一行一个盔甲架
  *
  * @author Roinflam
  * @since 3.1.0
  */
 public class NativeHologram implements IHologram {
+
+    private static final boolean USE_TEXT_DISPLAY = TextDisplaySupport.isAvailable();
+
+    /** 文字展示实体（只在 USE_TEXT_DISPLAY 时用） */
+    private Entity textEntity;
+
+    /** textEntity 当前按几行摆的位置，行数变了要挪 */
+    private int textLineCount;
 
     /** 全息图ID */
     private final String id;
@@ -90,19 +99,9 @@ public class NativeHologram implements IHologram {
 
         // 使用 chunk.getEntities() 获取该区块内的所有实体
         for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
-            if (entity instanceof ArmorStand) {
-                ArmorStand stand = (ArmorStand) entity;
-                // 检查是否是本插件创建的全息图盔甲架
-                if (stand.getScoreboardTags().contains(HOLOGRAM_TAG)) {
-                    // 强制移除：先取消无敌状态，确保能被移除
-                    try {
-                        stand.setInvulnerable(false);
-                    } catch (NoSuchMethodError ignored) {
-                        // 低版本没有这个方法
-                    }
-                    stand.remove();
-                    cleanedCount++;
-                }
+            if (isHologramEntity(entity, HOLOGRAM_TAG)) {
+                forceRemove(entity);
+                cleanedCount++;
             }
         }
 
@@ -153,6 +152,22 @@ public class NativeHologram implements IHologram {
         }
     }
 
+    /** 旧版本留下的盔甲架和现在的文字展示实体都要认 */
+    private static boolean isHologramEntity(Entity entity, String tag) {
+        if (!(entity instanceof ArmorStand) && !TextDisplaySupport.isTextDisplay(entity)) return false;
+        return entity.getScoreboardTags().contains(tag);
+    }
+
+    private static void forceRemove(Entity entity) {
+        if (entity instanceof ArmorStand) {
+            try {
+                ((ArmorStand) entity).setInvulnerable(false);
+            } catch (NoSuchMethodError ignored) {
+            }
+        }
+        entity.remove();
+    }
+
     @Override
     public String getId() {
         return id;
@@ -200,7 +215,9 @@ public class NativeHologram implements IHologram {
         lines.set(index, text);
         updateRainbowProcessor(index, text);
 
-        if (shown && index < armorStands.size()) {
+        if (USE_TEXT_DISPLAY) {
+            if (shown) refreshText();
+        } else if (shown && index < armorStands.size()) {
             updateArmorStandText(index);
         }
     }
@@ -214,8 +231,12 @@ public class NativeHologram implements IHologram {
         updateRainbowProcessor(index, text);
 
         if (shown) {
-            updateAllPositions();
-            spawnArmorStand(index, text);
+            if (USE_TEXT_DISPLAY) {
+                refreshText();
+            } else {
+                updateAllPositions();
+                spawnArmorStand(index, text);
+            }
         }
 
         checkRainbowTask();
@@ -234,13 +255,17 @@ public class NativeHologram implements IHologram {
         }
 
         lines.add(index, text);
+        rebuildRainbowProcessors();
 
         if (shown) {
-            hide();
-            show();
+            if (USE_TEXT_DISPLAY) {
+                refreshText();
+            } else {
+                hide();
+                show();
+            }
         }
 
-        rebuildRainbowProcessors();
         checkRainbowTask();
     }
 
@@ -257,13 +282,17 @@ public class NativeHologram implements IHologram {
         }
 
         lines.remove(index);
+        rebuildRainbowProcessors();
 
         if (shown) {
-            hide();
-            show();
+            if (USE_TEXT_DISPLAY) {
+                refreshText();
+            } else {
+                hide();
+                show();
+            }
         }
 
-        rebuildRainbowProcessors();
         checkRainbowTask();
     }
 
@@ -324,8 +353,12 @@ public class NativeHologram implements IHologram {
         // 从根源杜绝服务器重启 / 重复显示导致的盔甲架堆叠。
         removeOwnOrphanStands();
 
-        for (int i = 0; i < lines.size(); i++) {
-            spawnArmorStand(i, lines.get(i));
+        if (USE_TEXT_DISPLAY) {
+            if (!lines.isEmpty()) spawnText();
+        } else {
+            for (int i = 0; i < lines.size(); i++) {
+                spawnArmorStand(i, lines.get(i));
+            }
         }
 
         shown = true;
@@ -345,6 +378,7 @@ public class NativeHologram implements IHologram {
         }
 
         armorStands.clear();
+        removeTextEntity();
         shown = false;
     }
 
@@ -388,6 +422,10 @@ public class NativeHologram implements IHologram {
 
         // 无行时视为有效
         if (lines.isEmpty()) return true;
+
+        if (USE_TEXT_DISPLAY) {
+            return textEntity != null && !textEntity.isDead() && textEntity.isValid();
+        }
 
         // 盔甲架数量与行数不匹配，说明有问题
         if (armorStands.size() != lines.size()) return false;
@@ -445,6 +483,14 @@ public class NativeHologram implements IHologram {
             return;
         }
 
+        if (USE_TEXT_DISPLAY) {
+            if (textEntity != null && !textEntity.isDead()) {
+                textEntity.teleport(textLocation());
+                textLineCount = lines.size();
+            }
+            return;
+        }
+
         for (int i = 0; i < armorStands.size(); i++) {
             ArmorStand stand = armorStands.get(i);
             if (stand != null && !stand.isDead()) {
@@ -491,17 +537,61 @@ public class NativeHologram implements IHologram {
         String selfTag = "Hologram_" + id;
 
         for (org.bukkit.entity.Entity entity : world.getChunkAt(chunkX, chunkZ).getEntities()) {
-            if (!(entity instanceof ArmorStand)) continue;
-            if (!entity.getScoreboardTags().contains(selfTag)) continue;
-
-            // 强制移除：先取消无敌状态，确保能被移除
-            try {
-                ((ArmorStand) entity).setInvulnerable(false);
-            } catch (NoSuchMethodError ignored) {
-                // 低版本没有这个方法
-            }
-            entity.remove();
+            if (isHologramEntity(entity, selfTag)) forceRemove(entity);
         }
+    }
+
+    /**
+     * 文字展示实体的位置：文字从实体位置往上排，每行 0.25 格。
+     * 盔甲架的名字显示在实体上方 0.5 格处往下写，这里换算成同样的上下边，换实现后各行位置不变。
+     */
+    private Location textLocation() {
+        return new Location(location.getWorld(), location.getX(),
+                location.getY() + 0.375 - 0.125 * lines.size(), location.getZ());
+    }
+
+    private String buildText() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < lines.size(); i++) {
+            // 换行后格式码会延续到下一行，盔甲架是一行一个实体不会，所以每行先重置
+            if (i > 0) sb.append('\n').append("§r");
+            sb.append(renderLine(i));
+        }
+        return sb.toString();
+    }
+
+    private void spawnText() {
+        World world = location.getWorld();
+        if (world == null) return;
+        if (!world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) return;
+
+        textEntity = TextDisplaySupport.spawn(textLocation(), buildText(), HOLOGRAM_TAG, "Hologram_" + id);
+        textLineCount = lines.size();
+    }
+
+    /** 文字或行数变了：同一个实体改文字，行数变了再挪位置，不重新生成 */
+    private void refreshText() {
+        if (lines.isEmpty()) {
+            removeTextEntity();
+            return;
+        }
+        if (textEntity == null || textEntity.isDead()) {
+            textEntity = null;
+            spawnText();
+            return;
+        }
+        TextDisplaySupport.setText(textEntity, buildText());
+        if (textLineCount != lines.size()) {
+            textEntity.teleport(textLocation());
+            textLineCount = lines.size();
+        }
+    }
+
+    private void removeTextEntity() {
+        if (textEntity != null && !textEntity.isDead()) {
+            textEntity.remove();
+        }
+        textEntity = null;
     }
 
     /**
@@ -607,22 +697,21 @@ public class NativeHologram implements IHologram {
     private void updateArmorStandText(ArmorStand stand, int index) {
         if (index >= lines.size()) return;
 
-        String text = lines.get(index);
-        String displayText;
+        String displayText = renderLine(index);
+        stand.setCustomName(displayText);
+        stand.setCustomNameVisible(displayText != null && !displayText.isEmpty());
+    }
 
+    private String renderLine(int index) {
+        String text = lines.get(index);
         if (RainbowText.hasRainbow(text)) {
             RainbowText processor = rainbowProcessors.get(index);
             if (processor != null) {
-                displayText = processor.applyRainbow(text);
-            } else {
-                displayText = text.replace("&u", "§c");
+                return processor.applyRainbow(text);
             }
-        } else {
-            displayText = text.replace("&", "§");
+            return text.replace("&u", "§c");
         }
-
-        stand.setCustomName(displayText);
-        stand.setCustomNameVisible(displayText != null && !displayText.isEmpty());
+        return text.replace("&", "§");
     }
 
     /**
@@ -678,6 +767,13 @@ public class NativeHologram implements IHologram {
 
                 for (RainbowText processor : rainbowProcessors.values()) {
                     processor.tick();
+                }
+
+                if (USE_TEXT_DISPLAY) {
+                    if (textEntity != null && !textEntity.isDead()) {
+                        TextDisplaySupport.setText(textEntity, buildText());
+                    }
+                    return;
                 }
 
                 for (int index : rainbowProcessors.keySet()) {
