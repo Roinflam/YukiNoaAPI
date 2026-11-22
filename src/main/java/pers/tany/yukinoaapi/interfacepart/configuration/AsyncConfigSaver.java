@@ -34,7 +34,7 @@ import java.util.logging.Level;
  * {@link IConfig#saveConfigAsync} 的实现：调用线程上拍快照，后台单线程做 YAML 序列化与写盘。
  *
  * <p>为什么要这样拆：大数据文件的 {@code FileConfiguration.save} 几乎全部耗时都在 YAML 序列化
- * （{@code toNodeTree} + {@code Yaml.serialize}），在主线程上跑就是一次卡顿（正式服实测每次约 110 ms）。
+ * （{@code toNodeTree} + {@code Yaml.serialize}），在主线程上跑就是一次卡顿（文件大时一次能到上百毫秒）。
  * 快照只是把树拷一遍，便宜得多；序列化和写盘挪到后台后，主线程不再等。</p>
  *
  * <p>快照与原文件<b>读回等价</b>的保证（常见数据在 1.12.2 / 1.17.1 / 1.20.1 上实测写出的文本也逐字相同）：</p>
