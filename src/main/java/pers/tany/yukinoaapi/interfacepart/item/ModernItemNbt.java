@@ -77,14 +77,26 @@ final class ModernItemNbt {
         noticeFallback();
         Object provider = requireProvider();
         Object nmsItem = NMSUtil.asNMSCopy.invoke(null, itemStack);
-        return NMSUtil.save_ItemStack_v2.invoke(nmsItem, provider);
+        if (NMSUtil.save_ItemStack_v2 != null) {
+            return NMSUtil.save_ItemStack_v2.invoke(nmsItem, provider);
+        }
+        Object result = codecMethod("com.mojang.serialization.Encoder", "encodeStart")
+                .invoke(NMSUtil.itemStackCodec, registryOps(provider), nmsItem);
+        return unwrap(result, "物品写成 NBT 失败");
     }
 
     @Nullable
     private static ItemStack parseItem(Object compound) throws Exception {
         noticeFallback();
         Object provider = requireProvider();
-        Object result = NMSUtil.parse_ItemStack_static.invoke(null, provider, compound);
+        Object result;
+        if (NMSUtil.parse_ItemStack_static != null) {
+            result = NMSUtil.parse_ItemStack_static.invoke(null, provider, compound);
+        } else {
+            Object decoded = codecMethod("com.mojang.serialization.Decoder", "parse")
+                    .invoke(NMSUtil.itemStackCodec, registryOps(provider), compound);
+            result = ((Optional<?>) dataResult("result").invoke(decoded));
+        }
         if (result instanceof Optional) {
             Optional<?> optional = (Optional<?>) result;
             if (!optional.isPresent()) {
@@ -96,7 +108,8 @@ final class ModernItemNbt {
     }
 
     private static Object requireProvider() {
-        if (NMSUtil.save_ItemStack_v2 == null || NMSUtil.parse_ItemStack_static == null || NMSUtil.parse == null) {
+        boolean direct = NMSUtil.save_ItemStack_v2 != null && NMSUtil.parse_ItemStack_static != null;
+        if (!(direct || NMSUtil.isCodecItemAPI()) || NMSUtil.parse == null) {
             throw new UnsupportedOperationException("当前服务端没有可用的物品序列化接口，请安装 NBT-API");
         }
         Object provider = NMSUtil.getRegistryLookup();
@@ -106,12 +119,35 @@ final class ModernItemNbt {
         return provider;
     }
 
+    private static Object registryOps(Object provider) throws Exception {
+        return NMSUtil.createSerializationContext.invoke(provider, NMSUtil.nbtOps);
+    }
+
+    // 从接口上取方法：CODEC 的实现类多半是非公开的匿名类，直接 getClass().getMethod 拿到的调不了
+    private static Method codecMethod(String owner, String name) throws Exception {
+        Class<?> ops = Class.forName("com.mojang.serialization.DynamicOps");
+        return Class.forName(owner).getMethod(name, ops, Object.class);
+    }
+
+    private static Method dataResult(String name) throws Exception {
+        return Class.forName("com.mojang.serialization.DataResult").getMethod(name);
+    }
+
+    private static Object unwrap(Object dataResult, String what) throws Exception {
+        Optional<?> value = (Optional<?>) dataResult("result").invoke(dataResult);
+        if (!value.isPresent()) {
+            throw new IllegalStateException(what + ": " + dataResult);
+        }
+        return value.get();
+    }
+
     private static void resolveCompoundMethods(Class<?> compoundClass) throws NoSuchMethodException {
         if (getCompound != null && put != null && merge != null) {
             return;
         }
         // Paper 系（含 Mohist / Youer 等混合端）运行期是 Mojang 名；纯 Spigot 是混淆名
-        getCompound = findMethod(compoundClass, new String[]{"getCompound", "p"}, String.class);
+        // 1.21.5 起 getCompound 返回 Optional，改用 getCompoundOrEmpty
+        getCompound = findMethod(compoundClass, new String[]{"getCompound", "p", "getCompoundOrEmpty"}, String.class);
         put = findMethod(compoundClass, new String[]{"put", "a"}, String.class, NMSUtil.tagClass);
         merge = findMethod(compoundClass, new String[]{"merge", "a"}, compoundClass);
     }
@@ -120,7 +156,7 @@ final class ModernItemNbt {
         for (String name : names) {
             try {
                 Method method = owner.getMethod(name, params);
-                if (!name.equals("getCompound") && !name.equals("p")) {
+                if (!name.equals("getCompound") && !name.equals("p") && !name.equals("getCompoundOrEmpty")) {
                     return method;
                 }
                 // getCompound 的混淆名可能撞到别的单参数方法，按返回类型核对

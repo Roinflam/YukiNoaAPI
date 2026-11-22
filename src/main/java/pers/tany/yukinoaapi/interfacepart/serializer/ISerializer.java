@@ -135,7 +135,8 @@ public interface ISerializer {
             return null;
         }
         // 1.20.5+ 没有 load(NBTTagCompound)，存的 NBT 是完整物品 {id, count, components}，整体还原
-        if (NMSUtil.load_ItemStack == null && NMSUtil.isNewItemAPI()) {
+        // 1.21.5+ 连 save(Provider) 也没了，isNewItemAPI 为 false，按 IItem 的判据走新版路径
+        if (NMSUtil.load_ItemStack == null && (NMSUtil.isNewItemAPI() || IItem.useNbtApiForItem())) {
             return IItem.getItemStack(s[3]);
         }
         try {

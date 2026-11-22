@@ -170,6 +170,28 @@ public class NMSUtil {
     public static Method parse_ItemStack_static;
 
     /**
+     * ItemStack.CODEC（1.21.5+ 去掉了 save(Provider) / parse(Provider, Tag)，只能走 Codec）
+     * <p>只在运行期是 Mojang 名的服务端上找得到（Paper 1.20.5+、26.x 起的 Spigot）</p>
+     *
+     * @since 3.5.0
+     */
+    public static Object itemStackCodec;
+
+    /**
+     * NbtOps.INSTANCE，和 {@link #itemStackCodec} 配套
+     *
+     * @since 3.5.0
+     */
+    public static Object nbtOps;
+
+    /**
+     * HolderLookup.Provider.createSerializationContext(DynamicOps) → RegistryOps
+     *
+     * @since 3.5.0
+     */
+    public static Method createSerializationContext;
+
+    /**
      * 获取注册表上下文方法（1.20.5+）
      * <p>方法签名：MinecraftServer.registryAccess() → RegistryAccess</p>
      */
@@ -784,7 +806,7 @@ public class NMSUtil {
                 // getName 方法
                 getName_ItemStack = safeGetMethod(
                         nmsItemStackClass,
-                        new String[]{"getName", "y", "q", "p", "m"}
+                        new String[]{"getName", "y", "q", "p", "m", "getHoverName"}
                 );
                 logMethodStatus("ItemStack.getName", getName_ItemStack);
 
@@ -948,7 +970,7 @@ public class NMSUtil {
                 // parse / parseTag 方法（兼容新旧方法名）
                 parse = safeGetMethod(
                         mojangsonParser,
-                        new String[]{"parse", "parseTag", "a"},
+                        new String[]{"parse", "parseTag", "a", "parseCompoundFully"},
                         String.class
                 );
                 logMethodStatus("MojangsonParser.parse / TagParser.parseTag", parse);
@@ -1197,9 +1219,15 @@ public class NMSUtil {
                 logMethodStatus("ItemStack.parse(Provider, Tag) [1.20.5+ 静态]", parse_ItemStack_static);
             }
 
+            if (save_ItemStack_v2 == null && nmsItemStackClass != null && holderLookupProviderClass != null) {
+                initItemCodec();
+            }
+
             // 输出新版本适配状态总结
             if (save_ItemStack_v2 != null && parse_ItemStack_static != null) {
                 LogUtil.info("[NMS] 1.20.5+ 新版物品API已就绪 (DataComponents)");
+            } else if (isCodecItemAPI()) {
+                LogUtil.info("[NMS] 1.21.5+ 物品API已就绪 (ItemStack.CODEC)");
             } else if (save_ItemStack != null) {
                 LogUtil.info("[NMS] 使用旧版物品API (NBTTagCompound)");
             } else {
@@ -1210,6 +1238,37 @@ public class NMSUtil {
         } catch (Exception e) {
             LogUtil.error(getLang("nms.module-init-fail", "NewVersion(1.20.5+)", e.getMessage()));
         }
+    }
+
+    private static void initItemCodec() {
+        try {
+            Field codec = nmsItemStackClass.getField("CODEC");
+            Class<?> nbtOpsClass = safeGetClass("net.minecraft.nbt.NbtOps");
+            Class<?> dynamicOps = safeGetClass("com.mojang.serialization.DynamicOps");
+            if (nbtOpsClass == null || dynamicOps == null) {
+                return;
+            }
+            Method ctx = safeGetMethod(holderLookupProviderClass, "createSerializationContext", dynamicOps);
+            if (ctx == null) {
+                return;
+            }
+            nbtOps = nbtOpsClass.getField("INSTANCE").get(null);
+            itemStackCodec = codec.get(null);
+            createSerializationContext = ctx;
+        } catch (Exception ignored) {
+            // 混淆名的服务端上没有 CODEC 这个名字，照旧报「新旧版物品API均未找到」
+        }
+        logMethodStatus("ItemStack.CODEC [1.21.5+]", createSerializationContext);
+    }
+
+    /**
+     * 是否只能通过 ItemStack.CODEC 读写物品（1.21.5+，没有 save(Provider) 的服务端）
+     *
+     * @return 是则返回 true
+     * @since 3.5.0
+     */
+    public static boolean isCodecItemAPI() {
+        return itemStackCodec != null && nbtOps != null && createSerializationContext != null;
     }
 
     /**

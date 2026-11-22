@@ -204,7 +204,13 @@ public interface ILocation {
         double centerZ = (corner1.getZ() + corner2.getZ()) / 2;
 
         Location center = new Location(corner1.getWorld(), centerX, centerY, centerZ);
-        Collection<Entity> nearby = center.getWorld().getNearbyEntities(center, dx, dy, dz);
+        Collection<Entity> nearby;
+        try {
+            nearby = center.getWorld().getNearbyEntities(center, dx, dy, dz);
+        } catch (NoSuchMethodError e) {
+            // 1.7.10 还没有 getNearbyEntities
+            nearby = center.getWorld().getEntities();
+        }
 
         List<Entity> result = new ArrayList<>(nearby.size());
         for (Entity entity : nearby) {

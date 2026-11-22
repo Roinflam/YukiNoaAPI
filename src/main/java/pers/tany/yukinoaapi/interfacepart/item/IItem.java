@@ -205,7 +205,21 @@ public interface IItem {
             final Object nmsItem = asNMSCopy.invoke(null, new ItemBuilder("STONE").getItemStack());
             // 将解析的NBT加载到虚拟物品上
             load.invoke(nmsItem, nbttagCompound);
-            return (ItemStack) asBukkitCopy.invoke(null, nmsItem);
+            ItemStack loaded = (ItemStack) asBukkitCopy.invoke(null, nmsItem);
+            // Mohist 1.12.2 的 load 只读 tag 不换物品，占位的石头会留下来，改用 NBT 构造函数再读一次
+            if (loaded != null && "STONE".equals(loaded.getType().name())) {
+                try {
+                    java.lang.reflect.Constructor<?> ctor = NMSUtil.nmsItemStackClass.getDeclaredConstructor(NMSUtil.nbttagCompoundClass);
+                    ctor.setAccessible(true);
+                    ItemStack byCtor = (ItemStack) asBukkitCopy.invoke(null, ctor.newInstance(nbttagCompound));
+                    if (byCtor != null && !"STONE".equals(byCtor.getType().name()) && !"AIR".equals(byCtor.getType().name())) {
+                        return byCtor;
+                    }
+                } catch (Exception ignored) {
+                    // 没有这个构造函数的版本，load 本来就是对的
+                }
+            }
+            return loaded;
 
         } catch (Exception e) {
             LogUtil.error("[IItem] 从NBT字符串创建物品失败", e);
