@@ -1,10 +1,13 @@
 package pers.tany.yukinoaapi.hologram;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.world.ChunkEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.Plugin;
@@ -103,6 +106,9 @@ public class HologramManager implements Listener {
     /** 刷新间隔（tick），10分钟 = 12000 tick */
     private static final long REFRESH_INTERVAL = 12000L;
 
+    /** 文字展示实体不存盘，丢了不会自己回来，检查勤一些（30 秒） */
+    private static final long REFRESH_INTERVAL_TEXT_DISPLAY = 600L;
+
     // ── 延迟保存机制 ──────────────────────────────────────────────────────
 
     /** 脏标记：有数据变更待写盘 */
@@ -163,6 +169,9 @@ public class HologramManager implements Listener {
 
         // 注册事件
         Bukkit.getPluginManager().registerEvents(this, plugin);
+        if (!useHD && NativeHologram.usesTextDisplay()) {
+            registerEntitySectionEvents();
+        }
 
         LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
                 "hologram.mode",
@@ -561,7 +570,7 @@ public class HologramManager implements Listener {
 
     /**
      * 启动定时刷新任务
-     * 每10分钟检查所有全息图实体有效性，自动修复丢失的实体
+     * 定时检查所有全息图实体有效性，自动修复丢失的实体
      */
     private void startRefreshTask() {
         if (!enabled) return;
@@ -597,11 +606,12 @@ public class HologramManager implements Listener {
             }
         };
 
-        // 延迟1分钟后开始，每10分钟执行一次
-        refreshTask.runTaskTimer(plugin, 1200L, REFRESH_INTERVAL);
+        long interval = NativeHologram.usesTextDisplay() && !useHD ? REFRESH_INTERVAL_TEXT_DISPLAY : REFRESH_INTERVAL;
+        refreshTask.runTaskTimer(plugin, 1200L, interval);
 
         LogUtil.info(((Main) Main.plugin).getLanguageManager().getMessage(
-                "hologram.refresh-task-started"
+                "hologram.refresh-task-started",
+                String.valueOf(interval / 20)
         ));
     }
 
@@ -707,14 +717,67 @@ public class HologramManager implements Listener {
 
         // 延迟 1 tick 执行 show()：避开 ChunkLoadEvent 回调内调用 chunk.getEntities()
         // 在 Mohist 下触发的主线程 park 阻塞（show() 内部会调用 getEntities() 清理孤儿）
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            for (String id : idSnapshot) {
-                IHologram hologram = holograms.get(id);
-                if (hologram != null && !hologram.isShown() && !hologram.isDeleted()) {
-                    hologram.show();
-                }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> ensureShown(idSnapshot), 1L);
+    }
+
+    /** 没显示的显示；以为在显示、实体其实已经没了的重建 */
+    private void ensureShown(List<String> ids) {
+        for (String id : ids) {
+            IHologram hologram = holograms.get(id);
+            if (hologram == null || hologram.isDeleted()) continue;
+            if (!hologram.isShown()) {
+                hologram.show();
+            } else if (!hologram.isValid()) {
+                hologram.refresh();
             }
-        }, 1L);
+        }
+    }
+
+    private List<String> idsInChunk(Chunk chunk) {
+        Set<String> ids = chunkIndex.get(buildChunkKey(chunk.getWorld().getName(), chunk.getX(), chunk.getZ()));
+        if (ids == null || ids.isEmpty()) return null;
+        return new ArrayList<>(ids);
+    }
+
+    // 文字展示实体不存盘，跟着区块的实体数据一起卸掉。实体数据的读写是排队的，和区块事件不在同一刻，
+    // 只听区块事件时线上出现过「以为在显示、实体已经没了」，要 /ynhd reload 才回来，所以再听实体数据的事件。
+    // 这两个事件 1.18 起才有，编译依赖是 1.17.1，只能反射注册。
+    private void registerEntitySectionEvents() {
+        registerChunkEvent("org.bukkit.event.world.EntitiesLoadEvent", this::onEntitiesLoad);
+        registerChunkEvent("org.bukkit.event.world.EntitiesUnloadEvent", this::onEntitiesUnload);
+    }
+
+    private void registerChunkEvent(String className, java.util.function.Consumer<Chunk> handler) {
+        final Class<? extends Event> type;
+        try {
+            type = Class.forName(className).asSubclass(Event.class);
+        } catch (ClassNotFoundException | ClassCastException e) {
+            return;
+        }
+        Bukkit.getPluginManager().registerEvent(type, this, EventPriority.MONITOR, (listener, event) -> {
+            if (type.isInstance(event) && event instanceof ChunkEvent) {
+                handler.accept(((ChunkEvent) event).getChunk());
+            }
+        }, plugin);
+    }
+
+    private void onEntitiesLoad(Chunk chunk) {
+        if (!enabled || !loaded) return;
+        List<String> ids = idsInChunk(chunk);
+        if (ids == null) return;
+        Bukkit.getScheduler().runTaskLater(plugin, () -> ensureShown(ids), 1L);
+    }
+
+    private void onEntitiesUnload(Chunk chunk) {
+        if (!enabled || !loaded) return;
+        List<String> ids = idsInChunk(chunk);
+        if (ids == null) return;
+        for (String id : ids) {
+            IHologram hologram = holograms.get(id);
+            if (hologram != null && hologram.isShown() && !hologram.isDeleted()) {
+                hologram.hide();
+            }
+        }
     }
 
     /**

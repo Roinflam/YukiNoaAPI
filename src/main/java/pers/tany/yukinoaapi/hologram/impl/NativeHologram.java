@@ -86,6 +86,11 @@ public class NativeHologram implements IHologram {
         this.source = "unknown";
     }
 
+    /** 当前版本是否用文字展示实体（不存盘，跟着区块实体一起卸掉就没了） */
+    public static boolean usesTextDisplay() {
+        return USE_TEXT_DISPLAY;
+    }
+
     /**
      * 清理指定区块中的孤儿盔甲架
      * 【关键方法】在区块加载时调用，清理该区块内残留的旧盔甲架

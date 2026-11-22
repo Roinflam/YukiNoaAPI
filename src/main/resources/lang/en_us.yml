@@ -191,7 +191,7 @@ hologram:
   cleanup-chunk: "Cleaned up {0} orphaned armor stands on chunk load (chunk: {1}, {2})"
 
   # Refresh related
-  refresh-task-started: "Hologram refresh task started (interval: 10 minutes)"
+  refresh-task-started: "Hologram refresh task started (interval: {0} seconds)"
   refresh-single: "Refreshed hologram: {0}"
   refresh-complete: "Refresh complete, fixed {0} hologram(s)"
 

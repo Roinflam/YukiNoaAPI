@@ -191,7 +191,7 @@ hologram:
   cleanup-chunk: "区块加载时清理了 {0} 个孤儿盔甲架 (区块: {1}, {2})"
 
   # 定时刷新相关
-  refresh-task-started: "全息图定时刷新任务已启动（间隔10分钟）"
+  refresh-task-started: "全息图定时刷新任务已启动（间隔 {0} 秒）"
   refresh-single: "刷新全息图: {0}"
   refresh-complete: "定时刷新完成，修复了 {0} 个全息图"
 
