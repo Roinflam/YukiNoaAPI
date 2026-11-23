@@ -128,6 +128,7 @@ hologram:
   shutdown: "§b▸ §7全息图系统已关闭"
   reload-success: "§b✔ §7全息图系统重载成功"
   reload-fail: "§c✘ §7全息图系统重载失败"
+  disabled-no-hd: "§c✘ §7全息图功能不可用：1.12 以下的服务端需要安装 HolographicDisplays 插件"
 
   created: "§b✔ §7全息图 §f{0} §7创建成功"
   created-with-lines: "§b✔ §7全息图 §f{0} §7创建成功 §8(§f{1} §7行§8)"

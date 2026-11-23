@@ -185,7 +185,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
 
                         // 发送完成消息（传入ID和行数）
                         player.sendMessage(lang.getMessage("hologram.created-with-lines",
-                                id, String.valueOf(validLines.size())));
+                                new Object[]{id, validLines.size()}));
 
                         cancel();
                         return;
@@ -255,7 +255,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
         hologram.appendLine(text);
         HologramManager.getInstance().saveHolograms();
 
-        player.sendMessage(lang.getMessage("hologram.line-added", id, text));
+        player.sendMessage(lang.getMessage("hologram.line-added", new Object[]{id, text}));
     }
 
     /**
@@ -318,7 +318,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
             hologram.removeLine(index);
             HologramManager.getInstance().saveHolograms();
 
-            player.sendMessage(lang.getMessage("hologram.line-removed", id, String.valueOf(index)));
+            player.sendMessage(lang.getMessage("hologram.line-removed", new Object[]{id, index}));
         } catch (NumberFormatException e) {
             player.sendMessage(lang.getMessage("hologram.invalid-number"));
         }
@@ -542,7 +542,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
             player.sendMessage(lang.getMessage("hologram.info-content"));
             List<String> lines = hologram.getLines();
             for (int i = 0; i < lines.size(); i++) {
-                player.sendMessage(lang.getMessage("hologram.info-line", String.valueOf(i), lines.get(i)));
+                player.sendMessage(lang.getMessage("hologram.info-line", new Object[]{i, lines.get(i)}));
             }
         }
     }

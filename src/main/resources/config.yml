@@ -51,11 +51,15 @@ Logging:
 
 # Use ProtocolLib for item serialization
 # Fixes issues with special characters and 1.7 compatibility
-# WARNING: Changing this requires reconfiguring all plugins using item serialization!
+# Only affects items saved from now on. Items already saved in either format stay readable,
+# so switching does not require reconfiguring other plugins.
+# Items saved in the ProtocolLib format can only be read while ProtocolLib is installed;
+# without ProtocolLib, new items are saved in the legacy format.
 # ----------------------------------------
 # 使用 ProtocolLib 进行物品序列化
 # 修复特殊字符问题和 1.7 版本兼容性
-# 警告：修改此项需要重新配置所有使用物品序列化的插件！
+# 此项只影响之后保存的物品；已保存的物品无论哪种格式都能读取，切换后无需重新配置其他插件。
+# ProtocolLib 格式保存的物品需要安装 ProtocolLib 才能读取；未安装 ProtocolLib 时新物品按旧格式保存。
 ProtocolLibItem: true
 
 # ========================================

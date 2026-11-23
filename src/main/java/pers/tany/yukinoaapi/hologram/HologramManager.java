@@ -548,8 +548,7 @@ public class HologramManager implements Listener {
                 successCount++;
                 LogUtil.debug(((Main) Main.plugin).getLanguageManager().getMessage(
                         "hologram.load-single",
-                        data.getId(),
-                        String.valueOf(data.getLines().size())
+                        new Object[]{data.getId(), data.getLines().size()}
                 ));
             } catch (Exception e) {
                 LogUtil.error(((Main) Main.plugin).getLanguageManager().getMessage(

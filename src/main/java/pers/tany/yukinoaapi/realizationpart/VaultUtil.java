@@ -18,21 +18,34 @@ public class VaultUtil {
 
     /** 经济系统实例 */
     @Nullable
-    private static final Economy economy;
+    private static volatile Economy economy;
+
+    private static boolean notFoundReported;
 
     static {
+        lookup();
+    }
+
+    // 经济插件可能比调用方晚注册，取不到就留到下次再取，取到后缓存
+    private static synchronized Economy lookup() {
+        if (economy != null) {
+            return economy;
+        }
         RegisteredServiceProvider<Economy> registeredServiceProvider =
                 Main.plugin.getServer().getServicesManager().getRegistration(Economy.class);
 
-        if (registeredServiceProvider == null) {
-            Bukkit.getConsoleSender().sendMessage(
-                    ((Main) Main.plugin).getLanguageManager().getMessage("vault.economy-not-found"));
-            economy = null;
-        } else {
-            Bukkit.getConsoleSender().sendMessage(
-                    ((Main) Main.plugin).getLanguageManager().getMessage("vault.economy-found"));
-            economy = registeredServiceProvider.getProvider();
+        if (registeredServiceProvider == null || registeredServiceProvider.getProvider() == null) {
+            if (!notFoundReported) {
+                notFoundReported = true;
+                Bukkit.getConsoleSender().sendMessage(
+                        ((Main) Main.plugin).getLanguageManager().getMessage("vault.economy-not-found"));
+            }
+            return null;
         }
+        Bukkit.getConsoleSender().sendMessage(
+                ((Main) Main.plugin).getLanguageManager().getMessage("vault.economy-found"));
+        economy = registeredServiceProvider.getProvider();
+        return economy;
     }
 
     /**
@@ -42,7 +55,8 @@ public class VaultUtil {
      */
     @Nullable
     public static Economy getEconomy() {
-        return economy;
+        Economy current = economy;
+        return current != null ? current : lookup();
     }
 
     /**
@@ -53,7 +67,7 @@ public class VaultUtil {
      * @return 如果有则为true，否则为false
      */
     public static boolean hasMoney(String name, int money) {
-        return economy != null && economy.getBalance(name) >= money;
+        return getEconomy() != null && getEconomy().getBalance(name) >= money;
     }
 
     /**
@@ -64,7 +78,7 @@ public class VaultUtil {
      * @return 如果有则为true，否则为false
      */
     public static boolean hasMoney(String name, double money) {
-        return economy != null && economy.getBalance(name) >= money;
+        return getEconomy() != null && getEconomy().getBalance(name) >= money;
     }
 
     /**
@@ -75,7 +89,7 @@ public class VaultUtil {
      * @return 如果有则为true，否则为false
      */
     public static boolean hasMoney(OfflinePlayer offlinePlayer, int money) {
-        return economy != null && economy.getBalance(offlinePlayer) >= money;
+        return getEconomy() != null && getEconomy().getBalance(offlinePlayer) >= money;
     }
 
     /**
@@ -86,6 +100,6 @@ public class VaultUtil {
      * @return 如果有则为true，否则为false
      */
     public static boolean hasMoney(OfflinePlayer offlinePlayer, double money) {
-        return economy != null && economy.getBalance(offlinePlayer) >= money;
+        return getEconomy() != null && getEconomy().getBalance(offlinePlayer) >= money;
     }
 }

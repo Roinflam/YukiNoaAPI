@@ -91,6 +91,7 @@ public class DebugEvent implements Listener {
 
         Entity entity = evt.getRightClicked();
         sendEntityInfo(player, entity);
+        evt.setCancelled(true);
     }
 
     /**
@@ -152,7 +153,7 @@ public class DebugEvent implements Listener {
         player.sendMessage(lang.getMessage("item.nbt", itemNBT));
 
         // 控制台输出
-        LogUtil.debug(lang.getMessage("debug.player-view-item", player.getName(), itemName));
+        LogUtil.debug(lang.getMessage("debug.player-view-item", new Object[]{player.getName(), itemName}));
         Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.name", itemName));
         Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.type", itemType));
         Bukkit.getConsoleSender().sendMessage(lang.getMessage("item.sub-id", durability));
@@ -188,7 +189,7 @@ public class DebugEvent implements Listener {
         player.sendMessage(lang.getMessage("block.nbt", blockNBT));
 
         // 控制台输出
-        LogUtil.debug(lang.getMessage("debug.player-view-block", player.getName(), blockType));
+        LogUtil.debug(lang.getMessage("debug.player-view-block", new Object[]{player.getName(), blockType}));
         Bukkit.getConsoleSender().sendMessage(lang.getMessage("block.type", blockType));
         Bukkit.getConsoleSender().sendMessage(lang.getMessage("block.data", blockData));
         Bukkit.getConsoleSender().sendMessage(lang.getMessage("block.biome", biome));
@@ -229,7 +230,7 @@ public class DebugEvent implements Listener {
         player.sendMessage(lang.getMessage("entity.nbt", entityNBT));
 
         // 控制台输出
-        LogUtil.debug(lang.getMessage("debug.player-view-entity", player.getName(), entityName));
+        LogUtil.debug(lang.getMessage("debug.player-view-entity", new Object[]{player.getName(), entityName}));
         Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.name", entityName));
         Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.save-name", saveName));
         Bukkit.getConsoleSender().sendMessage(lang.getMessage("entity.type", entityType));

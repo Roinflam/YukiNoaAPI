@@ -128,6 +128,7 @@ hologram:
   shutdown: "§b▸ §7Hologram system shutdown"
   reload-success: "§b✔ §7Hologram system reloaded successfully"
   reload-fail: "§c✘ §7Hologram system reload failed"
+  disabled-no-hd: "§c✘ §7Holograms are unavailable: servers below 1.12 require the HolographicDisplays plugin"
 
   created: "§b✔ §7Hologram §f{0} §7created successfully"
   created-with-lines: "§b✔ §7Hologram §f{0} §7created successfully §8(§f{1} §7line(s)§8)"
