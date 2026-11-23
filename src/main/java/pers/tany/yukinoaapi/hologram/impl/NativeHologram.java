@@ -9,6 +9,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
+import pers.tany.yukinoaapi.hologram.HologramStyle;
 import pers.tany.yukinoaapi.hologram.IHologram;
 import pers.tany.yukinoaapi.hologram.RainbowText;
 import pers.tany.yukinoaapi.util.LogUtil;
@@ -62,6 +63,8 @@ public class NativeHologram implements IHologram {
 
     /** 全息图来源（"command" / "plugin" / "unknown"）*/
     private String source;
+
+    private HologramStyle style = HologramStyle.DEFAULT;
 
     /** 行间距（格）*/
     private static final double LINE_HEIGHT = 0.25;
@@ -414,6 +417,23 @@ public class NativeHologram implements IHologram {
         this.source = source != null ? source : "unknown";
     }
 
+    @Override
+    public HologramStyle getStyle() {
+        return style;
+    }
+
+    /** 盔甲架模式下只记下来、不生效；文字展示模式下已显示的整个重新生成 */
+    @Override
+    public void setStyle(HologramStyle style) {
+        if (style == null) style = HologramStyle.DEFAULT;
+        if (style.equals(this.style)) return;
+        this.style = style;
+        if (USE_TEXT_DISPLAY && shown && !deleted) {
+            removeTextEntity();
+            if (!lines.isEmpty()) spawnText();
+        }
+    }
+
     /**
      * 检查全息图实体是否仍然有效
      * 遍历所有盔甲架，若有任何一个死亡或为null则返回false
@@ -549,10 +569,12 @@ public class NativeHologram implements IHologram {
     /**
      * 文字展示实体的位置：文字从实体位置往上排，每行 0.25 格。
      * 盔甲架的名字显示在实体上方 0.5 格处往下写，这里换算成同样的上下边，换实现后各行位置不变。
+     * 放大时整块文字的竖直中心仍在 y + 0.375，往上下两边一起长。
      */
     private Location textLocation() {
         return new Location(location.getWorld(), location.getX(),
-                location.getY() + 0.375 - 0.125 * lines.size(), location.getZ());
+                location.getY() + 0.375 - 0.125 * lines.size() * style.getScale(), location.getZ(),
+                style.getYaw(), 0f);
     }
 
     private String buildText() {
@@ -570,7 +592,7 @@ public class NativeHologram implements IHologram {
         if (world == null) return;
         if (!world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) return;
 
-        textEntity = TextDisplaySupport.spawn(textLocation(), buildText(), HOLOGRAM_TAG, "Hologram_" + id);
+        textEntity = TextDisplaySupport.spawn(textLocation(), buildText(), style, HOLOGRAM_TAG, "Hologram_" + id);
         textLineCount = lines.size();
     }
 

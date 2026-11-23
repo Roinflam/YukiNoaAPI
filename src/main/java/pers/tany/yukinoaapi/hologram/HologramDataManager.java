@@ -92,7 +92,37 @@ public class HologramDataManager {
                 config = new YamlConfiguration();
             }
         }
+        try {
+            String header = config.options().header();
+            if (header == null || header.trim().isEmpty()) {
+                config.options().header(FILE_HEADER);
+                config.options().copyHeader(true);
+            }
+        } catch (Throwable ignored) {
+        }
     }
+
+    private static final String FILE_HEADER = String.join("\n",
+            "Hologram data. Besides world / x / y / z / lines / source, each entry accepts these optional",
+            "display settings (text display mode on 1.19.4+ only; omitted keys keep the defaults):",
+            "  scale: 2.5            text scale, default 1 (0.1 - 64)",
+            "  billboard: center     center = always faces the player (default); vertical = turns horizontally only;",
+            "                        horizontal = tilts vertically only; fixed = does not turn",
+            "  yaw: 90               direction the text faces when billboard is fixed: 0 south, 90 west, 180 north, 270 east",
+            "  background: default   default = translucent background (default); none = no background;",
+            "                        '#RRGGBB' or '#AARRGGBB' = custom color (AA is the opacity)",
+            "  shadow: false         text shadow, default false",
+            "----------------------------------------",
+            "全息图数据。每条除 world / x / y / z / lines / source 外，还可以写以下显示设置",
+            "（仅 1.19.4 及以上的文字展示模式生效；不写的项保持默认）：",
+            "  scale: 2.5            放大倍数，默认 1（范围 0.1～64）",
+            "  billboard: center     朝向方式：center 始终面向玩家（默认）；vertical 仅水平方向随玩家转动；",
+            "                        horizontal 仅上下方向随玩家转动；fixed 固定不动",
+            "  yaw: 90               朝向方式为 fixed 时文字正面朝向：0 南，90 西，180 北，270 东",
+            "  background: default   底色：default 默认半透明底色；none 无底色；",
+            "                        '#RRGGBB' 或 '#AARRGGBB' 指定颜色（AA 为不透明度）",
+            "  shadow: false         文字阴影，默认关闭",
+            "修改后执行 /ynhd reload 生效。");
 
     /**
      * 保存单个全息图数据（立即写盘）
@@ -179,7 +209,7 @@ public class HologramDataManager {
             // 读取来源字段，旧数据默认为 "unknown"
             String source = section.getString("source", "unknown");
 
-            data.put(id, new HologramData(id, location, lines, source));
+            data.put(id, new HologramData(id, location, lines, source, HologramStyle.read(section)));
             LogUtil.debug("读取全息图数据: " + id + " (" + lines.size() + " 行, 来源: " + source + ")");
         }
 
@@ -257,6 +287,9 @@ public class HologramDataManager {
             section.set("z", location.getZ());
             section.set("lines", hologram.getLines());
             section.set("source", hologram.getSource() != null ? hologram.getSource() : "unknown");
+            // 这里是整份重写，不写回去的话显示设置在下一次保存时就丢了
+            HologramStyle style = hologram.getStyle();
+            if (style != null) style.write(section);
         }
     }
 
@@ -334,6 +367,8 @@ public class HologramDataManager {
         /** 来源标识 */
         private final String source;
 
+        private final HologramStyle style;
+
         /**
          * 构造函数（带source）
          *
@@ -343,10 +378,15 @@ public class HologramDataManager {
          * @param source   来源
          */
         public HologramData(String id, Location location, List<String> lines, String source) {
+            this(id, location, lines, source, HologramStyle.DEFAULT);
+        }
+
+        public HologramData(String id, Location location, List<String> lines, String source, HologramStyle style) {
             this.id = id;
             this.location = location;
             this.lines = new ArrayList<>(lines);
             this.source = source != null ? source : "unknown";
+            this.style = style != null ? style : HologramStyle.DEFAULT;
         }
 
         /**
@@ -364,5 +404,6 @@ public class HologramDataManager {
         public Location getLocation() { return location.clone(); }
         public List<String> getLines() { return new ArrayList<>(lines); }
         public String getSource() { return source; }
+        public HologramStyle getStyle() { return style; }
     }
 }

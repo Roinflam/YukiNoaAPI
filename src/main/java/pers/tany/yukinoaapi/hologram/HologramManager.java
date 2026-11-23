@@ -529,6 +529,7 @@ public class HologramManager implements Listener {
 
                 // 设置来源
                 hologram.setSource(data.getSource());
+                hologram.setStyle(data.getStyle());
 
                 // 添加所有行
                 for (String line : data.getLines()) {

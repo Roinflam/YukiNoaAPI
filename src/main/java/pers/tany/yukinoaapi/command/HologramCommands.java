@@ -9,6 +9,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import pers.tany.yukinoaapi.Main;
 import pers.tany.yukinoaapi.config.LanguageManager;
 import pers.tany.yukinoaapi.hologram.HologramManager;
+import pers.tany.yukinoaapi.hologram.HologramStyle;
 import pers.tany.yukinoaapi.hologram.IHologram;
 
 import java.util.ArrayList;
@@ -527,6 +528,16 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
         player.sendMessage(lang.getMessage("hologram.info-valid",
                 hologram.isValid() ? "\u00a7a\u6709\u6548" : "\u00a7c\u5b9e\u4f53\u4e22\u5931"));
 
+        HologramStyle style = hologram.getStyle();
+        String billboard = HologramStyle.BILLBOARD_FIXED.equals(style.getBillboard())
+                ? style.getBillboard() + " " + formatNumber(style.getYaw()) + "°"
+                : style.getBillboard();
+        player.sendMessage(lang.getMessage("hologram.info-style",
+                formatNumber(style.getScale()),
+                billboard,
+                style.getBackground(),
+                lang.getMessage(style.isShadow() ? "hologram.info-yes" : "hologram.info-no")));
+
         if (hologram.size() > 0) {
             player.sendMessage(lang.getMessage("hologram.info-content"));
             List<String> lines = hologram.getLines();
@@ -640,5 +651,10 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
         }
 
         return completions;
+    }
+
+    private static String formatNumber(double v) {
+        if (v == Math.rint(v)) return String.valueOf((long) v);
+        return String.valueOf(Math.round(v * 100) / 100.0);
     }
 }

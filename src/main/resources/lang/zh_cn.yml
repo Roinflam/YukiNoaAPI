@@ -158,6 +158,9 @@ hologram:
   info-lines: "§8  ▸ §7行数§8: §f{0}"
   info-source: "§8  ▸ §7来源§8: §f{0}"
   info-valid: "§8  ▸ §7状态§8: {0}"
+  info-style: "§8  ▸ §7显示§8: §f放大 {0} 倍 §8| §7朝向 §f{1} §8| §7底色 §f{2} §8| §7阴影 §f{3}"
+  info-yes: "是"
+  info-no: "否"
   info-content: "§8  ▸ §7内容§8:"
   info-line: "§8    §7[§f{0}§7] §r{1}"
 

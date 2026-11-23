@@ -101,8 +101,19 @@ public class LanguageManager {
             if (defStream != null) {
                 FileConfiguration defConfig = YamlConfiguration.loadConfiguration(
                         new InputStreamReader(defStream, StandardCharsets.UTF_8));
-                langConfig.setDefaults(defConfig);
                 defStream.close();
+                // 语言文件只在主版本号变化时覆盖，小版本新加的消息先找 jar 里同一种语言的，再退回英文
+                InputStream sameStream = DEFAULT_LANGUAGE.equals(currentLanguage)
+                        ? null : plugin.getResource("lang/" + currentLanguage + ".yml");
+                if (sameStream != null) {
+                    YamlConfiguration sameConfig = YamlConfiguration.loadConfiguration(
+                            new InputStreamReader(sameStream, StandardCharsets.UTF_8));
+                    sameStream.close();
+                    sameConfig.setDefaults(defConfig);
+                    langConfig.setDefaults(sameConfig);
+                } else {
+                    langConfig.setDefaults(defConfig);
+                }
             }
         } catch (Exception e) {
             plugin.getServer().getConsoleSender().sendMessage(

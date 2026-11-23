@@ -6,6 +6,7 @@ import com.gmail.filoghost.holographicdisplays.api.Hologram;
 import com.gmail.filoghost.holographicdisplays.api.HologramsAPI;
 import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
+import pers.tany.yukinoaapi.hologram.HologramStyle;
 import pers.tany.yukinoaapi.hologram.IHologram;
 
 import java.util.ArrayList;
@@ -34,6 +35,9 @@ public class HolographicDisplaysHologram implements IHologram {
 
     /** 全息图来源 */
     private String source;
+
+    // HD 不支持缩放和朝向，只是记着，保存时原样写回
+    private HologramStyle style = HologramStyle.DEFAULT;
 
     /**
      * 构造函数
@@ -130,6 +134,14 @@ public class HolographicDisplaysHologram implements IHologram {
     @Override
     public void setSource(String source) {
         this.source = source != null ? source : "unknown";
+    }
+
+    @Override
+    public HologramStyle getStyle() { return style; }
+
+    @Override
+    public void setStyle(HologramStyle style) {
+        this.style = style != null ? style : HologramStyle.DEFAULT;
     }
 
     /** HD模式下始终返回true */

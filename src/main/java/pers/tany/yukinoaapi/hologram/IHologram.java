@@ -152,4 +152,17 @@ public interface IHologram {
      * 用于修复被外部移除的实体
      */
     void refresh();
+
+    /**
+     * 显示设置（放大倍数、朝向、底色、阴影），只在 1.19.4+ 的文字展示模式下生效。
+     * 改完要持久化的话和改行一样调 {@link HologramManager#saveHolograms()}。
+     *
+     * @since 3.5.0
+     */
+    default HologramStyle getStyle() {
+        return HologramStyle.DEFAULT;
+    }
+
+    default void setStyle(HologramStyle style) {
+    }
 }
