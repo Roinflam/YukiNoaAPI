@@ -125,15 +125,26 @@ final class TextDisplaySupport {
         if (world == null || TEXT_DISPLAY == null) return null;
 
         Class<Entity> cls = (Class<Entity>) TEXT_DISPLAY;
-        org.bukkit.util.Consumer<Entity> callback = e -> setup(e, text, style, tags);
+        org.bukkit.util.Consumer<Entity> callback = e -> {
+            setup(e, text, style, tags);
+            e.setRotation(location.getYaw(), location.getPitch());
+        };
+        Entity entity;
         try {
-            return world.spawn(location, cls, callback);
+            entity = world.spawn(location, cls, callback);
         } catch (NoSuchMethodError e) {
             // 新版 API 删掉了 org.bukkit.util.Consumer 那个重载
-            Entity entity = world.spawnEntity(location, TEXT_DISPLAY_TYPE);
+            entity = world.spawnEntity(location, TEXT_DISPLAY_TYPE);
             setup(entity, text, style, tags);
-            return entity;
         }
+        // 混合端上 spawn 不带生成位置里的朝向，fixed 的字会全朝南，生成后再设一次
+        if (entity != null) entity.setRotation(location.getYaw(), location.getPitch());
+        return entity;
+    }
+
+    static void teleport(Entity entity, Location location) {
+        entity.teleport(location);
+        entity.setRotation(location.getYaw(), location.getPitch());
     }
 
     static void setText(Entity entity, String text) {

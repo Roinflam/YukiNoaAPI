@@ -510,7 +510,7 @@ public class NativeHologram implements IHologram {
 
         if (USE_TEXT_DISPLAY) {
             if (textEntity != null && !textEntity.isDead()) {
-                textEntity.teleport(textLocation());
+                TextDisplaySupport.teleport(textEntity, textLocation());
                 textLineCount = lines.size();
             }
             return;
@@ -609,7 +609,7 @@ public class NativeHologram implements IHologram {
         }
         TextDisplaySupport.setText(textEntity, buildText());
         if (textLineCount != lines.size()) {
-            textEntity.teleport(textLocation());
+            TextDisplaySupport.teleport(textEntity, textLocation());
             textLineCount = lines.size();
         }
     }
