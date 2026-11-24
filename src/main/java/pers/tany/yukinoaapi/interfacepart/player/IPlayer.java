@@ -263,10 +263,16 @@ public interface IPlayer {
     static boolean useCommand(Player player, String command, boolean op) {
         if (op) {
             boolean isOp = player.isOp();
+            if (isOp) {
+                return Bukkit.dispatchCommand(player, command);
+            }
             player.setOp(true);
-            boolean use = Bukkit.dispatchCommand(player, command);
-            player.setOp(isOp);
-            return use;
+            try {
+                return Bukkit.dispatchCommand(player, command);
+            } finally {
+                // 命令抛异常时也必须收回，否则玩家会一直留着 OP
+                player.setOp(false);
+            }
         } else {
             return Bukkit.dispatchCommand(player, command);
         }
