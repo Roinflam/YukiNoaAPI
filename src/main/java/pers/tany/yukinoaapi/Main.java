@@ -3,7 +3,7 @@ package pers.tany.yukinoaapi;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-import pers.tany.yukinoaapi.bstats.Metrics;
+import org.bstats.bukkit.Metrics;
 import pers.tany.yukinoaapi.command.DebugCommands;
 import pers.tany.yukinoaapi.command.HologramCommands;
 import pers.tany.yukinoaapi.config.ConfigManager;
