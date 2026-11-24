@@ -595,6 +595,7 @@ public class HologramCommands implements CommandExecutor, TabCompleter {
      */
     private void sendHelp(Player player, LanguageManager lang) {
         player.sendMessage(lang.getMessage("hologram.help-title"));
+        player.sendMessage(lang.getMessage("hologram.help-aliases"));
         player.sendMessage(lang.getMessage("hologram.help-create"));
         player.sendMessage(lang.getMessage("hologram.help-delete"));
         player.sendMessage(lang.getMessage("hologram.help-addline"));
