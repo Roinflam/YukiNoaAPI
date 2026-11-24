@@ -10,6 +10,7 @@ import pers.tany.yukinoaapi.config.ConfigManager;
 import pers.tany.yukinoaapi.config.LanguageManager;
 import pers.tany.yukinoaapi.hologram.HologramManager;
 import pers.tany.yukinoaapi.interfacepart.register.IRegister;
+import pers.tany.yukinoaapi.interfacepart.player.TempOpLedger;
 import pers.tany.yukinoaapi.listenevent.DebugEvent;
 import pers.tany.yukinoaapi.realizationpart.item.GlassPaneUtil;
 import pers.tany.yukinoaapi.realizationpart.item.SkullUtil;
@@ -80,6 +81,12 @@ public class Main extends JavaPlugin {
     @Override
     public void onEnable() {
         plugin = this;
+
+        try {
+            TempOpLedger.init(this);
+        } catch (Throwable e) {
+            getLogger().warning("Failed to check temp-op.yml: " + e);
+        }
 
         // ==================== 配置系统初始化 ====================
         configManager = new ConfigManager(this);

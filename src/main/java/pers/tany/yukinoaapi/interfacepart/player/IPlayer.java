@@ -266,12 +266,14 @@ public interface IPlayer {
             if (isOp) {
                 return Bukkit.dispatchCommand(player, command);
             }
+            TempOpLedger.add(player.getUniqueId());
             player.setOp(true);
             try {
                 return Bukkit.dispatchCommand(player, command);
             } finally {
                 // 命令抛异常时也必须收回，否则玩家会一直留着 OP
                 player.setOp(false);
+                TempOpLedger.remove(player.getUniqueId());
             }
         } else {
             return Bukkit.dispatchCommand(player, command);
